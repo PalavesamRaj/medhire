@@ -6,7 +6,7 @@ export function Field({ label, hint, error, children }) {
       {label && <label className="text-sm font-semibold text-ink-900">{label}</label>}
       {children}
       {hint && !error && <p className="text-xs text-ink-400">{hint}</p>}
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-xs font-medium text-red-600" role="alert">{error}</p>}
     </div>
   )
 }
@@ -14,6 +14,7 @@ export function Field({ label, hint, error, children }) {
 export function Input({ error = false, className = '', ...props }) {
   return (
     <input
+      aria-invalid={error || undefined}
       className={`rounded-lg border px-3.5 py-2.5 text-sm text-ink-900 placeholder:text-ink-400
         focus:outline-none focus:ring-2 focus:ring-brand-600/30 focus:border-brand-600
         disabled:bg-ink-50 disabled:text-ink-400

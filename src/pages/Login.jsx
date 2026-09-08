@@ -71,13 +71,14 @@ export default function Login() {
       panelImageContainerClassName="mx-auto w-[90%] rounded-t-xl rounded-b-none"
       panelImageAtBottom
     >
-      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-5">
           <Field label="Email Address" error={fieldErrors.email}>
           <Input
             type="email"
             placeholder="Enter your email address"
             value={form.email}
             onChange={update('email')}
+            error={Boolean(fieldErrors.email)}
             required
           />
         </Field>

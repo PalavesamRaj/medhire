@@ -83,7 +83,7 @@ export default function EmailVerification() {
       panelImageContainerClassName="mx-auto w-[90%] rounded-t-xl rounded-b-none"
       panelImageAtBottom
     >
-      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-5">
         <div className="flex items-center gap-3 rounded-lg border border-accent-100 bg-accent-50 p-4 text-sm text-accent-800">
           <CheckCircle2 className="h-5 w-5 shrink-0" />
           <p>We sent a verification code to your email address.</p>

@@ -82,13 +82,14 @@ export default function ForgotPassword() {
           </Link>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-5">
           <Field label="Email Address" error={fieldErrors.email}>
             <Input
               type="email"
               placeholder="Enter your email address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              error={Boolean(fieldErrors.email)}
               required
             />
           </Field>

@@ -57,7 +57,7 @@ export default function ResetPassword() {
       panelImageContainerClassName="mx-auto w-[90%] rounded-t-xl rounded-b-none"
       panelImageAtBottom
     >
-      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-5">
         <PasswordField
           label="New Password"
           placeholder="Create a new password"

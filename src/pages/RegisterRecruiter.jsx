@@ -83,13 +83,14 @@ export default function RegisterRecruiter() {
       panelImageAtBottom
       panelFooter="Institution Grade security. Fully HIPAA & Medical Council compliant."
     >
-      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-5">
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Recruiter Name" error={fieldErrors.name}>
             <Input
               placeholder="Enter your full name"
               value={form.name}
               onChange={update('name')}
+              error={Boolean(fieldErrors.name)}
               required
             />
           </Field>
@@ -99,6 +100,7 @@ export default function RegisterRecruiter() {
               placeholder="Enter your work email"
               value={form.email}
               onChange={update('email')}
+              error={Boolean(fieldErrors.email)}
               required
             />
           </Field>
@@ -106,7 +108,7 @@ export default function RegisterRecruiter() {
 
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Phone Number" error={fieldErrors.phone}>
-            <div className="flex overflow-hidden rounded-lg border border-ink-200 focus-within:border-brand-600 focus-within:ring-2 focus-within:ring-brand-600/30">
+            <div className={`flex overflow-hidden rounded-lg border focus-within:ring-2 ${fieldErrors.phone ? 'border-red-400 focus-within:border-red-500 focus-within:ring-red-500/20' : 'border-ink-200 focus-within:border-brand-600 focus-within:ring-brand-600/30'}`}>
               <span className="flex items-center border-r border-ink-200 bg-ink-50 px-3.5 text-sm text-ink-500">
                 +91
               </span>
@@ -115,6 +117,7 @@ export default function RegisterRecruiter() {
                 placeholder="Enter phone number"
                 value={form.phone}
                 onChange={update('phone')}
+                aria-invalid={Boolean(fieldErrors.phone) || undefined}
                 className="flex-1 px-3.5 py-2.5 text-sm text-ink-900 placeholder:text-ink-400 focus:outline-none"
                 required
               />
@@ -125,6 +128,7 @@ export default function RegisterRecruiter() {
               placeholder="e.g. HR Manager, Talent Acquisition Lead"
               value={form.designation}
               onChange={update('designation')}
+              error={Boolean(fieldErrors.designation)}
               required
             />
           </Field>
@@ -136,6 +140,7 @@ export default function RegisterRecruiter() {
               placeholder="Enter hospital or organization name"
               value={form.orgName}
               onChange={update('orgName')}
+              error={Boolean(fieldErrors.orgName)}
               required
             />
           </Field>
@@ -144,16 +149,17 @@ export default function RegisterRecruiter() {
               placeholder="e.g. www.hospital.com"
               value={form.orgWebsite}
               onChange={update('orgWebsite')}
+              error={Boolean(fieldErrors.orgWebsite)}
             />
           </Field>
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="City" error={fieldErrors.city}>
-            <Input placeholder="Select city" value={form.city} onChange={update('city')} required />
+            <Input placeholder="Select city" value={form.city} onChange={update('city')} error={Boolean(fieldErrors.city)} />
           </Field>
           <Field label="State" error={fieldErrors.state}>
-            <Input placeholder="Select state" value={form.state} onChange={update('state')} required />
+            <Input placeholder="Select state" value={form.state} onChange={update('state')} error={Boolean(fieldErrors.state)} />
           </Field>
         </div>
 
@@ -202,7 +208,8 @@ export default function RegisterRecruiter() {
         </label>
         {fieldErrors.agree && <p className="-mt-3 text-xs text-red-600">{fieldErrors.agree}</p>}
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {fieldErrors.agree && <p className="-mt-3 text-xs font-medium text-red-600">{fieldErrors.agree}</p>}
+        {error && <p className="text-sm font-medium text-red-600" role="alert">{error}</p>}
 
         <Button type="submit" icon={ArrowRight} disabled={loading} className="w-full justify-center">
           {loading ? 'Creating Account...' : 'Create Recruiter Account'}

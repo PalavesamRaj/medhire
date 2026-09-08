@@ -72,12 +72,13 @@ export default function RegisterCandidate() {
       panelImageContainerClassName="mx-auto w-[90%] rounded-t-xl rounded-b-none"
       panelImageAtBottom
     >
-      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-5">
         <Field label="Full Name" error={fieldErrors.name}>
           <Input
             placeholder="Enter your full name"
             value={form.name}
             onChange={update('name')}
+            error={Boolean(fieldErrors.name)}
             required
           />
         </Field>
@@ -88,12 +89,13 @@ export default function RegisterCandidate() {
             placeholder="Enter your email address"
             value={form.email}
             onChange={update('email')}
+            error={Boolean(fieldErrors.email)}
             required
           />
         </Field>
 
         <Field label="Mobile Number" error={fieldErrors.phone}>
-          <div className="flex overflow-hidden rounded-lg border border-ink-200 focus-within:border-brand-600 focus-within:ring-2 focus-within:ring-brand-600/30">
+          <div className={`flex overflow-hidden rounded-lg border focus-within:ring-2 ${fieldErrors.phone ? 'border-red-400 focus-within:border-red-500 focus-within:ring-red-500/20' : 'border-ink-200 focus-within:border-brand-600 focus-within:ring-brand-600/30'}`}>
             <span className="flex items-center border-r border-ink-200 bg-ink-50 px-3.5 text-sm text-ink-500">
               +91
             </span>
@@ -102,6 +104,7 @@ export default function RegisterCandidate() {
               placeholder="Enter mobile number"
               value={form.phone}
               onChange={update('phone')}
+              aria-invalid={Boolean(fieldErrors.phone) || undefined}
               className="flex-1 px-3.5 py-2.5 text-sm text-ink-900 placeholder:text-ink-400 focus:outline-none"
               required
             />
@@ -146,7 +149,7 @@ export default function RegisterCandidate() {
             </Link>
           </span>
         </label>
-        {fieldErrors.agree && <p className="-mt-3 text-xs text-red-600">{fieldErrors.agree}</p>}
+        {fieldErrors.agree && <p className="-mt-3 text-xs font-medium text-red-600">{fieldErrors.agree}</p>}
 
         <Button type="submit" disabled={loading} className="w-full justify-center">
           {loading ? 'Creating Account...' : 'Create Account'}
