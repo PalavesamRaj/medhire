@@ -15,12 +15,12 @@ function getStrength(pw) {
 const labels = ['Weak', 'Fair', 'Good', 'Strong']
 const barColors = ['bg-red-500', 'bg-amber-500', 'bg-accent-500', 'bg-green-600']
 
-export function PasswordField({ label, placeholder, value, onChange, showStrength = false }) {
+export function PasswordField({ label, placeholder, value, onChange, showStrength = false, error }) {
   const [visible, setVisible] = useState(false)
   const strength = useMemo(() => getStrength(value), [value])
 
   return (
-    <Field label={label}>
+    <Field label={label} error={error}>
       <div className="relative">
         <Input
           type={visible ? 'text' : 'password'}

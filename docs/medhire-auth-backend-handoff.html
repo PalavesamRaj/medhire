@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MedHire Authentication Backend Handoff</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  :root { --navy: #15324b; --blue: #176b87; --teal: #0d9488; --ink: #263746; --muted: #617383; --line: #d9e2e8; --soft: #f3f7f9; --code: #12212d; }
+  * { box-sizing: border-box; }
+  body { margin: 0; color: var(--ink); font-family: Arial, Helvetica, sans-serif; font-size: 10.5pt; line-height: 1.48; }
+  h1, h2, h3 { color: var(--navy); margin: 0 0 8px; line-height: 1.2; }
+  h1 { font-size: 28pt; letter-spacing: .2px; }
+  h2 { font-size: 17pt; margin-top: 24px; padding-bottom: 6px; border-bottom: 2px solid var(--teal); }
+  h3 { font-size: 12.5pt; margin-top: 17px; }
+  p { margin: 6px 0 10px; }
+  .cover { min-height: 245mm; display: flex; flex-direction: column; justify-content: space-between; padding: 15mm 4mm 10mm; page-break-after: always; }
+  .eyebrow { color: var(--teal); text-transform: uppercase; letter-spacing: 2px; font-size: 9pt; font-weight: bold; }
+  .subtitle { color: var(--muted); font-size: 14pt; max-width: 135mm; margin-top: 12px; }
+  .meta { border-top: 1px solid var(--line); padding-top: 12px; color: var(--muted); }
+  .badge { display: inline-block; color: white; background: var(--teal); padding: 5px 9px; border-radius: 4px; font-size: 9pt; font-weight: bold; }
+  .intro { background: var(--soft); border-left: 4px solid var(--teal); padding: 10px 13px; margin: 12px 0 16px; }
+  .endpoint { page-break-inside: avoid; margin: 14px 0 20px; }
+  .method { color: white; background: var(--blue); border-radius: 3px; padding: 4px 7px; font-size: 8.5pt; font-weight: bold; margin-right: 7px; }
+  .path { font-family: Consolas, monospace; font-weight: bold; color: var(--navy); }
+  pre { background: var(--code); color: #e8f1f5; padding: 11px 13px; border-radius: 5px; overflow-wrap: anywhere; white-space: pre-wrap; font: 8.5pt/1.45 Consolas, monospace; margin: 8px 0 11px; }
+  code { font-family: Consolas, monospace; color: var(--blue); }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 13px; page-break-inside: avoid; }
+  th { background: var(--navy); color: white; text-align: left; font-size: 9pt; }
+  th, td { border: 1px solid var(--line); padding: 6px 7px; vertical-align: top; }
+  td { font-size: 9pt; }
+  tr:nth-child(even) td { background: #f8fafb; }
+  .small { color: var(--muted); font-size: 9pt; }
+  .page-break { page-break-before: always; }
+  .checklist { padding-left: 18px; }
+  .checklist li { margin: 5px 0; }
+  .footer-note { margin-top: 20px; color: var(--muted); font-size: 8.5pt; border-top: 1px solid var(--line); padding-top: 8px; }
+</style>
+</head>
+<body>
+<section class="cover">
+  <div>
+    <div class="eyebrow">MedHire Engineering Handoff</div>
+    <h1>Authentication Backend Contract</h1>
+    <p class="subtitle">API requirements for candidate and recruiter registration, login, email verification, forgot password, and reset password.</p>
+    <p><span class="badge">Frontend ready for API integration</span></p>
+    <div class="intro"><strong>Current frontend status:</strong> The auth screens currently use local demo navigation. Registration, login, verification, forgot-password, and reset-password API calls still need to be connected to the backend.</div>
+  </div>
+  <div class="meta"><strong>Project:</strong> MedHire<br><strong>Document:</strong> Backend API handoff<br><strong>Date:</strong> September 8, 2026</div>
+</section>
+
+<h2>1. Common API Rules</h2>
+<table>
+<tr><th>Item</th><th>Requirement</th></tr>
+<tr><td>Content type</td><td>Requests and responses use <code>application/json</code>.</td></tr>
+<tr><td>Authentication</td><td>Return an access token after successful login. Prefer an HTTP-only secure refresh-token cookie or a secure token strategy.</td></tr>
+<tr><td>Roles</td><td>Allowed values are <code>candidate</code> and <code>recruiter</code>.</td></tr>
+<tr><td>Password</td><td>Minimum 8 characters. Recommended: at least one uppercase letter, number, and special character.</td></tr>
+<tr><td>Verification code</td><td>Six numeric digits. Expire after approximately 10 minutes, allow resend rate limiting, and invalidate after successful use.</td></tr>
+<tr><td>Reset token</td><td>Single-use, short-lived, and invalidated after a successful password reset.</td></tr>
+<tr><td>Security</td><td>Hash passwords server-side. Never return passwords or expose whether an email exists during forgot-password requests.</td></tr>
+</table>
+
+<h2>2. Candidate Registration</h2>
+<div class="endpoint"><h3><span class="method">POST</span><span class="path">/api/auth/register</span></h3>
+<pre>{
+  "role": "candidate",
+  "fullName": "Anita Sharma",
+  "email": "anita@example.com",
+  "phone": "+919876543210",
+  "password": "ExamplePassword@123",
+  "termsAccepted": true
+}</pre>
+<p class="small"><strong>Frontend-only:</strong> <code>confirmPassword</code> is checked in the browser and is not sent to the backend. The terms checkbox becomes <code>termsAccepted</code>.</p>
+<p><strong>Success:</strong> Create the account in an unverified state, send a registration verification code, and return <code>201 Created</code>.</p>
+<pre>{
+  "message": "Verification code sent",
+  "userId": "user_123",
+  "email": "anita@example.com",
+  "role": "candidate",
+  "emailVerified": false
+}</pre></div>
+
+<h2>3. Recruiter Registration</h2>
+<div class="endpoint"><h3><span class="method">POST</span><span class="path">/api/auth/register</span></h3>
+<pre>{
+  "role": "recruiter",
+  "fullName": "Rahul Menon",
+  "email": "rahul@hospital.com",
+  "phone": "+919876543210",
+  "designation": "HR Manager",
+  "organizationName": "MedCare Hospital",
+  "organizationWebsite": "https://hospital.com",
+  "city": "Chennai",
+  "state": "Tamil Nadu",
+  "password": "ExamplePassword@123",
+  "termsAccepted": true
+}</pre>
+<p class="small"><strong>Frontend-only:</strong> <code>confirmPassword</code> is not sent. The UI currently displays the phone country prefix as <code>+91</code>; send the complete E.164 phone number or confirm a separate country-code field with the frontend team.</p>
+<p><strong>Success:</strong> Create the recruiter account as pending organization verification, send the email verification code, and return <code>201 Created</code>.</p></div>
+
+<h2>4. Login</h2>
+<div class="endpoint"><h3><span class="method">POST</span><span class="path">/api/auth/login</span></h3>
+<pre>{
+  "email": "anita@example.com",
+  "password": "ExamplePassword@123",
+  "rememberMe": true
+}</pre>
+<p class="small"><code>rememberMe</code> controls token/session duration. It does not need to be stored as a user profile field.</p>
+<p><strong>Success:</strong> Return <code>200 OK</code> with session tokens and the authenticated user.</p>
+<pre>{
+  "accessToken": "eyJ...",
+  "refreshToken": "refresh-token-value",
+  "expiresIn": 3600,
+  "user": {
+    "id": "user_123",
+    "role": "candidate",
+    "fullName": "Anita Sharma",
+    "email": "anita@example.com",
+    "emailVerified": true
+  }
+}</pre></div>
+
+<div class="page-break"></div>
+<h2>5. Forgot Password</h2>
+<div class="endpoint"><h3><span class="method">POST</span><span class="path">/api/auth/forgot-password</span></h3>
+<pre>{
+  "email": "anita@example.com"
+}</pre>
+<p><strong>Success:</strong> Always return a generic response such as <code>202 Accepted</code>, whether or not the email exists.</p>
+<pre>{
+  "message": "If an account exists, reset instructions have been sent."
+}</pre></div>
+
+<h2>6. Resend Verification Code</h2>
+<div class="endpoint"><h3><span class="method">POST</span><span class="path">/api/auth/resend-code</span></h3>
+<pre>{
+  "email": "anita@example.com",
+  "purpose": "registration"
+}</pre>
+<p>For password reset, use <code>"purpose": "password_reset"</code>. Rate-limit this endpoint, for example once per 60 seconds per email and IP address.</p></div>
+
+<h2>7. Verify Email or Reset Code</h2>
+<div class="endpoint"><h3><span class="method">POST</span><span class="path">/api/auth/verify-code</span></h3>
+<pre>{
+  "email": "anita@example.com",
+  "code": "482916",
+  "purpose": "registration"
+}</pre>
+<p>For registration, mark the account email as verified and return:</p>
+<pre>{
+  "verified": true,
+  "purpose": "registration",
+  "user": {
+    "id": "user_123",
+    "role": "candidate",
+    "emailVerified": true
+  }
+}</pre>
+<p>For password reset, use <code>"purpose": "password_reset"</code> and return a short-lived reset token:</p>
+<pre>{
+  "verified": true,
+  "purpose": "password_reset",
+  "resetToken": "reset-token-value"
+}</pre></div>
+
+<h2>8. Reset Password</h2>
+<div class="endpoint"><h3><span class="method">POST</span><span class="path">/api/auth/reset-password</span></h3>
+<pre>{
+  "email": "anita@example.com",
+  "resetToken": "reset-token-value",
+  "newPassword": "NewExamplePassword@123"
+}</pre>
+<p class="small"><strong>Frontend-only:</strong> <code>confirmPassword</code> is compared with <code>newPassword</code> in the browser and is not sent.</p>
+<p><strong>Success:</strong> Invalidate the token, update the password hash, revoke existing sessions if required, and return <code>200 OK</code>.</p>
+<pre>{
+  "message": "Password reset successfully"
+}</pre></div>
+
+<h2>9. Error Response Format</h2>
+<pre>{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Please correct the highlighted fields.",
+    "fields": {
+      "email": "Enter a valid email address."
+    }
+  }
+}</pre>
+<table>
+<tr><th>Status</th><th>Use</th></tr>
+<tr><td>400</td><td>Invalid request or validation failure.</td></tr>
+<tr><td>401</td><td>Invalid login credentials or invalid reset token.</td></tr>
+<tr><td>403</td><td>Email not verified or recruiter organization not approved.</td></tr>
+<tr><td>409</td><td>Email already registered.</td></tr>
+<tr><td>422</td><td>Business-rule validation failure.</td></tr>
+<tr><td>429</td><td>Too many login, reset, or resend-code attempts.</td></tr>
+</table>
+
+<div class="page-break"></div>
+<h2>10. Frontend Integration Checklist</h2>
+<ul class="checklist">
+<li>Connect candidate and recruiter registration forms to <code>POST /api/auth/register</code>.</li>
+<li>Connect login and store the returned session securely.</li>
+<li>Connect forgot-password form to <code>POST /api/auth/forgot-password</code>.</li>
+<li>Replace the demo verification code <code>123456</code> with the backend verification endpoint.</li>
+<li>Connect resend-code button to <code>POST /api/auth/resend-code</code>.</li>
+<li>Pass the returned reset token into the reset-password flow.</li>
+<li>Connect reset-password form to <code>POST /api/auth/reset-password</code>.</li>
+<li>Display backend validation and authentication errors in the form.</li>
+<li>Confirm whether the backend uses six-digit OTP verification or emailed reset links.</li>
+<li>Confirm the final API base URL and authentication token storage policy.</li>
+</ul>
+
+<h2>11. Current Frontend Files</h2>
+<table>
+<tr><th>Screen</th><th>Frontend file</th><th>Route</th></tr>
+<tr><td>Candidate registration</td><td>src/pages/RegisterCandidate.jsx</td><td>/register/candidate</td></tr>
+<tr><td>Recruiter registration</td><td>src/pages/RegisterRecruiter.jsx</td><td>/register/recruiter</td></tr>
+<tr><td>Login</td><td>src/pages/Login.jsx</td><td>/login</td></tr>
+<tr><td>Forgot password</td><td>src/pages/ForgotPassword.jsx</td><td>/forgot-password</td></tr>
+<tr><td>Email verification</td><td>src/pages/EmailVerification.jsx</td><td>/verify-email</td></tr>
+<tr><td>Reset password</td><td>src/pages/ResetPassword.jsx</td><td>/reset-password</td></tr>
+</table>
+<p class="footer-note">Prepared for the MedHire backend team. This document describes the proposed API contract; backend endpoint names and token strategy should be confirmed before frontend integration.</p>
+</body>
+</html>

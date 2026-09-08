@@ -4,6 +4,8 @@ import AuthSplitLayout from '../components/auth/AuthSplitLayout'
 import { Field, Input } from '../components/ui/FormControls'
 import { PasswordField } from '../components/ui/PasswordField'
 import Button from '../components/ui/Button'
+import { authApi } from '../lib/authApi'
+import { validateRegistration } from '../lib/authValidation'
 import heroImage from '../assets/signup.png'
 
 export default function RegisterCandidate() {
@@ -16,6 +18,9 @@ export default function RegisterCandidate() {
     confirmPassword: '',
     agree: false,
   })
+  const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState({})
+  const [loading, setLoading] = useState(false)
 
   const update = (field) => (e) =>
     setForm((f) => ({
@@ -23,13 +28,32 @@ export default function RegisterCandidate() {
       [field]: e.target.type === 'checkbox' ? e.target.checked : e.target.value,
     }))
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    if (form.password !== form.confirmPassword) {
-      alert('Passwords do not match.')
+    const validationErrors = validateRegistration(form, 'candidate')
+    if (Object.keys(validationErrors).length) {
+      setFieldErrors(validationErrors)
+      setError('Please correct the highlighted fields.')
       return
     }
-    navigate(`/verify-email?role=candidate&email=${encodeURIComponent(form.email)}&source=registration`)
+    setFieldErrors({})
+    setError('')
+    setLoading(true)
+    try {
+      await authApi.register({
+        role: 'candidate',
+        fullName: form.name,
+        email: form.email,
+        phone: `+91${form.phone.replace(/\D/g, '')}`,
+        password: form.password,
+        termsAccepted: form.agree,
+      })
+      navigate(`/verify-email?role=candidate&email=${encodeURIComponent(form.email)}&source=registration`)
+    } catch (requestError) {
+      setError(requestError.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -49,7 +73,7 @@ export default function RegisterCandidate() {
       panelImageAtBottom
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-        <Field label="Full Name">
+        <Field label="Full Name" error={fieldErrors.name}>
           <Input
             placeholder="Enter your full name"
             value={form.name}
@@ -58,7 +82,7 @@ export default function RegisterCandidate() {
           />
         </Field>
 
-        <Field label="Email Address">
+        <Field label="Email Address" error={fieldErrors.email}>
           <Input
             type="email"
             placeholder="Enter your email address"
@@ -68,7 +92,7 @@ export default function RegisterCandidate() {
           />
         </Field>
 
-        <Field label="Mobile Number">
+        <Field label="Mobile Number" error={fieldErrors.phone}>
           <div className="flex overflow-hidden rounded-lg border border-ink-200 focus-within:border-brand-600 focus-within:ring-2 focus-within:ring-brand-600/30">
             <span className="flex items-center border-r border-ink-200 bg-ink-50 px-3.5 text-sm text-ink-500">
               +91
@@ -90,13 +114,17 @@ export default function RegisterCandidate() {
           value={form.password}
           onChange={update('password')}
           showStrength
+          error={fieldErrors.password}
         />
+
+        {error && <p className="text-sm text-red-600">{error}</p>}
 
         <PasswordField
           label="Confirm Password"
           placeholder="Confirm your password"
           value={form.confirmPassword}
           onChange={update('confirmPassword')}
+          error={fieldErrors.confirmPassword}
         />
 
         <label className="flex items-start gap-2.5 text-sm text-ink-600">
@@ -118,9 +146,10 @@ export default function RegisterCandidate() {
             </Link>
           </span>
         </label>
+        {fieldErrors.agree && <p className="-mt-3 text-xs text-red-600">{fieldErrors.agree}</p>}
 
-        <Button type="submit" className="w-full justify-center">
-          Create Account
+        <Button type="submit" disabled={loading} className="w-full justify-center">
+          {loading ? 'Creating Account...' : 'Create Account'}
         </Button>
 
         <p className="text-center text-sm text-ink-500">

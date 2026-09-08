@@ -4,6 +4,8 @@ import AuthSplitLayout from '../components/auth/AuthSplitLayout'
 import { Field, Input } from '../components/ui/FormControls'
 import { PasswordField } from '../components/ui/PasswordField'
 import Button from '../components/ui/Button'
+import { authApi } from '../lib/authApi'
+import { validateLogin } from '../lib/authValidation'
 import panelImage from '../assets/login.png'
 
 export default function Login() {
@@ -13,6 +15,9 @@ export default function Login() {
     password: '',
     remember: false,
   })
+  const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState({})
+  const [loading, setLoading] = useState(false)
 
   const update = (field) => (e) =>
     setForm((f) => ({
@@ -20,11 +25,34 @@ export default function Login() {
       [field]: e.target.type === 'checkbox' ? e.target.checked : e.target.value,
     }))
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    // Wire up to your backend / auth service here.
-    console.log('Login submitted:', form)
-    navigate('/')
+    const validationErrors = validateLogin(form)
+    if (Object.keys(validationErrors).length) {
+      setFieldErrors(validationErrors)
+      setError('Please enter valid login details.')
+      return
+    }
+    setFieldErrors({})
+    setError('')
+    setLoading(true)
+    try {
+      const response = await authApi.login({
+        email: form.email,
+        password: form.password,
+        rememberMe: form.remember,
+      })
+      if (response.accessToken) localStorage.setItem('medhire_access_token', response.accessToken)
+      if (response.refreshToken) {
+        const storage = form.remember ? localStorage : sessionStorage
+        storage.setItem('medhire_refresh_token', response.refreshToken)
+      }
+      navigate('/')
+    } catch (requestError) {
+      setError(requestError.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -44,7 +72,7 @@ export default function Login() {
       panelImageAtBottom
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-        <Field label="Email Address">
+          <Field label="Email Address" error={fieldErrors.email}>
           <Input
             type="email"
             placeholder="Enter your email address"
@@ -59,6 +87,7 @@ export default function Login() {
           placeholder="Enter your password"
           value={form.password}
           onChange={update('password')}
+          error={fieldErrors.password}
         />
 
         <div className="flex items-center justify-between">
@@ -79,8 +108,10 @@ export default function Login() {
           </Link>
         </div>
 
-        <Button type="submit" className="w-full justify-center">
-          Log In
+        {error && <p className="text-sm text-red-600">{error}</p>}
+
+        <Button type="submit" disabled={loading} className="w-full justify-center">
+          {loading ? 'Logging In...' : 'Log In'}
         </Button>
 
         <p className="text-center text-sm text-ink-500">

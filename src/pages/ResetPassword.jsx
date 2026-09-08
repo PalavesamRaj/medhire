@@ -3,6 +3,8 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import AuthSplitLayout from '../components/auth/AuthSplitLayout'
 import { PasswordField } from '../components/ui/PasswordField'
 import Button from '../components/ui/Button'
+import { authApi } from '../lib/authApi'
+import { validateResetPassword } from '../lib/authValidation'
 import panelImage from '../assets/resetpass.png'
 
 export default function ResetPassword() {
@@ -10,18 +12,33 @@ export default function ResetPassword() {
   const [searchParams] = useSearchParams()
   const role = searchParams.get('role') === 'recruiter' ? 'recruiter' : 'candidate'
   const email = searchParams.get('email') || ''
+  const resetToken = searchParams.get('resetToken') || ''
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState({})
+  const [loading, setLoading] = useState(false)
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
-    if (password !== confirmPassword) {
-      setError('Passwords do not match.')
+    const validationErrors = validateResetPassword(email, resetToken, password, confirmPassword)
+    if (Object.keys(validationErrors).length) {
+      setFieldErrors(validationErrors)
+      setError(Object.values(validationErrors)[0])
       return
     }
 
-    navigate(`/password-reset-success?role=${role}&email=${encodeURIComponent(email)}`)
+    setFieldErrors({})
+    setError('')
+    setLoading(true)
+    try {
+      await authApi.resetPassword({ email, resetToken, newPassword: password })
+      navigate(`/password-reset-success?role=${role}&email=${encodeURIComponent(email)}`)
+    } catch (requestError) {
+      setError(requestError.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -50,6 +67,7 @@ export default function ResetPassword() {
             setError('')
           }}
           showStrength
+          error={fieldErrors.password}
         />
         <PasswordField
           label="Confirm New Password"
@@ -59,10 +77,11 @@ export default function ResetPassword() {
             setConfirmPassword(event.target.value)
             setError('')
           }}
+          error={fieldErrors.confirmPassword}
         />
         {error && <p className="-mt-3 text-xs text-red-600">{error}</p>}
-        <Button type="submit" className="w-full justify-center">
-          Reset Password
+        <Button type="submit" disabled={loading} className="w-full justify-center">
+          {loading ? 'Resetting...' : 'Reset Password'}
         </Button>
         <p className="text-center text-sm text-ink-500">
           Remembered your password?{' '}

@@ -4,15 +4,36 @@ import { MailCheck } from 'lucide-react'
 import AuthSplitLayout from '../components/auth/AuthSplitLayout'
 import { Field, Input } from '../components/ui/FormControls'
 import Button from '../components/ui/Button'
+import { authApi } from '../lib/authApi'
+import { validateForgotPassword } from '../lib/authValidation'
 import panelImage from '../assets/security-shields.png'
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
+  const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState({})
+  const [loading, setLoading] = useState(false)
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    setSent(true)
+    const validationErrors = validateForgotPassword(email)
+    if (Object.keys(validationErrors).length) {
+      setFieldErrors(validationErrors)
+      setError('Please enter a valid email address.')
+      return
+    }
+    setFieldErrors({})
+    setError('')
+    setLoading(true)
+    try {
+      await authApi.forgotPassword({ email })
+      setSent(true)
+    } catch (requestError) {
+      setError(requestError.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -62,7 +83,7 @@ export default function ForgotPassword() {
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-          <Field label="Email Address">
+          <Field label="Email Address" error={fieldErrors.email}>
             <Input
               type="email"
               placeholder="Enter your email address"
@@ -72,8 +93,10 @@ export default function ForgotPassword() {
             />
           </Field>
 
-          <Button type="submit" className="w-full justify-center">
-            Send Reset Link
+          {error && <p className="text-sm text-red-600">{error}</p>}
+
+          <Button type="submit" disabled={loading} className="w-full justify-center">
+            {loading ? 'Sending...' : 'Send Reset Link'}
           </Button>
 
           <p className="text-center text-sm text-ink-500">

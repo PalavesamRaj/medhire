@@ -5,6 +5,8 @@ import AuthSplitLayout from '../components/auth/AuthSplitLayout'
 import { Field, Input } from '../components/ui/FormControls'
 import { PasswordField } from '../components/ui/PasswordField'
 import Button from '../components/ui/Button'
+import { authApi } from '../lib/authApi'
+import { validateRegistration } from '../lib/authValidation'
 import panelImage from '../assets/recruiter-candidate-grid.png'
 
 export default function RegisterRecruiter() {
@@ -22,6 +24,9 @@ export default function RegisterRecruiter() {
     confirmPassword: '',
     agree: false,
   })
+  const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState({})
+  const [loading, setLoading] = useState(false)
 
   const update = (field) => (e) =>
     setForm((f) => ({
@@ -29,13 +34,37 @@ export default function RegisterRecruiter() {
       [field]: e.target.type === 'checkbox' ? e.target.checked : e.target.value,
     }))
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    if (form.password !== form.confirmPassword) {
-      alert('Passwords do not match.')
+    const validationErrors = validateRegistration(form, 'recruiter')
+    if (Object.keys(validationErrors).length) {
+      setFieldErrors(validationErrors)
+      setError('Please correct the highlighted fields.')
       return
     }
-    navigate(`/verify-email?role=recruiter&email=${encodeURIComponent(form.email)}&source=registration`)
+    setFieldErrors({})
+    setError('')
+    setLoading(true)
+    try {
+      await authApi.register({
+        role: 'recruiter',
+        fullName: form.name,
+        email: form.email,
+        phone: `+91${form.phone.replace(/\D/g, '')}`,
+        designation: form.designation,
+        organizationName: form.orgName,
+        organizationWebsite: form.orgWebsite,
+        city: form.city,
+        state: form.state,
+        password: form.password,
+        termsAccepted: form.agree,
+      })
+      navigate(`/verify-email?role=recruiter&email=${encodeURIComponent(form.email)}&source=registration`)
+    } catch (requestError) {
+      setError(requestError.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -56,7 +85,7 @@ export default function RegisterRecruiter() {
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="Recruiter Name">
+          <Field label="Recruiter Name" error={fieldErrors.name}>
             <Input
               placeholder="Enter your full name"
               value={form.name}
@@ -64,7 +93,7 @@ export default function RegisterRecruiter() {
               required
             />
           </Field>
-          <Field label="Official Work Email">
+          <Field label="Official Work Email" error={fieldErrors.email}>
             <Input
               type="email"
               placeholder="Enter your work email"
@@ -76,7 +105,7 @@ export default function RegisterRecruiter() {
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="Phone Number">
+          <Field label="Phone Number" error={fieldErrors.phone}>
             <div className="flex overflow-hidden rounded-lg border border-ink-200 focus-within:border-brand-600 focus-within:ring-2 focus-within:ring-brand-600/30">
               <span className="flex items-center border-r border-ink-200 bg-ink-50 px-3.5 text-sm text-ink-500">
                 +91
@@ -91,7 +120,7 @@ export default function RegisterRecruiter() {
               />
             </div>
           </Field>
-          <Field label="Designation">
+          <Field label="Designation" error={fieldErrors.designation}>
             <Input
               placeholder="e.g. HR Manager, Talent Acquisition Lead"
               value={form.designation}
@@ -102,7 +131,7 @@ export default function RegisterRecruiter() {
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="Hospital / Organization Name">
+          <Field label="Hospital / Organization Name" error={fieldErrors.orgName}>
             <Input
               placeholder="Enter hospital or organization name"
               value={form.orgName}
@@ -110,7 +139,7 @@ export default function RegisterRecruiter() {
               required
             />
           </Field>
-          <Field label="Hospital Website">
+          <Field label="Hospital Website" error={fieldErrors.orgWebsite}>
             <Input
               placeholder="e.g. www.hospital.com"
               value={form.orgWebsite}
@@ -120,10 +149,10 @@ export default function RegisterRecruiter() {
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="City">
+          <Field label="City" error={fieldErrors.city}>
             <Input placeholder="Select city" value={form.city} onChange={update('city')} required />
           </Field>
-          <Field label="State">
+          <Field label="State" error={fieldErrors.state}>
             <Input placeholder="Select state" value={form.state} onChange={update('state')} required />
           </Field>
         </div>
@@ -134,12 +163,14 @@ export default function RegisterRecruiter() {
           value={form.password}
           onChange={update('password')}
           showStrength
+          error={fieldErrors.password}
         />
         <PasswordField
           label="Confirm Password"
           placeholder="Confirm your password"
           value={form.confirmPassword}
           onChange={update('confirmPassword')}
+          error={fieldErrors.confirmPassword}
         />
 
         <div className="flex items-start gap-3 rounded-lg border border-brand-100 bg-brand-50 p-4 text-sm text-brand-800">
@@ -169,9 +200,12 @@ export default function RegisterRecruiter() {
             </Link>
           </span>
         </label>
+        {fieldErrors.agree && <p className="-mt-3 text-xs text-red-600">{fieldErrors.agree}</p>}
 
-        <Button type="submit" icon={ArrowRight} className="w-full justify-center">
-          Create Recruiter Account
+        {error && <p className="text-sm text-red-600">{error}</p>}
+
+        <Button type="submit" icon={ArrowRight} disabled={loading} className="w-full justify-center">
+          {loading ? 'Creating Account...' : 'Create Recruiter Account'}
         </Button>
 
         <p className="text-center text-sm text-ink-500">
