@@ -40,6 +40,7 @@ export default function Login() {
       panelImage={panelImage}
       panelImageAlt="Hospital lobby"
       panelImageClassName="h-96 object-center"
+      panelImageAtBottom
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <Field label="Email Address">

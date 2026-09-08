@@ -12,6 +12,7 @@ export default function AuthSplitLayout({
   panelImage,
   panelImageAlt,
   panelImageClassName = 'h-72 object-top',
+  panelImageAtBottom = false,
   panelFooter,
 }) {
   return (
@@ -28,7 +29,11 @@ export default function AuthSplitLayout({
         </div>
       </div>
 
-      <div className="relative hidden flex-col justify-between overflow-hidden bg-brand-900 px-12 py-12 lg:flex">
+      <div
+        className={`relative hidden flex-col justify-between overflow-hidden bg-brand-900 px-12 py-12 lg:flex ${
+          panelImageAtBottom ? 'pb-0' : ''
+        }`}
+      >
         <div>
           <Logo light />
           <h2 className="mt-8 max-w-sm text-3xl font-extrabold leading-tight text-white">

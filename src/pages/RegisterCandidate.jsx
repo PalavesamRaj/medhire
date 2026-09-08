@@ -45,6 +45,7 @@ export default function RegisterCandidate() {
       panelImage={heroImage}
       panelImageAlt="Group of healthcare professionals"
       panelImageClassName="h-96 object-center"
+      panelImageAtBottom
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <Field label="Full Name">

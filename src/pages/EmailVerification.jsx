@@ -49,6 +49,7 @@ export default function EmailVerification() {
       panelImage={panelImage}
       panelImageAlt="Security and compliance"
       panelImageClassName="h-96 object-center"
+      panelImageAtBottom
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <div className="flex items-center gap-3 rounded-lg border border-accent-100 bg-accent-50 p-4 text-sm text-accent-800">

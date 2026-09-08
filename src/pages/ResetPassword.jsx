@@ -37,6 +37,7 @@ export default function ResetPassword() {
       panelImage={panelImage}
       panelImageAlt="Security and compliance"
       panelImageClassName="h-96 object-center"
+      panelImageAtBottom
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <PasswordField

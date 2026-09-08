@@ -32,6 +32,7 @@ export default function ForgotPassword() {
       panelImage={panelImage}
       panelImageAlt="Security and compliance"
       panelImageClassName="h-96 object-center"
+      panelImageAtBottom
     >
       {sent ? (
         <div className="flex flex-col items-center gap-5 text-center">

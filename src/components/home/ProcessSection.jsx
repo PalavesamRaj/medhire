@@ -16,23 +16,27 @@ const recruiterSteps = [
 
 function StepList({ steps }) {
   return (
-    <div className="grid gap-4 sm:grid-cols-3">
-      {steps.map((s, i) => (
-        <div key={s.title} className="rounded-xl border border-ink-200 bg-white p-5">
-          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent-50 text-xs font-bold text-accent-700">
-            {i + 1}
-          </span>
-          <p className="mt-3 font-semibold text-ink-900">{s.title}</p>
-          <p className="mt-1.5 text-sm text-ink-600">{s.desc}</p>
-        </div>
-      ))}
+    <div className="rounded-xl border border-ink-200 bg-white p-5 shadow-sm">
+      <div className="flex flex-col gap-5">
+        {steps.map((s, i) => (
+          <div key={s.title} className="flex gap-3">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent-50 text-[11px] font-bold text-accent-700">
+              {i + 1}
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-ink-900">{s.title}</p>
+              <p className="mt-1 text-xs leading-relaxed text-ink-600">{s.desc}</p>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
 
 export default function ProcessSection() {
   return (
-    <section className="bg-ink-50/60 py-20">
+    <section className="bg-ink-50/60 py-16">
       <div className="container-page">
         <SectionHeading
           eyebrow="Process"
@@ -40,16 +44,16 @@ export default function ProcessSection() {
           subtitle="A simplified, secure methodology designed for direct medical matching with complete institutional trust."
         />
 
-        <div className="mt-12 grid gap-10 lg:grid-cols-2">
+        <div className="mt-10 grid gap-6 lg:grid-cols-2">
           <div>
-            <div className="mb-4 flex items-center gap-2">
+            <div className="mb-3 flex items-center gap-2">
               <User className="h-4 w-4 text-ink-600" />
               <h3 className="font-semibold text-ink-900">For Candidates</h3>
             </div>
             <StepList steps={candidateSteps} />
           </div>
           <div>
-            <div className="mb-4 flex items-center gap-2">
+            <div className="mb-3 flex items-center gap-2">
               <Building2 className="h-4 w-4 text-ink-600" />
               <h3 className="font-semibold text-ink-900">For Recruiters</h3>
             </div>
