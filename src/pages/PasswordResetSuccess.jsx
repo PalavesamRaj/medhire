@@ -18,7 +18,8 @@ export default function PasswordResetSuccess() {
       ]}
       panelImage={panelImage}
       panelImageAlt="Security and compliance"
-      panelImageClassName="h-96 object-center"
+      panelImageClassName="h-96 w-full rounded-t-xl object-center"
+      panelImageContainerClassName="mx-auto w-[90%] rounded-t-xl rounded-b-none"
       panelImageAtBottom
     >
       <div className="flex flex-col items-center gap-5 text-center">

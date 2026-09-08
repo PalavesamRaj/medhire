@@ -51,6 +51,7 @@ export default function RegisterRecruiter() {
       panelImage={panelImage}
       panelImageAlt="Recruiting team reviewing candidates"
       panelImageClassName="h-96 object-center"
+      panelImageAtBottom
       panelFooter="Institution Grade security. Fully HIPAA & Medical Council compliant."
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">

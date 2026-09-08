@@ -44,7 +44,8 @@ export default function RegisterCandidate() {
       ]}
       panelImage={heroImage}
       panelImageAlt="Group of healthcare professionals"
-      panelImageClassName="h-96 object-center"
+      panelImageClassName="h-96 w-full rounded-t-xl object-center"
+      panelImageContainerClassName="mx-auto w-[90%] rounded-t-xl rounded-b-none"
       panelImageAtBottom
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
