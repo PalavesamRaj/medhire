@@ -6,6 +6,11 @@ export default function LegalLayout({ eyebrow, title, updated, updatedLine, intr
   const refs = useRef({})
 
   useEffect(() => {
+    window.scrollTo(0, 0)
+    setActive(sections[0]?.id)
+  }, [sections])
+
+  useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
