@@ -6,10 +6,12 @@ import { PasswordField } from '../components/ui/PasswordField'
 import Button from '../components/ui/Button'
 import { authApi } from '../lib/authApi'
 import { validateRegistration } from '../lib/authValidation'
+import { useToast } from '../components/ui/ToastProvider'
 import heroImage from '../assets/signup.png'
 
 export default function RegisterCandidate() {
   const navigate = useNavigate()
+  const showToast = useToast()
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -48,6 +50,7 @@ export default function RegisterCandidate() {
         password: form.password,
         termsAccepted: form.agree,
       })
+      showToast('Account created. Check your email for the verification code.')
       navigate(`/verify-email?role=candidate&email=${encodeURIComponent(form.email)}&source=registration`)
     } catch (requestError) {
       setError(requestError.message)

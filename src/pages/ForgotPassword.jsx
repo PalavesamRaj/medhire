@@ -6,9 +6,11 @@ import { Field, Input } from '../components/ui/FormControls'
 import Button from '../components/ui/Button'
 import { authApi } from '../lib/authApi'
 import { validateForgotPassword } from '../lib/authValidation'
+import { useToast } from '../components/ui/ToastProvider'
 import panelImage from '../assets/security-shields.png'
 
 export default function ForgotPassword() {
+  const showToast = useToast()
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
@@ -28,6 +30,7 @@ export default function ForgotPassword() {
     setLoading(true)
     try {
       await authApi.forgotPassword({ email })
+      showToast('Reset instructions sent. Check your email for the verification code.')
       setSent(true)
     } catch (requestError) {
       setError(requestError.message)

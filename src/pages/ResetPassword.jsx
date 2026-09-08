@@ -5,10 +5,12 @@ import { PasswordField } from '../components/ui/PasswordField'
 import Button from '../components/ui/Button'
 import { authApi } from '../lib/authApi'
 import { validateResetPassword } from '../lib/authValidation'
+import { useToast } from '../components/ui/ToastProvider'
 import panelImage from '../assets/resetpass.png'
 
 export default function ResetPassword() {
   const navigate = useNavigate()
+  const showToast = useToast()
   const [searchParams] = useSearchParams()
   const role = searchParams.get('role') === 'recruiter' ? 'recruiter' : 'candidate'
   const email = searchParams.get('email') || ''
@@ -33,6 +35,7 @@ export default function ResetPassword() {
     setLoading(true)
     try {
       await authApi.resetPassword({ email, resetToken, newPassword: password })
+      showToast('Your password has been reset successfully.')
       navigate(`/password-reset-success?role=${role}&email=${encodeURIComponent(email)}`)
     } catch (requestError) {
       setError(requestError.message)

@@ -6,10 +6,12 @@ import { PasswordField } from '../components/ui/PasswordField'
 import Button from '../components/ui/Button'
 import { authApi } from '../lib/authApi'
 import { validateLogin } from '../lib/authValidation'
+import { useToast } from '../components/ui/ToastProvider'
 import panelImage from '../assets/login.png'
 
 export default function Login() {
   const navigate = useNavigate()
+  const showToast = useToast()
   const [form, setForm] = useState({
     email: '',
     password: '',
@@ -47,6 +49,7 @@ export default function Login() {
         const storage = form.remember ? localStorage : sessionStorage
         storage.setItem('medhire_refresh_token', response.refreshToken)
       }
+      showToast('Welcome back. You are now logged in.')
       navigate('/')
     } catch (requestError) {
       setError(requestError.message)

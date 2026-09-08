@@ -6,6 +6,7 @@ import { Field, Input } from '../components/ui/FormControls'
 import Button from '../components/ui/Button'
 import { authApi } from '../lib/authApi'
 import { validateVerification } from '../lib/authValidation'
+import { useToast } from '../components/ui/ToastProvider'
 import panelImage from '../assets/verfiytheemail.png'
 
 const roleCopy = {
@@ -15,6 +16,7 @@ const roleCopy = {
 
 export default function EmailVerification() {
   const navigate = useNavigate()
+  const showToast = useToast()
   const [searchParams] = useSearchParams()
   const role = searchParams.get('role') === 'recruiter' ? 'recruiter' : 'candidate'
   const email = searchParams.get('email') || ''
@@ -41,10 +43,12 @@ export default function EmailVerification() {
         purpose: source === 'reset' ? 'password_reset' : 'registration',
       })
       if (source === 'reset' && response.resetToken) {
+        showToast('Email verified. You can now create a new password.')
         navigate(`/reset-password?role=${role}&email=${encodeURIComponent(email)}&resetToken=${encodeURIComponent(response.resetToken || '')}`)
       } else if (source === 'reset') {
         setError('Verification succeeded, but the reset session was not returned. Request a new code.')
       } else {
+        showToast('Email verified successfully. You can now log in.')
         navigate(`/login?verified=true&role=${role}`)
       }
     } catch (requestError) {
@@ -59,6 +63,7 @@ export default function EmailVerification() {
     setResendLoading(true)
     try {
       await authApi.resendCode({ email, purpose: source === 'reset' ? 'password_reset' : 'registration' })
+      showToast('A new verification code has been sent.')
       setResent(true)
     } catch (requestError) {
       setError(requestError.message)
