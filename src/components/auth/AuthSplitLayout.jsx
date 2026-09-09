@@ -19,6 +19,8 @@ export default function AuthSplitLayout({
   formColumnClassName = '',
   formWidthClassName = 'max-w-md',
   panelClassName = '',
+  formTitleClassName = '',
+  panelTitleClassName = '',
 }) {
   return (
     <div className={`grid min-h-screen ${layoutClassName}`}>
@@ -27,7 +29,7 @@ export default function AuthSplitLayout({
           <Link to="/">
             <Logo />
           </Link>
-          <h1 className="mt-8 text-2xl font-extrabold text-ink-900 sm:text-3xl">{formTitle}</h1>
+          <h1 className={`mt-8 text-2xl font-extrabold text-ink-900 ${formTitleClassName}`}>{formTitle}</h1>
           {formSubtitle && <p className="mt-2 text-sm text-ink-500">{formSubtitle}</p>}
 
           <div className="mt-8">{children}</div>
@@ -41,7 +43,7 @@ export default function AuthSplitLayout({
       >
         <div>
           <Logo light />
-          <h2 className="mt-8 max-w-sm text-3xl font-extrabold leading-tight text-white">
+          <h2 className={`mt-8 max-w-sm text-3xl font-extrabold leading-tight text-white ${panelTitleClassName}`}>
             {panelTitle}
           </h2>
           <ul className="mt-6 flex flex-col gap-3">

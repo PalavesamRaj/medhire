@@ -82,14 +82,15 @@ export default function RegisterRecruiter() {
       ]}
       panelImage={panelImage}
       panelImageAlt="Recruiting team reviewing candidates"
-      panelImageClassName="h-60 rounded-xl object-center"
+      panelImageClassName="h-[228px] rounded-xl object-center"
       panelImageContainerClassName="rounded-xl"
-      panelImageAtBottom
       panelFooter="Institution Grade security. Fully HIPAA & Medical Council compliant."
       layoutClassName="lg:grid-cols-[60%_40%]"
       formColumnClassName="lg:px-12"
       formWidthClassName="max-w-[704px]"
-      panelClassName="lg:px-8"
+      panelClassName="lg:px-9 lg:pt-9"
+      formTitleClassName="sm:text-3xl"
+      panelTitleClassName="text-[28px]"
     >
       <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-3.5">
         <div className="grid gap-4 sm:grid-cols-2">

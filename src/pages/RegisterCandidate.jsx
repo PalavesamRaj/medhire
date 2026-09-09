@@ -71,13 +71,15 @@ export default function RegisterCandidate() {
       ]}
       panelImage={heroImage}
       panelImageAlt="Group of healthcare professionals"
-      panelImageClassName="h-96 w-full rounded-t-xl rounded-b-none object-center"
+      panelImageClassName="h-[246px] w-full rounded-t-xl rounded-b-none object-center"
       panelImageContainerClassName="mx-auto w-full rounded-t-xl rounded-b-none"
       panelImageAtBottom
       layoutClassName="lg:grid-cols-[60%_40%]"
       formColumnClassName="lg:px-12"
       formWidthClassName="max-w-[520px]"
-      panelClassName="lg:px-10"
+      panelClassName="lg:px-12 lg:pt-16"
+      formTitleClassName="sm:text-3xl"
+      panelTitleClassName="text-[28px]"
     >
       <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-3.5">
         <Field label="Full Name" error={fieldErrors.name}>

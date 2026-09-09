@@ -55,13 +55,14 @@ export default function ForgotPassword() {
       ]}
       panelImage={panelImage}
       panelImageAlt="Security and compliance"
-      panelImageClassName="h-96 w-full rounded-t-xl rounded-b-none object-center"
+      panelImageClassName="h-[246px] w-full rounded-t-xl rounded-b-none object-center"
       panelImageContainerClassName="mx-auto w-full rounded-t-xl rounded-b-none"
       panelImageAtBottom
       layoutClassName="lg:grid-cols-[60%_40%]"
       formColumnClassName="lg:px-12"
       formWidthClassName="max-w-[520px]"
-      panelClassName="lg:px-10"
+      panelClassName="lg:px-12 lg:pt-16"
+      panelTitleClassName="text-[28px]"
     >
       {sent ? (
         <div className="flex flex-col items-center gap-5 text-center">
