@@ -15,11 +15,15 @@ export default function AuthSplitLayout({
   panelImageContainerClassName = '',
   panelImageAtBottom = false,
   panelFooter,
+  layoutClassName = 'lg:grid-cols-2',
+  formColumnClassName = '',
+  formWidthClassName = 'max-w-md',
+  panelClassName = '',
 }) {
   return (
-    <div className="grid min-h-screen lg:grid-cols-2">
-      <div className="flex flex-col justify-center px-6 py-12 sm:px-12 lg:px-16">
-        <div className="mx-auto w-full max-w-md">
+    <div className={`grid min-h-screen ${layoutClassName}`}>
+      <div className={`flex flex-col justify-center px-6 py-12 sm:px-12 lg:px-16 ${formColumnClassName}`}>
+        <div className={`mx-auto w-full ${formWidthClassName}`}>
           <Link to="/">
             <Logo />
           </Link>
@@ -31,7 +35,7 @@ export default function AuthSplitLayout({
       </div>
 
       <div
-        className={`relative hidden flex-col justify-between overflow-hidden bg-brand-900 px-12 py-12 lg:flex ${
+        className={`relative hidden flex-col justify-between overflow-hidden bg-brand-900 px-12 py-12 lg:flex ${panelClassName} ${
           panelImageAtBottom ? 'pb-0' : ''
         }`}
       >

@@ -82,11 +82,15 @@ export default function RegisterRecruiter() {
       ]}
       panelImage={panelImage}
       panelImageAlt="Recruiting team reviewing candidates"
-      panelImageClassName="h-96 object-center"
+      panelImageClassName="h-60 object-center"
       panelImageAtBottom
       panelFooter="Institution Grade security. Fully HIPAA & Medical Council compliant."
+      layoutClassName="lg:grid-cols-[60%_40%]"
+      formColumnClassName="lg:px-12"
+      formWidthClassName="max-w-[532px]"
+      panelClassName="lg:px-8"
     >
-      <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-5">
+      <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-3.5">
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Recruiter Name" error={fieldErrors.name}>
             <Input
@@ -166,21 +170,24 @@ export default function RegisterRecruiter() {
           </Field>
         </div>
 
-        <PasswordField
-          label="Password"
-          placeholder="Create a password"
-          value={form.password}
-          onChange={update('password')}
-          showStrength
-          error={fieldErrors.password}
-        />
-        <PasswordField
-          label="Confirm Password"
-          placeholder="Confirm your password"
-          value={form.confirmPassword}
-          onChange={update('confirmPassword')}
-          error={fieldErrors.confirmPassword}
-        />
+        <div className="grid gap-5 sm:grid-cols-2">
+          <PasswordField
+            label="Password"
+            placeholder="Create a password"
+            value={form.password}
+            onChange={update('password')}
+            showStrength
+            error={fieldErrors.password}
+          />
+          <PasswordField
+            label="Confirm Password"
+            placeholder="Confirm your password"
+            value={form.confirmPassword}
+            onChange={update('confirmPassword')}
+            showStrength
+            error={fieldErrors.confirmPassword}
+          />
+        </div>
 
         <div className="flex items-start gap-3 rounded-lg border border-brand-100 bg-brand-50 p-4 text-sm text-brand-800">
           <Info className="mt-0.5 h-4 w-4 shrink-0" />
@@ -211,17 +218,16 @@ export default function RegisterRecruiter() {
         </label>
         {fieldErrors.agree && <p className="-mt-3 text-xs text-red-600">{fieldErrors.agree}</p>}
 
-        {fieldErrors.agree && <p className="-mt-3 text-xs font-medium text-red-600">{fieldErrors.agree}</p>}
         {error && <p className="text-sm font-medium text-red-600" role="alert">{error}</p>}
 
-        <Button type="submit" icon={ArrowRight} disabled={loading} className="w-full justify-center">
+        <Button type="submit" icon={ArrowRight} disabled={loading} className="mt-1 min-h-11 w-full justify-center">
           {loading ? 'Creating Account...' : 'Create Recruiter Account'}
         </Button>
 
         <p className="text-center text-sm text-ink-500">
           Already registered?{' '}
           <Link to="/login" className="font-semibold text-brand-600 hover:text-brand-700">
-            Recruiter Login
+            Login
           </Link>
         </p>
       </form>

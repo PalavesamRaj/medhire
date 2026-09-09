@@ -55,9 +55,13 @@ export default function ForgotPassword() {
       ]}
       panelImage={panelImage}
       panelImageAlt="Security and compliance"
-      panelImageClassName="h-96 w-full rounded-t-xl object-center"
-      panelImageContainerClassName="mx-auto w-[90%] rounded-t-xl rounded-b-none"
+      panelImageClassName="h-96 w-full rounded-xl object-center"
+      panelImageContainerClassName="mx-auto w-full rounded-xl"
       panelImageAtBottom
+      layoutClassName="lg:grid-cols-[60%_40%]"
+      formColumnClassName="lg:px-12"
+      formWidthClassName="max-w-[400px]"
+      panelClassName="lg:px-10"
     >
       {sent ? (
         <div className="flex flex-col items-center gap-5 text-center">
@@ -85,7 +89,7 @@ export default function ForgotPassword() {
           </Link>
         </div>
       ) : (
-        <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-3.5">
           <Field label="Email Address" error={fieldErrors.email}>
             <Input
               type="email"

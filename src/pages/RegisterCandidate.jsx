@@ -71,11 +71,15 @@ export default function RegisterCandidate() {
       ]}
       panelImage={heroImage}
       panelImageAlt="Group of healthcare professionals"
-      panelImageClassName="h-96 w-full rounded-t-xl object-center"
-      panelImageContainerClassName="mx-auto w-[90%] rounded-t-xl rounded-b-none"
+      panelImageClassName="h-96 w-full rounded-t-xl rounded-b-none object-center"
+      panelImageContainerClassName="mx-auto w-full rounded-t-xl rounded-b-none"
       panelImageAtBottom
+      layoutClassName="lg:grid-cols-[60%_40%]"
+      formColumnClassName="lg:px-12"
+      formWidthClassName="max-w-[400px]"
+      panelClassName="lg:px-10"
     >
-      <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-5">
+      <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-3.5">
         <Field label="Full Name" error={fieldErrors.name}>
           <Input
             placeholder="Enter your full name"
@@ -161,7 +165,7 @@ export default function RegisterCandidate() {
         <p className="text-center text-sm text-ink-500">
           Already registered?{' '}
           <Link to="/login" className="font-semibold text-brand-600 hover:text-brand-700">
-            Candidate Login
+            Login
           </Link>
         </p>
       </form>

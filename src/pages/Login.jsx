@@ -9,6 +9,14 @@ import { validateLogin } from '../lib/authValidation'
 import { useToast } from '../components/ui/ToastProvider'
 import panelImage from '../assets/login.png'
 
+const loginPanelTitle = 'Connecting Healthcare, Seamlessly'
+
+const loginPanelPoints = [
+  'A trusted platform for healthcare professionals and employers',
+  'Verified profiles and meaningful career connections',
+  'Secure, compliant, and built for the healthcare industry',
+]
+
 export default function Login() {
   const navigate = useNavigate()
   const showToast = useToast()
@@ -62,20 +70,20 @@ export default function Login() {
     <AuthSplitLayout
       formTitle="Welcome Back"
       formSubtitle="Log in to your MedHire account to continue."
-      panelTitle="Healthcare Hiring, Simplified"
-      panelPoints={[
-        'Verified profiles for every healthcare professional',
-        'Trusted by hospitals and clinics nationwide',
-        'Secure, compliant, and built for the industry',
-      ]}
+      panelTitle={loginPanelTitle}
+      panelPoints={loginPanelPoints}
       panelImage={panelImage}
       panelImageAlt="Hospital lobby"
-      panelImageClassName="h-96 w-full rounded-t-xl object-center"
-      panelImageContainerClassName="mx-auto w-[90%] rounded-t-xl rounded-b-none"
+      panelImageClassName="h-96 w-full rounded-xl object-center"
+      panelImageContainerClassName="mx-auto w-full rounded-xl"
       panelImageAtBottom
+      layoutClassName="lg:grid-cols-[60%_40%]"
+      formColumnClassName="lg:px-12"
+      formWidthClassName="max-w-[400px]"
+      panelClassName="lg:px-10"
     >
-      <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-5">
-          <Field label="Email Address" error={fieldErrors.email}>
+      <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-3.5">
+        <Field label="Email Address" error={fieldErrors.email}>
           <Input
             type="email"
             placeholder="Enter your email address"
