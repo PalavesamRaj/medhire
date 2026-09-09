@@ -2,7 +2,7 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import {
   User, Edit3, Upload, ShieldCheck, Check, Search, Users2,
-  Building2, Eye, Lock, Download, Briefcase, XCircle, UserCheck, Download as DownloadIcon,
+  Building2, Eye, Lock, Download, Briefcase, XCircle, UserCheck, ArrowRight,
 } from 'lucide-react'
 import SectionHeading from '../components/ui/SectionHeading'
 import Badge from '../components/ui/Badge'
@@ -103,7 +103,7 @@ export default function HowItWorks() {
     <>
       <section className="container-page py-20 text-center">
         <Badge tone="teal" className="mb-4">Transparent Matching Process</Badge>
-        <h1 className="mx-auto max-w-2xl text-4xl font-extrabold text-ink-900 sm:text-5xl">
+        <h1 className="mx-auto max-w-2xl text-3xl font-extrabold text-ink-900 sm:text-4xl">
           How MedHire Works
         </h1>
         <p className="mx-auto mt-5 max-w-2xl text-ink-600">
@@ -206,7 +206,7 @@ export default function HowItWorks() {
               recruiters to pitch direct opportunities to you.
             </p>
             <Link to="/register/candidate">
-              <Button variant="accent" className="mt-6">Create Your Profile</Button>
+              <Button variant="accent" className="mt-6" icon={ArrowRight}>Create Your Profile</Button>
             </Link>
           </div>
           <div className="rounded-2xl bg-brand-50 p-8">

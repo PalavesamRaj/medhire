@@ -18,8 +18,8 @@ export function ForCandidates() {
     <section className="bg-ink-50/60 py-20">
       <div className="container-page grid items-center gap-12 lg:grid-cols-2">
         <div>
-          <h2 className="text-3xl font-extrabold text-ink-900">Build Your Healthcare Career</h2>
-          <p className="mt-4 text-ink-600">
+          <h2 className="text-2xl font-extrabold text-ink-900">Build Your Healthcare Career</h2>
+          <p className="mt-4 text-sm text-ink-600">
             Create your professional profile and get discovered by top hospitals and healthcare
             organizations globally.
           </p>
@@ -69,10 +69,10 @@ export function ForRecruiters() {
         </div>
         <div className="order-1 lg:order-2">
           <Badge tone="teal">For Recruiters</Badge>
-          <h2 className="mt-4 text-3xl font-extrabold text-ink-900">
+          <h2 className="mt-4 text-2xl font-extrabold text-ink-900">
             Find Healthcare Talent Faster
           </h2>
-          <p className="mt-4 text-ink-600">
+          <p className="mt-4 text-sm text-ink-600">
             Access a curated, continuous pool of pre-screened healthcare professionals verified
             by national registries.
           </p>

@@ -58,7 +58,7 @@ export function CtaBand() {
   return (
     <section className="bg-brand-900">
       <div className="container-page py-20 text-center">
-        <h2 className="text-3xl font-extrabold text-white sm:text-4xl">
+        <h2 className="text-2xl font-extrabold text-white sm:text-3xl">
           Ready to Transform Healthcare Hiring?
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-brand-100">

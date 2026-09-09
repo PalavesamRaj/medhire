@@ -76,7 +76,7 @@ export default function About() {
     <>
       <section className="container-page py-20 text-center">
         <Badge tone="blue" className="mb-4">Meet MedHire</Badge>
-        <h1 className="mx-auto max-w-2xl text-4xl font-extrabold text-ink-900 sm:text-5xl">
+        <h1 className="mx-auto max-w-2xl text-3xl font-extrabold text-ink-900 sm:text-4xl">
           Healthcare Hiring, Built for Healthcare
         </h1>
         <p className="mx-auto mt-5 max-w-2xl text-ink-600">
@@ -90,7 +90,7 @@ export default function About() {
         <div className="container-page grid items-center gap-12 lg:grid-cols-2">
           <div>
             <Badge tone="teal">Our Mission</Badge>
-            <h2 className="mt-4 text-3xl font-extrabold text-ink-900">
+            <h2 className="mt-4 text-2xl font-extrabold text-ink-900">
               Pioneering Safe & Specialty-Aware Medical Matching
             </h2>
             <p className="mt-4 text-ink-600">
@@ -125,7 +125,7 @@ export default function About() {
         <div className="mt-12 grid gap-6 md:grid-cols-3">
           {failures.map((f) => (
             <div key={f.title} className="rounded-xl border border-ink-200 bg-ink-50/40 p-6">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-50 text-red-600">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent-50 text-accent-700">
                 <f.icon className="h-5 w-5" />
               </div>
               <p className="mt-4 font-semibold text-ink-900">{f.title}</p>
@@ -160,7 +160,7 @@ export default function About() {
         <div className="grid items-center gap-12 lg:grid-cols-2">
           <div>
             <Badge tone="teal">For Candidates</Badge>
-            <h2 className="mt-4 text-3xl font-extrabold text-ink-900">
+            <h2 className="mt-4 text-2xl font-extrabold text-ink-900">
               Accelerate Your Medical Journey
             </h2>
             <ul className="mt-6 flex flex-col gap-3">
@@ -196,7 +196,7 @@ export default function About() {
           </div>
           <div>
             <Badge tone="blue">For Recruiters</Badge>
-            <h2 className="mt-4 text-3xl font-extrabold text-ink-900">
+            <h2 className="mt-4 text-2xl font-extrabold text-ink-900">
               Institution-Grade Medical Sourcing
             </h2>
             <ul className="mt-6 flex flex-col gap-3">
@@ -257,7 +257,7 @@ export default function About() {
           </div>
           <div>
             <Badge tone="blue">Security & Privacy</Badge>
-            <h2 className="mt-4 text-3xl font-extrabold text-ink-900">
+            <h2 className="mt-4 text-2xl font-extrabold text-ink-900">
               Institutional Trust Built In By Design
             </h2>
             <div className="mt-6 flex flex-col gap-5">

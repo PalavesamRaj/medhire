@@ -14,9 +14,13 @@ const recruiterSteps = [
   { title: 'Hire With Confidence', desc: 'Reach out directly through premium integrated communication channels to proceed with direct placement.' },
 ]
 
-function StepList({ steps }) {
+function StepList({ steps, icon: Icon, title }) {
   return (
     <div className="rounded-xl border border-ink-200 bg-white p-5 shadow-sm">
+      <div className="mb-5 flex items-center gap-2">
+        <Icon className="h-4 w-4 text-ink-600" />
+        <h3 className="font-semibold text-ink-900">{title}</h3>
+      </div>
       <div className="flex flex-col gap-5">
         {steps.map((s, i) => (
           <div key={s.title} className="flex gap-3">
@@ -45,20 +49,8 @@ export default function ProcessSection() {
         />
 
         <div className="mt-10 grid gap-6 lg:grid-cols-2">
-          <div>
-            <div className="mb-3 flex items-center gap-2">
-              <User className="h-4 w-4 text-ink-600" />
-              <h3 className="font-semibold text-ink-900">For Candidates</h3>
-            </div>
-            <StepList steps={candidateSteps} />
-          </div>
-          <div>
-            <div className="mb-3 flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-ink-600" />
-              <h3 className="font-semibold text-ink-900">For Recruiters</h3>
-            </div>
-            <StepList steps={recruiterSteps} />
-          </div>
+          <StepList steps={candidateSteps} icon={User} title="For Candidates" />
+          <StepList steps={recruiterSteps} icon={Building2} title="For Recruiters" />
         </div>
       </div>
     </section>

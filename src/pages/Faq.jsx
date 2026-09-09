@@ -126,7 +126,7 @@ export default function Faq() {
     <>
       <section className="container-page py-20 text-center">
         <Badge tone="teal" className="mb-4">Support Center</Badge>
-        <h1 className="mx-auto max-w-2xl text-4xl font-extrabold text-ink-900 sm:text-5xl">
+        <h1 className="mx-auto max-w-2xl text-3xl font-extrabold text-ink-900 sm:text-4xl">
           Frequently Asked Questions
         </h1>
         <p className="mx-auto mt-5 max-w-xl text-ink-600">

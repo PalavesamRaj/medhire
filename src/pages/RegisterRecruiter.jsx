@@ -30,11 +30,18 @@ export default function RegisterRecruiter() {
   const [fieldErrors, setFieldErrors] = useState({})
   const [loading, setLoading] = useState(false)
 
-  const update = (field) => (e) =>
+  const update = (field) => (e) => {
+    setFieldErrors((errors) => {
+      const nextErrors = { ...errors }
+      delete nextErrors[field]
+      return nextErrors
+    })
+    setError('')
     setForm((f) => ({
       ...f,
       [field]: e.target.type === 'checkbox' ? e.target.checked : e.target.value,
     }))
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()

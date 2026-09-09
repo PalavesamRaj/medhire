@@ -13,11 +13,11 @@ export default function Hero() {
           New: Integrated Credential Verification
         </span>
 
-        <h1 className="mt-5 text-4xl font-extrabold leading-tight text-ink-900 sm:text-5xl">
+        <h1 className="mt-5 text-3xl font-extrabold leading-tight text-ink-900 sm:text-4xl">
           Connecting Healthcare Talent With Better Opportunities
         </h1>
 
-        <p className="mt-5 max-w-lg text-base text-ink-600">
+        <p className="mt-5 max-w-lg text-sm text-ink-600">
           The trusted marketplace where healthcare professionals find verified opportunities and
           hospitals discover pre-screened, qualified candidates — faster and smarter.
         </p>

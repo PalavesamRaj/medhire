@@ -38,9 +38,9 @@ export default function LegalLayout({ eyebrow, title, updated, updatedLine, intr
             </span>
           )}
           {eyebrow && <Badge tone="teal">{eyebrow}</Badge>}
-          <h1 className="mt-4 text-4xl font-extrabold text-ink-900 sm:text-5xl">{title}</h1>
-          {updatedLine && <p className="mt-3 text-sm text-ink-500">{updatedLine}</p>}
-          {intro && <p className="mt-4 max-w-3xl text-ink-600">{intro}</p>}
+          <h1 className="mt-4 text-3xl font-extrabold text-ink-900 sm:text-4xl">{title}</h1>
+          {updatedLine && <p className="mt-3 text-xs text-ink-500">{updatedLine}</p>}
+          {intro && <p className="mt-4 max-w-3xl text-sm text-ink-600">{intro}</p>}
         </div>
       </section>
 
@@ -79,9 +79,9 @@ export default function LegalLayout({ eyebrow, title, updated, updatedLine, intr
                   <span className="text-xs font-bold text-brand-600">
                     {String(i + 1).padStart(2, '0')}
                   </span>
-                  <h2 className="text-xl font-bold text-ink-900">{s.title}</h2>
+                  <h2 className="text-lg font-bold text-ink-900">{s.title}</h2>
                 </div>
-                <div className="mt-3 flex flex-col gap-3 text-sm leading-relaxed text-ink-600">
+                <div className="mt-3 flex flex-col gap-3 text-xs leading-relaxed text-ink-600">
                   {s.content}
                 </div>
               </div>

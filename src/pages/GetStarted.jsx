@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { Stethoscope, Building2 } from 'lucide-react'
+import { ArrowLeft, Stethoscope, Building2 } from 'lucide-react'
 import Logo from '../components/layout/Logo'
 import Button from '../components/ui/Button'
 
@@ -30,6 +30,10 @@ export default function GetStarted() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-ink-50/60 px-6 py-16">
       <Link to="/">
         <Logo />
+      </Link>
+      <Link to="/" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700">
+        <ArrowLeft className="h-3.5 w-3.5" />
+        Back to home
       </Link>
 
       <h1 className="mt-8 w-full max-w-[600px] text-center text-3xl font-extrabold text-ink-900 sm:text-3xl">

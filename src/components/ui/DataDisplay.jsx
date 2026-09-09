@@ -121,12 +121,12 @@ export function Accordion({ items }) {
             onClick={() => setOpen(open === i ? -1 : i)}
             className="flex w-full items-center justify-between px-5 py-4 text-left"
           >
-            <span className="font-semibold text-ink-900">{item.q}</span>
+            <span className="text-sm font-semibold text-ink-900">{item.q}</span>
             <ChevronDown
               className={`h-4 w-4 shrink-0 text-ink-400 transition-transform ${open === i ? 'rotate-180' : ''}`}
             />
           </button>
-          {open === i && <p className="px-5 pb-4 text-sm text-ink-600">{item.a}</p>}
+          {open === i && <p className="px-5 pb-4 text-xs leading-relaxed text-ink-600">{item.a}</p>}
         </div>
       ))}
     </div>
