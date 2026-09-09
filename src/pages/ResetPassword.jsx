@@ -6,7 +6,7 @@ import Button from '../components/ui/Button'
 import { authApi } from '../lib/authApi'
 import { validateResetPassword } from '../lib/authValidation'
 import { useToast } from '../components/ui/ToastProvider'
-import panelImage from '../assets/signup.png'
+import panelImage from '../assets/resetpass.png'
 
 export default function ResetPassword() {
   const navigate = useNavigate()
