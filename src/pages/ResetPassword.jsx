@@ -56,7 +56,7 @@ export default function ResetPassword() {
       ]}
       panelImage={panelImage}
       panelImageAlt="Security and compliance"
-      panelImageClassName="h-[246px] w-full rounded-t-xl rounded-b-none object-center"
+      panelImageClassName="h-[246px] w-full rounded-t-xl rounded-b-none object-top"
       panelImageContainerClassName="mx-auto w-full rounded-t-xl rounded-b-none"
       panelImageAtBottom
       layoutClassName="lg:grid-cols-[60%_40%]"
