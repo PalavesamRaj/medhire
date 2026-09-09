@@ -55,8 +55,8 @@ export default function ForgotPassword() {
       ]}
       panelImage={panelImage}
       panelImageAlt="Security and compliance"
-      panelImageClassName="h-96 w-full rounded-xl object-center"
-      panelImageContainerClassName="mx-auto w-full rounded-xl"
+      panelImageClassName="h-96 w-full rounded-t-xl rounded-b-none object-center"
+      panelImageContainerClassName="mx-auto w-full rounded-t-xl rounded-b-none"
       panelImageAtBottom
       layoutClassName="lg:grid-cols-[60%_40%]"
       formColumnClassName="lg:px-12"

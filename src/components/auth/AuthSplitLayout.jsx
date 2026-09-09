@@ -57,7 +57,7 @@ export default function AuthSplitLayout({
         </div>
 
         {panelImage && (
-          <div className={`mt-8 overflow-hidden rounded-xl ${panelImageContainerClassName}`}>
+          <div className={`mt-8 overflow-hidden ${panelImageContainerClassName}`}>
             <img src={panelImage} alt={panelImageAlt} className={`w-full object-cover ${panelImageClassName}`} />
           </div>
         )}
