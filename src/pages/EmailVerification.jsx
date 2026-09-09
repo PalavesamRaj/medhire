@@ -7,7 +7,7 @@ import Button from '../components/ui/Button'
 import { authApi } from '../lib/authApi'
 import { validateVerification } from '../lib/authValidation'
 import { useToast } from '../components/ui/ToastProvider'
-import panelImage from '../assets/verfiytheemail.png'
+import panelImage from '../assets/signup.png'
 
 const roleCopy = {
   candidate: 'candidate account',
@@ -83,10 +83,15 @@ export default function EmailVerification() {
         'Secure access for healthcare professionals and employers',
       ]}
       panelImage={panelImage}
-      panelImageAlt="Security and compliance"
-      panelImageClassName="h-96 w-full rounded-t-xl object-center"
-      panelImageContainerClassName="mx-auto w-[90%] rounded-t-xl rounded-b-none"
+      panelImageAlt="Healthcare professional reviewing patient information"
+      panelImageClassName="h-[246px] w-full rounded-t-xl rounded-b-none object-top"
+      panelImageContainerClassName="mx-auto w-full rounded-t-xl rounded-b-none"
       panelImageAtBottom
+      layoutClassName="lg:grid-cols-[60%_40%]"
+      formColumnClassName="lg:px-12"
+      formWidthClassName="max-w-[520px]"
+      panelClassName="lg:px-12 lg:pt-16"
+      panelTitleClassName="text-[28px]"
     >
       <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-5">
         <div className="flex items-center gap-3 rounded-lg border border-accent-100 bg-accent-50 p-4 text-sm text-accent-800">

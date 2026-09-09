@@ -17,10 +17,15 @@ export default function PasswordResetSuccess() {
         'Your account remains protected at every step',
       ]}
       panelImage={panelImage}
-      panelImageAlt="Security and compliance"
-      panelImageClassName="h-96 w-full rounded-t-xl object-center"
-      panelImageContainerClassName="mx-auto w-[90%] rounded-t-xl rounded-b-none"
+      panelImageAlt="Healthcare professional reviewing patient information"
+      panelImageClassName="h-[246px] w-full rounded-t-xl rounded-b-none object-top"
+      panelImageContainerClassName="mx-auto w-full rounded-t-xl rounded-b-none"
       panelImageAtBottom
+      layoutClassName="lg:grid-cols-[60%_40%]"
+      formColumnClassName="lg:px-12"
+      formWidthClassName="max-w-[520px]"
+      panelClassName="lg:px-12 lg:pt-16"
+      panelTitleClassName="text-[28px]"
     >
       <div className="flex flex-col items-center gap-5 text-center">
         <span className="flex h-16 w-16 items-center justify-center rounded-full bg-accent-50 text-accent-700">

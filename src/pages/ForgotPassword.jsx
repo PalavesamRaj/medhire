@@ -54,8 +54,8 @@ export default function ForgotPassword() {
         'Institution-grade security on every account',
       ]}
       panelImage={panelImage}
-      panelImageAlt="Security and compliance"
-      panelImageClassName="h-[246px] w-full rounded-t-xl rounded-b-none object-center"
+      panelImageAlt="Healthcare professional reviewing patient information"
+      panelImageClassName="h-[246px] w-full rounded-t-xl rounded-b-none object-top"
       panelImageContainerClassName="mx-auto w-full rounded-t-xl rounded-b-none"
       panelImageAtBottom
       layoutClassName="lg:grid-cols-[60%_40%]"

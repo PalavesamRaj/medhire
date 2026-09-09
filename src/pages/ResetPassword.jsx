@@ -6,7 +6,7 @@ import Button from '../components/ui/Button'
 import { authApi } from '../lib/authApi'
 import { validateResetPassword } from '../lib/authValidation'
 import { useToast } from '../components/ui/ToastProvider'
-import panelImage from '../assets/resetpass.png'
+import panelImage from '../assets/signup.png'
 
 export default function ResetPassword() {
   const navigate = useNavigate()
@@ -56,9 +56,14 @@ export default function ResetPassword() {
       ]}
       panelImage={panelImage}
       panelImageAlt="Security and compliance"
-      panelImageClassName="h-96 w-full rounded-t-xl object-center"
-      panelImageContainerClassName="mx-auto w-[90%] rounded-t-xl rounded-b-none"
+      panelImageClassName="h-[246px] w-full rounded-t-xl rounded-b-none object-center"
+      panelImageContainerClassName="mx-auto w-full rounded-t-xl rounded-b-none"
       panelImageAtBottom
+      layoutClassName="lg:grid-cols-[60%_40%]"
+      formColumnClassName="lg:px-12"
+      formWidthClassName="max-w-[520px]"
+      panelClassName="lg:px-12 lg:pt-16"
+      panelTitleClassName="text-[28px]"
     >
       <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-5">
         <PasswordField
