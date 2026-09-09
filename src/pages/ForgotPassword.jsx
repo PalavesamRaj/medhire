@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { MailCheck } from 'lucide-react'
+import { ArrowLeft, MailCheck } from 'lucide-react'
 import AuthSplitLayout from '../components/auth/AuthSplitLayout'
 import { Field, Input } from '../components/ui/FormControls'
 import Button from '../components/ui/Button'
@@ -41,11 +41,11 @@ export default function ForgotPassword() {
 
   return (
     <AuthSplitLayout
-      formTitle={sent ? 'Check Your Email' : 'Forgot Password?'}
+      formTitle={sent ? 'Check Your Email' : 'Forgot Your Password?'}
       formSubtitle={
         sent
           ? `We've sent a verification code to ${email}.`
-          : "No worries, we'll send you reset instructions."
+          : "Enter your registered email and we'll send verification instructions to reset your password."
       }
       panelTitle="Your Account, Secured"
       panelPoints={[
@@ -60,7 +60,7 @@ export default function ForgotPassword() {
       panelImageAtBottom
       layoutClassName="lg:grid-cols-[60%_40%]"
       formColumnClassName="lg:px-12"
-      formWidthClassName="max-w-[400px]"
+      formWidthClassName="max-w-[520px]"
       panelClassName="lg:px-10"
     >
       {sent ? (
@@ -93,10 +93,11 @@ export default function ForgotPassword() {
           <Field label="Email Address" error={fieldErrors.email}>
             <Input
               type="email"
-              placeholder="Enter your email address"
+              placeholder="Enter your registered email address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               error={Boolean(fieldErrors.email)}
+              className="w-full"
               required
             />
           </Field>
@@ -104,12 +105,12 @@ export default function ForgotPassword() {
           {error && <p className="text-sm text-red-600">{error}</p>}
 
           <Button type="submit" disabled={loading} className="w-full justify-center">
-            {loading ? 'Sending...' : 'Send Reset Link'}
+            {loading ? 'Sending...' : 'Send Verification Code'}
           </Button>
 
-          <p className="text-center text-sm text-ink-500">
-            Remembered your password?{' '}
+          <p className="text-center text-sm">
             <Link to="/login" className="font-semibold text-brand-600 hover:text-brand-700">
+              <ArrowLeft className="mr-1 inline-block h-4 w-4 align-text-bottom" />
               Back to Login
             </Link>
           </p>

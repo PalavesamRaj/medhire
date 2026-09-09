@@ -7,7 +7,7 @@ import Button from '../components/ui/Button'
 import { authApi } from '../lib/authApi'
 import { validateRegistration } from '../lib/authValidation'
 import { useToast } from '../components/ui/ToastProvider'
-import heroImage from '../assets/signup.png'
+import heroImage from '../assets/verfiytheemail.png'
 
 export default function RegisterCandidate() {
   const navigate = useNavigate()
@@ -76,7 +76,7 @@ export default function RegisterCandidate() {
       panelImageAtBottom
       layoutClassName="lg:grid-cols-[60%_40%]"
       formColumnClassName="lg:px-12"
-      formWidthClassName="max-w-[400px]"
+      formWidthClassName="max-w-[520px]"
       panelClassName="lg:px-10"
     >
       <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-3.5">
@@ -86,6 +86,7 @@ export default function RegisterCandidate() {
             value={form.name}
             onChange={update('name')}
             error={Boolean(fieldErrors.name)}
+            className="w-full"
             required
           />
         </Field>
@@ -97,6 +98,7 @@ export default function RegisterCandidate() {
             value={form.email}
             onChange={update('email')}
             error={Boolean(fieldErrors.email)}
+            className="w-full"
             required
           />
         </Field>

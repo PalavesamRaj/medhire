@@ -82,16 +82,17 @@ export default function RegisterRecruiter() {
       ]}
       panelImage={panelImage}
       panelImageAlt="Recruiting team reviewing candidates"
-      panelImageClassName="h-60 object-center"
+      panelImageClassName="h-60 rounded-xl object-center"
+      panelImageContainerClassName="rounded-xl"
       panelImageAtBottom
       panelFooter="Institution Grade security. Fully HIPAA & Medical Council compliant."
       layoutClassName="lg:grid-cols-[60%_40%]"
       formColumnClassName="lg:px-12"
-      formWidthClassName="max-w-[532px]"
+      formWidthClassName="max-w-[704px]"
       panelClassName="lg:px-8"
     >
       <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-3.5">
-        <div className="grid gap-5 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Recruiter Name" error={fieldErrors.name}>
             <Input
               placeholder="Enter your full name"
@@ -113,7 +114,7 @@ export default function RegisterRecruiter() {
           </Field>
         </div>
 
-        <div className="grid gap-5 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Phone Number" error={fieldErrors.phone}>
             <div className={`flex overflow-hidden rounded-lg border focus-within:ring-2 ${fieldErrors.phone ? 'border-red-400 focus-within:border-red-500 focus-within:ring-red-500/20' : 'border-ink-200 focus-within:border-brand-600 focus-within:ring-brand-600/30'}`}>
               <span className="flex items-center border-r border-ink-200 bg-ink-50 px-3.5 text-sm text-ink-500">
@@ -141,7 +142,7 @@ export default function RegisterRecruiter() {
           </Field>
         </div>
 
-        <div className="grid gap-5 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Hospital / Organization Name" error={fieldErrors.orgName}>
             <Input
               placeholder="Enter hospital or organization name"
@@ -161,7 +162,7 @@ export default function RegisterRecruiter() {
           </Field>
         </div>
 
-        <div className="grid gap-5 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2">
           <Field label="City" error={fieldErrors.city}>
             <Input placeholder="Select city" value={form.city} onChange={update('city')} error={Boolean(fieldErrors.city)} />
           </Field>
@@ -170,7 +171,7 @@ export default function RegisterRecruiter() {
           </Field>
         </div>
 
-        <div className="grid gap-5 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2">
           <PasswordField
             label="Password"
             placeholder="Create a password"

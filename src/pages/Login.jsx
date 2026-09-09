@@ -79,7 +79,7 @@ export default function Login() {
       panelImageAtBottom
       layoutClassName="lg:grid-cols-[60%_40%]"
       formColumnClassName="lg:px-12"
-      formWidthClassName="max-w-[400px]"
+      formWidthClassName="max-w-[520px]"
       panelClassName="lg:px-10"
     >
       <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-3.5">
@@ -90,6 +90,7 @@ export default function Login() {
             value={form.email}
             onChange={update('email')}
             error={Boolean(fieldErrors.email)}
+            className="w-full"
             required
           />
         </Field>
