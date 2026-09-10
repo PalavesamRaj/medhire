@@ -79,7 +79,7 @@ export default function ResetPassword() {
       <div className="flex flex-1 items-center justify-center px-6 py-12 sm:px-12 lg:px-16">
         <div className="w-full max-w-[520px]">
           <Link to="/" className="mb-7 flex items-center gap-2"><Logo /></Link>
-          <section className="rounded-xl border border-ink-200 bg-white p-6 shadow-sm sm:p-8">
+          <section>
           <div className="flex flex-col gap-2">
             <h1 className="text-2xl font-extrabold text-ink-900">Create New Password</h1>
             <p className="text-sm leading-5 text-ink-600">Create a secure new password for your account.</p>

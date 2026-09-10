@@ -15,7 +15,7 @@ export default function PasswordResetSuccess() {
             <Logo />
           </Link>
 
-          <section className="flex flex-col items-center gap-6 rounded-xl border border-ink-200 bg-white p-6 text-center shadow-sm sm:p-8">
+          <section className="flex flex-col items-center gap-6 text-center">
             <span className="flex h-16 w-16 items-center justify-center rounded-full border border-green-200 bg-green-50 text-green-700">
               <CheckCircle2 className="h-7 w-7" />
             </span>

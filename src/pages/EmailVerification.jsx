@@ -117,7 +117,7 @@ export default function EmailVerification() {
             <Logo />
           </Link>
 
-        <section className="rounded-xl border border-ink-200 bg-white p-6 shadow-sm sm:p-8">
+        <section>
           <div className="flex flex-col items-center gap-2 text-center">
             <h1 className="text-2xl font-extrabold text-ink-900">Verify Your Email</h1>
             <p className="text-sm leading-5 text-ink-600">We&apos;ve sent a verification code to the registered email address.</p>
