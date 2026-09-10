@@ -1,7 +1,8 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { Check, CheckCircle2 } from 'lucide-react'
+import { CheckCircle2 } from 'lucide-react'
 import Logo from '../components/layout/Logo'
+import RecoveryPanel from '../components/auth/RecoveryPanel'
 import Button from '../components/ui/Button'
 import securityImage from '../assets/security-shields.png'
 
@@ -34,25 +35,7 @@ export default function PasswordResetSuccess() {
         </div>
       </div>
 
-      <aside className="hidden w-[580px] flex-col gap-10 bg-gradient-to-b from-brand-900 to-ink-900 px-14 pt-20 lg:flex">
-        <Logo light />
-        <div className="flex flex-col gap-6">
-          <h2 className="text-3xl font-extrabold leading-10 text-white">Your Healthcare Career Awaits</h2>
-          <ul className="flex flex-col gap-4">
-            {['Secure account recovery', 'Your privacy is always protected', 'Trusted by healthcare professionals'].map((item) => (
-              <li key={item} className="flex items-center gap-3 text-base font-medium text-white">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-teal-50 text-teal-600">
-                  <Check className="h-3 w-3" />
-                </span>
-                {item}
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div className="flex flex-1 items-end">
-          <img src={securityImage} alt="Digital security shields protecting healthcare data" className="h-72 w-full rounded-t-2xl object-cover object-center" />
-        </div>
-      </aside>
+      <RecoveryPanel image={securityImage} imageAlt="Digital security shields protecting healthcare data" />
     </main>
   )
 }
