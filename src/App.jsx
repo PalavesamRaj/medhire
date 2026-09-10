@@ -9,6 +9,7 @@ import Contact from './pages/Contact'
 import Faq from './pages/Faq'
 import PrivacyPolicy from './pages/PrivacyPolicy'
 import TermsOfService from './pages/TermsOfService'
+import Pricing from './pages/Pricing'
 import GetStarted from './pages/GetStarted'
 import RegisterCandidate from './pages/RegisterCandidate'
 import RegisterRecruiter from './pages/RegisterRecruiter'
@@ -64,7 +65,7 @@ export default function App() {
       <Route path="/terms-of-service" element={<SiteLayout><TermsOfService /></SiteLayout>} />
       <Route path="/find-jobs" element={<SiteLayout><Placeholder title="Find Jobs" /></SiteLayout>} />
       <Route path="/for-recruiters" element={<SiteLayout><Placeholder title="For Recruiters" /></SiteLayout>} />
-      <Route path="/pricing" element={<SiteLayout><Placeholder title="Pricing" /></SiteLayout>} />
+      <Route path="/pricing" element={<SiteLayout><Pricing /></SiteLayout>} />
       </Routes>
     </>
   )
