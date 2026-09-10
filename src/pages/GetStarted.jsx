@@ -27,21 +27,21 @@ const roles = [
 
 export default function GetStarted() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-ink-50/60 px-6 py-16">
-      <Link to="/">
-        <Logo />
-      </Link>
-      <Link to="/" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700">
-        <ArrowLeft className="h-3.5 w-3.5" />
-        Back to home
-      </Link>
+    <div className="min-h-screen bg-ink-50/60 px-6 py-8 sm:px-10 sm:py-10">
+      <header className="mx-auto flex w-full max-w-[1200px] items-center justify-between">
+        <Link to="/" aria-label="MedHire home">
+          <Logo />
+        </Link>
+        <div className="flex items-center gap-4">
+        </div>
+      </header>
 
-      <h1 className="mt-8 w-full max-w-[600px] text-center text-3xl font-extrabold text-ink-900 sm:text-3xl">
+      <h1 className="mx-auto mt-14 w-full max-w-[720px] text-center text-4xl font-extrabold tracking-tight text-ink-900 sm:text-5xl">
         Join the Healthcare Network
       </h1>
-      <p className="mt-2 text-center text-xs text-ink-500">Choose how you want to use the platform.</p>
+      <p className="mt-3 text-center text-base text-ink-500">Choose how you want to use the platform.</p>
 
-      <div className="mt-9 grid w-full max-w-[912px] gap-6 sm:grid-cols-2">
+      <div className="mx-auto mt-12 grid w-full max-w-[912px] gap-7 sm:grid-cols-2">
         {roles.map((r) => (
           <div
             key={r.title}
@@ -63,10 +63,16 @@ export default function GetStarted() {
         ))}
       </div>
 
-      <p className="mt-9 text-xs text-ink-500">
+      <p className="mt-9 text-center text-xs text-ink-500">
         Already have an account?{' '}
         <Link to="/login" className="font-semibold text-brand-600 hover:text-brand-700">
           Login
+        </Link>
+      </p>
+      <p className="text-center text-xs">
+        <Link to="/" className="font-semibold text-brand-600 hover:text-brand-700">
+          <ArrowLeft className="mr-1 inline-block h-3.5 w-3.5 align-text-bottom" />
+          Back to Home
         </Link>
       </p>
     </div>

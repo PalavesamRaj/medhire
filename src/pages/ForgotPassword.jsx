@@ -1,13 +1,12 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, MailCheck } from 'lucide-react'
-import AuthSplitLayout from '../components/auth/AuthSplitLayout'
+import { ArrowLeft, Check } from 'lucide-react'
+import Logo from '../components/layout/Logo'
 import { Field, Input } from '../components/ui/FormControls'
 import Button from '../components/ui/Button'
 import { authApi } from '../lib/authApi'
 import { validateForgotPassword } from '../lib/authValidation'
 import { useToast } from '../components/ui/ToastProvider'
-import panelImage from '../assets/resetpass.png'
 
 export default function ForgotPassword() {
   const showToast = useToast()
@@ -40,83 +39,68 @@ export default function ForgotPassword() {
   }
 
   return (
-    <AuthSplitLayout
-      formTitle={sent ? 'Check Your Email' : 'Forgot Your Password?'}
-      formSubtitle={
-        sent
-          ? `We've sent a verification code to ${email}.`
-          : "Enter your registered email and we'll send verification instructions to reset your password."
-      }
-      panelTitle="Your Account, Secured"
-      panelPoints={[
-        'Reset links expire after 30 minutes for your security',
-        'Only you can access your registered email',
-        'Institution-grade security on every account',
-      ]}
-      panelImage={panelImage}
-      panelImageAlt="Healthcare professional reviewing patient information"
-      panelImageClassName="h-[246px] w-full rounded-t-xl rounded-b-none object-top"
-      panelImageContainerClassName="mx-auto w-full rounded-t-xl rounded-b-none"
-      panelImageAtBottom
-      layoutClassName="lg:grid-cols-[60%_40%]"
-      formColumnClassName="lg:px-12"
-      formWidthClassName="max-w-[520px]"
-      panelClassName="lg:px-12 lg:pt-16"
-      panelTitleClassName="text-[28px]"
-    >
-      {sent ? (
-        <div className="flex flex-col items-center gap-5 text-center">
-          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-accent-50 text-accent-700">
-            <MailCheck className="h-6 w-6" />
-          </span>
-          <p className="text-sm text-ink-500">
-            Didn&apos;t get the email? Check your spam folder, or{' '}
-            <button
-              type="button"
-              onClick={() => setSent(false)}
-              className="font-semibold text-brand-600 hover:text-brand-700"
-            >
-              try a different email
-            </button>
-            .
+    <main className="flex min-h-screen items-start justify-center bg-ink-50 px-5 py-10 sm:py-16">
+      <div className="w-full max-w-[520px]">
+        <Link to="/" className="mb-8 flex justify-center sm:mb-9">
+          <Logo />
+        </Link>
+
+        <section className="rounded-xl border border-ink-200 bg-white px-8 py-8 shadow-sm sm:px-9 sm:py-9">
+          <h1 className="text-center text-2xl font-extrabold text-ink-900">Forgot Your Password?</h1>
+          <p className="mx-auto mt-2 max-w-md text-center text-sm leading-5 text-ink-500">
+            Enter your registered email and we&apos;ll send verification instructions
+            <br className="hidden sm:block" /> to reset your password.
           </p>
-          <Link
-            to={`/verify-email?email=${encodeURIComponent(email)}&source=reset`}
-            className="w-full"
-          >
-            <Button variant="secondary" className="w-full justify-center">
-              Enter Verification Code
+
+          <form noValidate onSubmit={handleSubmit} className="mt-7 flex flex-col gap-3.5">
+            <Field label="Email Address" error={fieldErrors.email}>
+              <Input
+                type="email"
+                placeholder="Enter your registered email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                error={Boolean(fieldErrors.email)}
+                className="w-full"
+                required
+              />
+            </Field>
+
+            {error && <p className="text-sm text-red-600">{error}</p>}
+
+            <Button type="submit" disabled={loading} className="mt-1 w-full justify-center">
+              {loading ? 'Sending...' : 'Send Verification Code'}
             </Button>
-          </Link>
-        </div>
-      ) : (
-        <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-3.5">
-          <Field label="Email Address" error={fieldErrors.email}>
-            <Input
-              type="email"
-              placeholder="Enter your registered email address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              error={Boolean(fieldErrors.email)}
-              className="w-full"
-              required
-            />
-          </Field>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+            <p className="text-center text-sm">
+              <Link to="/login" className="font-semibold text-brand-600 hover:text-brand-700">
+                <ArrowLeft className="mr-1 inline-block h-4 w-4 align-text-bottom" />
+                Back to Login
+              </Link>
+            </p>
+          </form>
+        </section>
 
-          <Button type="submit" disabled={loading} className="w-full justify-center">
-            {loading ? 'Sending...' : 'Send Verification Code'}
-          </Button>
-
-          <p className="text-center text-sm">
-            <Link to="/login" className="font-semibold text-brand-600 hover:text-brand-700">
-              <ArrowLeft className="mr-1 inline-block h-4 w-4 align-text-bottom" />
-              Back to Login
-            </Link>
-          </p>
-        </form>
-      )}
-    </AuthSplitLayout>
+        {sent && (
+          <>
+            <p className="mt-6 text-center text-[10px] font-semibold uppercase tracking-wide text-ink-400">
+              Success State Preview
+            </p>
+            <div className="mt-6 flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 px-3 py-3 text-xs text-green-700">
+              <Check className="mt-0.5 h-4 w-4 shrink-0" />
+              <div>
+                <p className="font-semibold">Verification code sent successfully.</p>
+                <p>Please check your email inbox and follow the instructions to reset your password.</p>
+                <Link
+                  to={`/verify-email?email=${encodeURIComponent(email)}&source=reset`}
+                  className="mt-1 inline-block font-semibold underline underline-offset-2"
+                >
+                  Enter verification code
+                </Link>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </main>
   )
 }

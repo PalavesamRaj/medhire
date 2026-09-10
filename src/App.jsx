@@ -1,5 +1,5 @@
 import React from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useLocation } from 'react-router-dom'
 import Navbar from './components/layout/Navbar'
 import Footer from './components/layout/Footer'
 import Home from './pages/Home'
@@ -29,9 +29,21 @@ function SiteLayout({ children }) {
   )
 }
 
+function ScrollToTop() {
+  const { pathname } = useLocation()
+
+  React.useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }, [pathname])
+
+  return null
+}
+
 export default function App() {
   return (
-    <Routes>
+    <>
+      <ScrollToTop />
+      <Routes>
       {/* Standalone auth flow — no site nav/footer, matches the Figma "Get Started" screens */}
       <Route path="/get-started" element={<GetStarted />} />
       <Route path="/register/candidate" element={<RegisterCandidate />} />
@@ -53,6 +65,7 @@ export default function App() {
       <Route path="/find-jobs" element={<SiteLayout><Placeholder title="Find Jobs" /></SiteLayout>} />
       <Route path="/for-recruiters" element={<SiteLayout><Placeholder title="For Recruiters" /></SiteLayout>} />
       <Route path="/pricing" element={<SiteLayout><Placeholder title="Pricing" /></SiteLayout>} />
-    </Routes>
+      </Routes>
+    </>
   )
 }
