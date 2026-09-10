@@ -111,21 +111,21 @@ export default function EmailVerification() {
 
   return (
     <main className="flex min-h-screen bg-ink-50">
-      <div className="flex flex-1 items-center justify-center px-5 py-10 sm:px-10 lg:px-20 lg:py-14">
+      <div className="flex flex-1 items-center justify-center px-6 py-12 sm:px-12 lg:px-16">
         <div className="w-full max-w-[520px]">
           <Link to="/" className="mb-7 flex items-center gap-2">
             <Logo />
           </Link>
 
-        <section className="rounded-xl border border-ink-200 bg-white p-6 shadow-sm sm:p-9">
+        <section className="rounded-xl border border-ink-200 bg-white p-6 shadow-sm sm:p-8">
           <div className="flex flex-col items-center gap-2 text-center">
-            <h1 className="text-3xl font-extrabold text-ink-900">Verify Your Email</h1>
+            <h1 className="text-2xl font-extrabold text-ink-900">Verify Your Email</h1>
             <p className="text-sm leading-5 text-ink-600">We&apos;ve sent a verification code to the registered email address.</p>
             <p className="text-sm font-semibold text-ink-900">{maskedEmail}</p>
           </div>
 
           <form noValidate onSubmit={handleSubmit} className="mt-7 flex flex-col gap-5">
-            <div className="flex gap-2.5" onPaste={handlePaste}>
+            <div className="flex gap-2" onPaste={handlePaste}>
               {Array.from({ length: 6 }, (_, index) => (
                 <input
                   key={index}
@@ -136,7 +136,7 @@ export default function EmailVerification() {
                   inputMode="numeric"
                   maxLength={1}
                   aria-label={`Verification digit ${index + 1}`}
-                  className="h-14 min-w-0 flex-1 rounded-md border-[1.5px] border-brand-600 bg-white text-center text-xl font-semibold text-ink-900 outline-none focus:ring-2 focus:ring-brand-600/20"
+                  className="h-10 min-w-0 flex-1 rounded-lg border border-brand-600 bg-white text-center text-sm font-semibold text-ink-900 outline-none focus:ring-2 focus:ring-brand-600/20"
                 />
               ))}
             </div>
@@ -146,7 +146,7 @@ export default function EmailVerification() {
               Code expires in {formattedTime}
             </div>
 
-            <Button type="submit" disabled={loading || isExpired} className="h-11 w-full justify-center">
+            <Button type="submit" disabled={loading || isExpired} className="w-full justify-center">
               {loading ? 'Verifying...' : 'Verify Code'}
             </Button>
 

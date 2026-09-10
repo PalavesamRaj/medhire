@@ -76,18 +76,18 @@ export default function ResetPassword() {
 
   return (
     <main className="flex min-h-screen bg-ink-50">
-      <div className="flex flex-1 items-center justify-center px-5 py-10 sm:px-10 lg:px-20 lg:py-14">
+      <div className="flex flex-1 items-center justify-center px-6 py-12 sm:px-12 lg:px-16">
         <div className="w-full max-w-[520px]">
           <Link to="/" className="mb-7 flex items-center gap-2"><Logo /></Link>
-          <section className="rounded-xl border border-ink-200 bg-white p-6 shadow-sm sm:p-10">
+          <section className="rounded-xl border border-ink-200 bg-white p-6 shadow-sm sm:p-8">
           <div className="flex flex-col gap-2">
-            <h1 className="text-3xl font-extrabold text-ink-900">Create New Password</h1>
+            <h1 className="text-2xl font-extrabold text-ink-900">Create New Password</h1>
             <p className="text-sm leading-5 text-ink-600">Create a secure new password for your account.</p>
           </div>
 
           <form noValidate onSubmit={handleSubmit} className="mt-5 flex flex-col gap-5">
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="new-password" className="text-xs font-semibold text-ink-900">New Password</label>
+              <label htmlFor="new-password" className="text-sm font-semibold text-ink-900">New Password</label>
               {passwordInput(password, (event) => { setPassword(event.target.value); setError('') }, showPassword, setShowPassword, Boolean(fieldErrors.password), 'Create a new password')}
             </div>
 
@@ -99,21 +99,21 @@ export default function ResetPassword() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <p className="text-xs font-semibold text-ink-900">Password requirements</p>
+              <p className="text-sm font-semibold text-ink-900">Password requirements</p>
               <div className="flex flex-wrap gap-x-3 gap-y-2">
                 {requirements.map(([label, met]) => <span key={label} className={`flex w-28 items-center gap-1.5 text-xs ${met ? 'text-green-700' : 'text-ink-600'}`}>{met ? <Check className="h-3.5 w-3.5 font-bold" /> : <Circle className="h-3 w-3" />}{label}</span>)}
               </div>
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="confirm-password" className="text-xs font-semibold text-ink-900">Confirm New Password</label>
+              <label htmlFor="confirm-password" className="text-sm font-semibold text-ink-900">Confirm New Password</label>
               {passwordInput(confirmPassword, (event) => { setConfirmPassword(event.target.value); setError('') }, showConfirmPassword, setShowConfirmPassword, Boolean(fieldErrors.confirmPassword), 'Confirm your new password')}
               {fieldErrors.confirmPassword && <p className="text-xs text-red-600">{fieldErrors.confirmPassword}</p>}
             </div>
 
             {error && <div className="flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50 p-3 text-red-600"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><div><p className="text-xs font-semibold">{fieldErrors.confirmPassword ? 'Passwords do not match' : 'Unable to reset password'}</p><p className="mt-0.5 text-xs leading-4">{fieldErrors.confirmPassword ? 'Both password fields must contain the same password.' : error}</p></div></div>}
 
-            <Button type="submit" disabled={loading} className="h-11 w-full justify-center">{loading ? 'Resetting...' : 'Reset Password'}</Button>
+            <Button type="submit" disabled={loading} className="w-full justify-center">{loading ? 'Resetting...' : 'Reset Password'}</Button>
           </form>
           </section>
         </div>
