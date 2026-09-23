@@ -2,6 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  .med-display-lg { @apply text-5xl leading-[1.1] font-extrabold; }
+  .med-display-sm { @apply text-[32px] leading-[1.2] font-bold; }
+  .med-heading-1 { @apply text-2xl leading-[1.3] font-semibold; }
+  .med-heading-2 { @apply text-xl leading-[1.3] font-semibold; }
+  .med-heading-3 { @apply text-lg leading-[1.4] font-semibold; }
+  .med-body-lg { @apply text-base leading-[1.5] font-normal; }
+  .med-body { @apply text-sm leading-[1.5] font-normal; }
+  .med-caption { @apply text-xs leading-[1.4] font-normal; }
+  .med-card { @apply rounded-xl border border-ink-200 bg-white p-5 shadow-sm shadow-ink-900/5; }
+  .med-action { @apply inline-flex items-center justify-center gap-2 rounded-lg border border-ink-200 bg-white px-4 py-2.5 text-sm leading-[1.5] font-semibold text-ink-900 transition-colors hover:bg-ink-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600; }
+  .med-action-primary { @apply border-brand-600 bg-brand-600 text-white hover:bg-brand-700; }
+  .candidate-app :where(input, select, textarea, button) { font-family: inherit; }
+  .candidate-app :where(input, select, textarea) { @apply text-sm leading-[1.5] font-normal; }
+  .candidate-app :where(button) { @apply text-sm leading-[1.5]; }
+}
+
 @keyframes toast-in {
   from { opacity: 0; transform: translateY(-8px) scale(0.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }

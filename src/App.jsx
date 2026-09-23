@@ -1,5 +1,28 @@
 import React from 'react'
-import { Routes, Route, useLocation } from 'react-router-dom'
+import { Routes, Route, useLocation, Navigate, Outlet } from 'react-router-dom'
+import { CandidateProfileProvider } from './context/CandidateProfileContext'
+import PersonalInformation from './pages/candidate/profile-setup/PersonalInformation'
+import ProfessionalInformation from './pages/candidate/profile-setup/ProfessionalInformation'
+import Education from './pages/candidate/profile-setup/Education'
+import WorkExperience from './pages/candidate/profile-setup/WorkExperience'
+import Skills from './pages/candidate/profile-setup/Skills'
+import Certifications from './pages/candidate/profile-setup/Certifications'
+import CareerPreferences from './pages/candidate/profile-setup/CareerPreferences'
+import ResumeUpload from './pages/candidate/profile-setup/ResumeUpload'
+import ProfileSetupComplete from './pages/candidate/profile-setup/ProfileSetupComplete'
+import CandidateDashboard from './pages/candidate/CandidateDashboard'
+import MyProfile from './pages/candidate/MyProfile'
+import EditProfile from './pages/candidate/EditProfile'
+import ResumeManagement from './pages/candidate/ResumeManagement'
+import PrivacySettings from './pages/candidate/PrivacySettings'
+import JobSearch from './pages/candidate/JobSearch'
+import JobDetails from './pages/candidate/JobDetails'
+import ApplyJob from './pages/candidate/ApplyJob'
+import MyApplications from './pages/candidate/MyApplications'
+import SavedJobs from './pages/candidate/SavedJobs'
+import CandidateSummary from './pages/candidate/CandidateSummary'
+import CandidateLayout from './components/candidate/dashboard/CandidateLayout'
+import { CandidateDashboardProvider } from './context/CandidateDashboardContext'
 import Navbar from './components/layout/Navbar'
 import Footer from './components/layout/Footer'
 import Home from './pages/Home'
@@ -45,6 +68,31 @@ export default function App() {
     <>
       <ScrollToTop />
       <Routes>
+      <Route path="/candidate" element={<CandidateProfileProvider><Outlet /></CandidateProfileProvider>}>
+        <Route index element={<Navigate to="profile/personal" replace />} />
+        <Route path="profile/personal" element={<PersonalInformation />} />
+        <Route path="profile/professional" element={<ProfessionalInformation />} />
+        <Route path="profile/education" element={<Education />} />
+        <Route path="profile/work-experience" element={<WorkExperience />} />
+        <Route path="profile/skills" element={<Skills />} />
+        <Route path="profile/certifications" element={<Certifications />} />
+        <Route path="profile/career-preferences" element={<CareerPreferences />} />
+        <Route path="profile/resume" element={<ResumeUpload />} />
+        <Route path="profile/complete" element={<ProfileSetupComplete />} />
+        <Route element={<CandidateDashboardProvider><CandidateLayout /></CandidateDashboardProvider>}>
+          <Route path="dashboard" element={<CandidateDashboard />} />
+          <Route path="profile" element={<MyProfile />} />
+          <Route path="edit-profile" element={<EditProfile />} />
+          <Route path="resume-management" element={<ResumeManagement />} />
+          <Route path="privacy-settings" element={<PrivacySettings />} />
+          <Route path="jobs" element={<JobSearch />} />
+          <Route path="jobs/:jobId" element={<JobDetails />} />
+          <Route path="jobs/:jobId/apply" element={<ApplyJob />} />
+          <Route path="applications" element={<MyApplications />} />
+          <Route path="saved-jobs" element={<SavedJobs />} />
+          <Route path="summary" element={<CandidateSummary />} />
+        </Route>
+      </Route>
       {/* Standalone auth flow — no site nav/footer, matches the Figma "Get Started" screens */}
       <Route path="/get-started" element={<GetStarted />} />
       <Route path="/register/candidate" element={<RegisterCandidate />} />

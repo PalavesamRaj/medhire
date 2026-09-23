@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import AuthSplitLayout from '../components/auth/AuthSplitLayout'
 import { Field, Input } from '../components/ui/FormControls'
 import { PasswordField } from '../components/ui/PasswordField'
@@ -19,6 +19,7 @@ const loginPanelPoints = [
 
 export default function Login() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const showToast = useToast()
   const [form, setForm] = useState({
     email: '',
@@ -65,7 +66,16 @@ export default function Login() {
         storage.setItem('medhire_refresh_token', response.refreshToken)
       }
       showToast('Welcome back. You are now logged in.')
-      navigate('/')
+      const role = response.user?.role || response.role || searchParams.get('role') || 'candidate'
+      if (role === 'candidate') {
+        try {
+          const identity = JSON.parse(sessionStorage.getItem('medhire_candidate_identity') || 'null')
+          const email = response.user?.email || form.email.trim()
+          if (identity?.email !== email) sessionStorage.removeItem('medhire_candidate_profile_draft')
+          sessionStorage.setItem('medhire_candidate_identity', JSON.stringify({ email }))
+        } catch { /* Profile editing remains available when storage is disabled. */ }
+        navigate(response.user?.profileCompleted ? '/candidate/dashboard' : '/candidate/profile/personal')
+      } else navigate('/')
     } catch (requestError) {
       setError(requestError.message)
     } finally {
