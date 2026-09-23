@@ -14,15 +14,16 @@ export const skillCategories = {
   'Technical Skills': ['EMR', 'Clinical Documentation', 'Phlebotomy', 'Care Planning'],
   'Soft Skills': ['Communication', 'Empathy', 'Problem Solving', 'Team Leadership'],
 }
-export const profileSteps = [
-  ['personal', 'Personal Information', "Let’s start with your basic details"],
-  ['professional', 'Professional Information', 'Tell us about your healthcare career'],
-  ['education', 'Education', 'Add your educational background'],
-  ['work-experience', 'Work Experience', 'Share your professional experience'],
-  ['skills', 'Skills', 'Highlight your professional skills'],
-  ['certifications', 'Certifications', 'Add your professional certifications'],
-  ['career-preferences', 'Career Preferences', "Tell us what you’re looking for"],
-  ['resume', 'Resume Upload', 'Upload your latest resume'],
-  ['complete', 'Profile Setup Complete!', 'Congratulations! Your profile is ready.'],
+export const PROFILE_SETUP_STEPS = [
+  { step: 1, section: 'resume', name: 'Resume Upload', path: '/candidate/profile/resume', skipTo: '/candidate/profile/personal', subtitle: 'Upload your latest resume to start building your professional profile.' },
+  { step: 2, section: 'personalInformation', name: 'Personal Information', path: '/candidate/profile/personal', backTo: '/candidate/profile/resume', skipTo: '/candidate/profile/professional', subtitle: "Let’s start with your basic details" },
+  { step: 3, section: 'professionalInformation', name: 'Professional Information', path: '/candidate/profile/professional', backTo: '/candidate/profile/personal', skipTo: '/candidate/profile/education', subtitle: 'Tell us about your healthcare career' },
+  { step: 4, section: 'education', name: 'Education', path: '/candidate/profile/education', backTo: '/candidate/profile/professional', skipTo: '/candidate/profile/work-experience', subtitle: 'Add your educational background' },
+  { step: 5, section: 'workExperience', name: 'Work Experience', path: '/candidate/profile/work-experience', backTo: '/candidate/profile/education', skipTo: '/candidate/profile/skills', subtitle: 'Share your professional experience' },
+  { step: 6, section: 'skills', name: 'Skills', path: '/candidate/profile/skills', backTo: '/candidate/profile/work-experience', skipTo: '/candidate/profile/certifications', subtitle: 'Highlight your professional skills' },
+  { step: 7, section: 'certifications', name: 'Certifications', path: '/candidate/profile/certifications', backTo: '/candidate/profile/skills', skipTo: '/candidate/profile/career-preferences', subtitle: 'Add your professional certifications' },
+  { step: 8, section: 'careerPreferences', name: 'Career Preferences', path: '/candidate/profile/career-preferences', backTo: '/candidate/profile/certifications', skipTo: '/candidate/profile/complete', subtitle: "Tell us what you’re looking for" },
+  { step: 9, section: 'complete', name: 'Profile Setup Complete!', path: '/candidate/profile/complete', backTo: '/candidate/profile/career-preferences', subtitle: 'Congratulations! Your profile is ready.' },
 ]
-export const profilePath = (step) => `/candidate/profile/${profileSteps[step - 1][0]}`
+export const profileSteps = PROFILE_SETUP_STEPS.map(({ section, name, subtitle }) => [section, name, subtitle])
+export const profilePath = (step) => PROFILE_SETUP_STEPS.find((item) => item.step === step)?.path || '/candidate/profile/resume'

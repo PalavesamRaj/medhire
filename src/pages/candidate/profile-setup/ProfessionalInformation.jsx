@@ -16,6 +16,6 @@ const fields = [
   { name: 'professionalSummary', label: 'Professional Summary', type: 'textarea', placeholder: 'Describe your experience, focus, and approach to patient care…', wide: true, maxLength: 3000 },
 ]
 export default function ProfessionalInformation() {
-  const { data, errors, update, submit } = useProfileStep('professionalInformation', 2, validateProfessionalInformation)
-  return <CandidateProfileLayout step={2} onSubmit={submit}><div className="grid grid-cols-1 gap-4 sm:grid-cols-2">{fields.map((field) => <ProfileField key={field.name} {...field} value={data[field.name]} error={errors[field.name]} onChange={(value) => update(field.name, field.name === 'npiNumber' ? value.replace(/\D/g, '').slice(0, 10) : value)} />)}</div></CandidateProfileLayout>
+  const { data, errors, update, submit } = useProfileStep('professionalInformation', 3, validateProfessionalInformation)
+  return <CandidateProfileLayout step={3} onSubmit={submit}><div className="grid grid-cols-1 gap-4 sm:grid-cols-2">{fields.map((field) => <ProfileField key={field.name} {...field} value={data[field.name]} error={errors[field.name]} onChange={(value) => update(field.name, field.name === 'npiNumber' ? value.replace(/\D/g, '').slice(0, 10) : value)} />)}</div></CandidateProfileLayout>
 }

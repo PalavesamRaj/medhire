@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { build } from 'esbuild'
 import { validatePersonalInformation, validateProfessionalInformation, validateEducation, validateWorkExperience, validateSkills, validateCertifications, validateCareerPreferences, validateResume } from '../src/lib/candidateProfileValidation.js'
 import { loadProfileDraft, saveProfileDraft, clearProfileDraft, PROFILE_DRAFT_KEY } from '../src/lib/candidateProfileDraft.js'
+import { profilePath, profileSteps } from '../src/lib/candidateProfileOptions.js'
 
 const personal = { firstName: 'Alex', lastName: 'Morgan', email: 'alex@example.com', phoneNumber: '+1 (555) 123-4567', dateOfBirth: '1994-04-19', gender: 'Female', country: 'United States', city: 'Boston' }
 test('personal information: required fields, email, phone and valid past birth date', () => {
@@ -51,6 +52,12 @@ test('career preferences validate employment selection and salary', () => {
 test('resume accepts supported files up to 5 MB and rejects empty/invalid files', () => {
   for (const name of ['resume.PDF', 'resume.doc', 'resume.docx']) assert.deepEqual(validateResume({ name, size: 5 * 1024 * 1024 }), {})
   for (const file of [null, { name: 'file.exe', size: 10 }, { name: 'file.pdf', size: 0 }, { name: 'file.pdf', size: 5 * 1024 * 1024 + 1 }]) assert.ok(validateResume(file).resume)
+})
+test('profile setup order starts with resume upload for new candidates', () => {
+  assert.deepEqual(profileSteps.map(([section]) => section), ['resume', 'personalInformation', 'professionalInformation', 'education', 'workExperience', 'skills', 'certifications', 'careerPreferences', 'complete'])
+  assert.equal(profilePath(1), '/candidate/profile/resume')
+  assert.equal(profilePath(2), '/candidate/profile/personal')
+  assert.equal(profilePath(9), '/candidate/profile/complete')
 })
 test('draft round trip omits File data and tolerates invalid or unavailable storage', () => {
   const entries = new Map()

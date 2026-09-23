@@ -35,6 +35,8 @@ export const saveWorkExperience = (data) => request(PROFILE_ENDPOINTS.workExperi
 export const saveSkills = (data) => request(PROFILE_ENDPOINTS.skills, 'PUT', data)
 export const saveCertifications = (data) => request(PROFILE_ENDPOINTS.certifications, 'PUT', data)
 export const saveCareerPreferences = (data) => request(PROFILE_ENDPOINTS.preferences, 'PUT', data)
+// Future AI resume parsing integration point: POST a resume file to an extraction service,
+// then merge the returned structured fields into the existing candidate profile draft without overwriting user-edited values.
 export const uploadResume = (file) => { const data = new FormData(); data.append('resume', file); return request(PROFILE_ENDPOINTS.resume, 'POST', data) }
 export const submitCandidateProfile = (profile) => {
   const { resume, ...fields } = profile

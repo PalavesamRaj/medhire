@@ -69,7 +69,8 @@ export default function App() {
       <ScrollToTop />
       <Routes>
       <Route path="/candidate" element={<CandidateProfileProvider><Outlet /></CandidateProfileProvider>}>
-        <Route index element={<Navigate to="profile/personal" replace />} />
+        <Route index element={<Navigate to="profile/resume" replace />} />
+        <Route path="profile/resume" element={<ResumeUpload />} />
         <Route path="profile/personal" element={<PersonalInformation />} />
         <Route path="profile/professional" element={<ProfessionalInformation />} />
         <Route path="profile/education" element={<Education />} />
@@ -77,7 +78,6 @@ export default function App() {
         <Route path="profile/skills" element={<Skills />} />
         <Route path="profile/certifications" element={<Certifications />} />
         <Route path="profile/career-preferences" element={<CareerPreferences />} />
-        <Route path="profile/resume" element={<ResumeUpload />} />
         <Route path="profile/complete" element={<ProfileSetupComplete />} />
         <Route element={<CandidateDashboardProvider><CandidateLayout /></CandidateDashboardProvider>}>
           <Route path="dashboard" element={<CandidateDashboard />} />

@@ -10,7 +10,7 @@ function MultiSelect({ label, options, value = [], onChange, error }) {
   return <fieldset><legend className="mb-2 text-sm font-semibold text-ink-900">{label}</legend><div className="flex flex-wrap gap-2">{options.map((option) => <label key={option} className={`inline-flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-xs ${value.includes(option) ? 'border-brand-600 bg-brand-50 text-brand-600' : 'border-ink-200 text-ink-600'}`}><input type="checkbox" checked={value.includes(option)} onChange={(event) => onChange(event.target.checked ? [...value, option] : value.filter((item) => item !== option))} className="accent-blue-600" />{option}</label>)}</div>{error && <p role="alert" className="mt-1.5 text-xs text-red-600">{error}</p>}</fieldset>
 }
 export default function CareerPreferences() {
-  const { data, errors, update, submit } = useProfileStep('careerPreferences', 7, validateCareerPreferences)
+  const { data, errors, update, submit } = useProfileStep('careerPreferences', 8, validateCareerPreferences)
   const fields = [
     { name: 'workSetting', label: 'Work Setting', options: workSettingOptions },
     { name: 'shiftPreference', label: 'Preferred Shift', options: shiftOptions },
@@ -19,7 +19,7 @@ export default function CareerPreferences() {
     { name: 'availableFrom', label: 'Available From', type: 'date' },
     { name: 'remotePreference', label: 'Remote Preference', options: remoteOptions },
   ]
-  return <CandidateProfileLayout step={7} onSubmit={submit}>
+  return <CandidateProfileLayout step={8} onSubmit={submit}>
     <ProfileField name="desiredJobTitle" label="Desired Job Title" placeholder="e.g. ICU Registered Nurse" required value={data.desiredJobTitle} error={errors.desiredJobTitle} onChange={(value) => update('desiredJobTitle', value)} />
     <SkillInput label="Preferred Locations" placeholder="Add a city or region…" objectValues={false} value={data.preferredLocations || []} onChange={(value) => update('preferredLocations', value)} />
     <MultiSelect label="Preferred Specialties" options={specialtyOptions} value={data.preferredSpecialties} onChange={(value) => update('preferredSpecialties', value)} />

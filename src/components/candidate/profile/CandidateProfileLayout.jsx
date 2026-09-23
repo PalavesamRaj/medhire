@@ -7,7 +7,7 @@ import ProfileNavigation from './ProfileNavigation'
 import { profileSteps } from '../../../lib/candidateProfileOptions'
 import { useCandidateProfile } from '../../../context/CandidateProfileContext'
 
-export default function CandidateProfileLayout({ step, children, onSubmit, busy, error }) {
+export default function CandidateProfileLayout({ step, children, onSubmit, busy, error, onSkip }) {
   const { storageError } = useCandidateProfile()
   const heading = useRef(null)
   useEffect(() => { heading.current?.focus() }, [step])
@@ -21,7 +21,7 @@ export default function CandidateProfileLayout({ step, children, onSubmit, busy,
         {step === 9 ? children : <form noValidate onSubmit={onSubmit} className="flex flex-1 flex-col">
           <div className="space-y-5">{children}</div>
           {error && <p role="alert" className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-          <ProfileNavigation step={step} busy={busy} />
+          <ProfileNavigation step={step} busy={busy} onSkip={onSkip} />
         </form>}
       </div>
     </section>

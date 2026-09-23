@@ -7,7 +7,7 @@ import { validatePersonalInformation } from '../../../lib/candidateProfileValida
 import { genderOptions, countryOptions, stateOptions } from '../../../lib/candidateProfileOptions'
 
 export default function PersonalInformation() {
-  const { data, errors, update, submit, updateSection } = useProfileStep('personalInformation', 1, validatePersonalInformation)
+  const { data, errors, update, submit, updateSection } = useProfileStep('personalInformation', 2, validatePersonalInformation)
   const { candidate } = useCandidateProfile()
   useEffect(() => {
     if (candidate?.email && data.email !== candidate.email) updateSection('personalInformation', (previous) => ({ ...previous, email: candidate.email }))
@@ -25,5 +25,5 @@ export default function PersonalInformation() {
     { name: 'state', label: 'State / Province', options: data.country === 'United States' ? stateOptions : undefined, autoComplete: 'address-level1' },
     { name: 'zipCode', label: 'Zip / Postal Code', autoComplete: 'postal-code', placeholder: 'Postal code' },
   ]
-  return <CandidateProfileLayout step={1} onSubmit={submit}><div className="grid grid-cols-1 gap-4 sm:grid-cols-2">{fields.map((field) => <ProfileField key={field.name} {...field} value={data[field.name]} error={errors[field.name]} onChange={(value) => update(field.name, value)} />)}</div></CandidateProfileLayout>
+  return <CandidateProfileLayout step={2} onSubmit={submit}><div className="grid grid-cols-1 gap-4 sm:grid-cols-2">{fields.map((field) => <ProfileField key={field.name} {...field} value={data[field.name]} error={errors[field.name]} onChange={(value) => update(field.name, value)} />)}</div></CandidateProfileLayout>
 }
