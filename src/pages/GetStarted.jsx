@@ -66,9 +66,12 @@ export default function GetStarted() {
         ))}
       </div>
 
-      <p className="text-center text-xs">
-        <Link to="/" className="font-semibold text-brand-600 hover:text-brand-700">
-          <ArrowLeft className="mr-1 inline-block h-3.5 w-3.5 align-text-bottom" />
+      <p className="mt-6 flex justify-center">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-700 shadow-sm transition-colors hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
           Back to Home
         </Link>
       </p>
