@@ -41,6 +41,21 @@ import ForgotPassword from './pages/ForgotPassword'
 import EmailVerification from './pages/EmailVerification'
 import ResetPassword from './pages/ResetPassword'
 import PasswordResetSuccess from './pages/PasswordResetSuccess'
+import RecruiterVerificationPending from './pages/recruiter/RecruiterVerificationPending'
+import RequireRecruiterAccess from './components/recruiter/RequireRecruiterAccess'
+import RecruiterDashboard from './pages/recruiter/RecruiterDashboard'
+import RecruiterFindCandidates from './pages/recruiter/RecruiterFindCandidates'
+import RecruiterCandidateProfile from './pages/recruiter/RecruiterCandidateProfile'
+import RecruiterPurchasedCandidates from './pages/recruiter/RecruiterPurchasedCandidates'
+import RecruiterShortlistedCandidates from './pages/recruiter/RecruiterShortlistedCandidates'
+import RecruiterPlansCredits from './pages/recruiter/RecruiterPlansCredits'
+import RecruiterCheckout from './pages/recruiter/RecruiterCheckout'
+import RecruiterPaymentSuccess from './pages/recruiter/RecruiterPaymentSuccess'
+import RecruiterPaymentFailed from './pages/recruiter/RecruiterPaymentFailed'
+import RecruiterPaymentHistory from './pages/recruiter/RecruiterPaymentHistory'
+import RecruiterInvoice from './pages/recruiter/RecruiterInvoice'
+import RecruiterHospitalProfile from './pages/recruiter/RecruiterHospitalProfile'
+import RecruiterLayout from './components/recruiter/dashboard/RecruiterLayout'
 import Placeholder from './pages/Placeholder'
 
 function SiteLayout({ children }) {
@@ -98,10 +113,29 @@ export default function App() {
       <Route path="/register/candidate" element={<RegisterCandidate />} />
       <Route path="/register/recruiter" element={<RegisterRecruiter />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/recruiter/login" element={<Navigate to="/login?role=recruiter" replace />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/verify-email" element={<EmailVerification />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/password-reset-success" element={<PasswordResetSuccess />} />
+
+      <Route path="/recruiter/verification-pending" element={<RequireRecruiterAccess allowPending><RecruiterVerificationPending /></RequireRecruiterAccess>} />
+      <Route path="/recruiter" element={<RequireRecruiterAccess><RecruiterLayout /></RequireRecruiterAccess>}>
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<RecruiterDashboard />} />
+        <Route path="find-candidates" element={<RecruiterFindCandidates />} />
+        <Route path="purchased-candidates" element={<RecruiterPurchasedCandidates />} />
+        <Route path="shortlisted-candidates" element={<RecruiterShortlistedCandidates />} />
+        <Route path="plans-credits" element={<RecruiterPlansCredits />} />
+        <Route path="plans-credits/checkout" element={<RecruiterCheckout />} />
+        <Route path="payment-success" element={<RecruiterPaymentSuccess />} />
+        <Route path="payment-failed" element={<RecruiterPaymentFailed />} />
+        <Route path="payment-history" element={<RecruiterPaymentHistory />} />
+        <Route path="payment-history/invoices/:transactionId" element={<RecruiterInvoice />} />
+        <Route path="hospital-profile" element={<RecruiterHospitalProfile />} />
+        <Route path="candidates/:candidateId" element={<RecruiterCandidateProfile />} />
+        <Route path="candidates/:candidateId/unlocked" element={<RecruiterCandidateProfile />} />
+      </Route>
 
       {/* Standard site pages */}
       <Route path="/" element={<SiteLayout><Home /></SiteLayout>} />

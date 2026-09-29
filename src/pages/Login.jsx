@@ -1,10 +1,12 @@
 import React, { useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import AuthSplitLayout from '../components/auth/AuthSplitLayout'
 import { Field, Input } from '../components/ui/FormControls'
 import { PasswordField } from '../components/ui/PasswordField'
 import Button from '../components/ui/Button'
 import { authApi } from '../lib/authApi'
+import { storeAuthSession } from '../lib/authSession'
+import { isRecruiterOrganizationApproved } from '../lib/recruiterAuthApi'
 import { validateLogin } from '../lib/authValidation'
 import { useToast } from '../components/ui/ToastProvider'
 import panelImage from '../assets/login.png'
@@ -19,7 +21,6 @@ const loginPanelPoints = [
 
 export default function Login() {
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
   const showToast = useToast()
   const [form, setForm] = useState({
     email: '',
@@ -55,18 +56,23 @@ export default function Login() {
     setError('')
     setLoading(true)
     try {
-      const response = await authApi.login({
-        email: form.email,
-        password: form.password,
-        rememberMe: form.remember,
-      })
-      if (response.accessToken) localStorage.setItem('medhire_access_token', response.accessToken)
-      if (response.refreshToken) {
-        const storage = form.remember ? localStorage : sessionStorage
-        storage.setItem('medhire_refresh_token', response.refreshToken)
+      const response = await authApi.login({ email: form.email.trim().toLowerCase(), password: form.password, rememberMe: form.remember })
+      const role = String(response.user?.role || response.role || '').toLowerCase()
+      if (!['candidate', 'recruiter'].includes(role)) {
+        throw new Error('The login service returned an incomplete account session. Please try again.')
       }
+      if (response.user?.emailVerified === false) {
+        const email = response.user.email || form.email.trim().toLowerCase()
+        await authApi.resendCode({ email, purpose: 'registration' })
+        showToast('Verify your email to continue.')
+        navigate(`/verify-email?role=${role}&email=${encodeURIComponent(email)}&source=registration`)
+        return
+      }
+      if (!response.accessToken) {
+        throw new Error('The login service returned an incomplete account session. Please try again.')
+      }
+      storeAuthSession(response, form.remember)
       showToast('Welcome back. You are now logged in.')
-      const role = response.user?.role || response.role || searchParams.get('role') || 'candidate'
       if (role === 'candidate') {
         try {
           const identity = JSON.parse(sessionStorage.getItem('medhire_candidate_identity') || 'null')
@@ -75,9 +81,18 @@ export default function Login() {
           sessionStorage.setItem('medhire_candidate_identity', JSON.stringify({ email }))
         } catch { /* Profile editing remains available when storage is disabled. */ }
         navigate(response.user?.profileCompleted ? '/candidate/dashboard' : '/candidate/profile/resume')
+      } else if (role === 'recruiter') {
+        navigate(isRecruiterOrganizationApproved(response.user) ? '/recruiter/dashboard' : '/recruiter/verification-pending')
       } else navigate('/')
     } catch (requestError) {
+      if (requestError.code === 'EMAIL_NOT_VERIFIED') {
+        const email = form.email.trim().toLowerCase()
+        showToast('Verify your email to continue. Enter your recent code or request a new one.')
+        navigate(`/verify-email?email=${encodeURIComponent(email)}&source=registration`)
+        return
+      }
       setError(requestError.message)
+      setFieldErrors(requestError.fieldErrors || {})
     } finally {
       setLoading(false)
     }

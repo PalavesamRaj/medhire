@@ -1,5 +1,5 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { CheckCircle2 } from 'lucide-react'
 import Logo from '../components/layout/Logo'
 import RecoveryPanel from '../components/auth/RecoveryPanel'
@@ -7,6 +7,8 @@ import Button from '../components/ui/Button'
 import securityImage from '../assets/security-shields.png'
 
 export default function PasswordResetSuccess() {
+  const [searchParams] = useSearchParams()
+  const recruiterLogin = searchParams.get('role') === 'recruiter'
   return (
     <main className="flex min-h-screen bg-ink-50">
       <div className="flex flex-1 items-center justify-center px-6 py-12 sm:px-12 lg:px-16">
@@ -25,7 +27,7 @@ export default function PasswordResetSuccess() {
                 Your password has been updated. You can now sign in using your new password.
               </p>
             </div>
-            <Link to="/login" className="w-full">
+            <Link to={recruiterLogin ? '/recruiter/login' : '/login'} className="w-full">
               <Button className="w-full justify-center">Back to Login</Button>
             </Link>
             <p className="w-full text-xs text-ink-600">

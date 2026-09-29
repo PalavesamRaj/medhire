@@ -5,7 +5,7 @@ import AuthSplitLayout from '../components/auth/AuthSplitLayout'
 import { Field, Input } from '../components/ui/FormControls'
 import { PasswordField } from '../components/ui/PasswordField'
 import Button from '../components/ui/Button'
-import { authApi } from '../lib/authApi'
+import { recruiterAuthApi } from '../lib/recruiterAuthApi'
 import { validateRegistration } from '../lib/authValidation'
 import { useToast } from '../components/ui/ToastProvider'
 import panelImage from '../assets/recruiter-candidate-grid.png'
@@ -55,23 +55,18 @@ export default function RegisterRecruiter() {
     setError('')
     setLoading(true)
     try {
-      await authApi.register({
-        role: 'recruiter',
-        fullName: form.name,
-        email: form.email,
-        phone: `+91${form.phone.replace(/\D/g, '')}`,
-        designation: form.designation,
-        organizationName: form.orgName,
-        organizationWebsite: form.orgWebsite,
-        city: form.city,
-        state: form.state,
-        password: form.password,
-        termsAccepted: form.agree,
-      })
+      await recruiterAuthApi.register(form)
       showToast('Recruiter account created. Check your email to verify it.')
-      navigate(`/verify-email?role=recruiter&email=${encodeURIComponent(form.email)}&source=registration`)
+      navigate(`/verify-email?role=recruiter&email=${encodeURIComponent(form.email.trim().toLowerCase())}&source=registration`)
     } catch (requestError) {
       setError(requestError.message)
+      const apiFieldErrors = requestError.fieldErrors || {}
+      setFieldErrors({
+        ...apiFieldErrors,
+        ...(apiFieldErrors.fullName ? { name: apiFieldErrors.fullName } : {}),
+        ...(apiFieldErrors.organizationName ? { orgName: apiFieldErrors.organizationName } : {}),
+        ...(apiFieldErrors.organizationWebsite ? { orgWebsite: apiFieldErrors.organizationWebsite } : {}),
+      })
     } finally {
       setLoading(false)
     }
@@ -162,7 +157,7 @@ export default function RegisterRecruiter() {
           </Field>
           <Field label="Hospital Website" error={fieldErrors.orgWebsite}>
             <Input
-              placeholder="e.g. www.hospital.com"
+              placeholder="https://www.hospital.com"
               value={form.orgWebsite}
               onChange={update('orgWebsite')}
               error={Boolean(fieldErrors.orgWebsite)}
@@ -235,7 +230,7 @@ export default function RegisterRecruiter() {
 
         <p className="text-center text-sm text-ink-500">
           Already registered?{' '}
-          <Link to="/login" className="font-semibold text-brand-600 hover:text-brand-700">
+          <Link to="/recruiter/login" className="font-semibold text-brand-600 hover:text-brand-700">
             Login
           </Link>
         </p>

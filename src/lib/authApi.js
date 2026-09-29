@@ -1,3 +1,5 @@
+import { getAccessToken } from './authSession'
+
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
 
 function getErrorMessage(payload, fallback) {
@@ -7,7 +9,7 @@ function getErrorMessage(payload, fallback) {
 }
 
 async function request(path, options = {}) {
-  const token = localStorage.getItem('medhire_access_token')
+  const token = getAccessToken()
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers: {
@@ -20,7 +22,11 @@ async function request(path, options = {}) {
 
   const payload = await response.json().catch(() => ({}))
   if (!response.ok) {
-    throw new Error(getErrorMessage(payload, 'Something went wrong. Please try again.'))
+    const error = new Error(getErrorMessage(payload, 'Something went wrong. Please try again.'))
+    error.fieldErrors = payload?.error?.fields || payload?.fields || {}
+    error.status = response.status
+    error.code = payload?.error?.code || payload?.code
+    throw error
   }
 
   return payload

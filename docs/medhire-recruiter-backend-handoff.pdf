@@ -1,0 +1,415 @@
+%PDF-1.4
+% MedHire handoff
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+2 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>
+endobj
+4 0 obj
+<< /Type /Pages /Kids [6 0 R 8 0 R 10 0 R 12 0 R 14 0 R 16 0 R] /Count 6 >>
+endobj
+5 0 obj
+<< /Length 639 >>
+stream
+0.08 0.2 0.29 rg BT /F2 19.0 Tf 50.0 792.0 Td (Recruiter Backend API and Flow Contract) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 759.5 Td (Single backend handoff for recruiter signup, email verification, organization review, login, recruiter workspace APIs,) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 748.8 Td (candidate access, credit purchases, invoices, and hospital profile management.) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 734.1 Td (Proposed contract ? backend team to confirm) Tj ET
+.38 .49 .56 rg BT /F1 7 Tf 50 23 Td (MedHire - Recruiter Backend API and Flow Handoff) Tj ET
+.38 .49 .56 rg BT /F1 7 Tf 515 23 Td (1/6) Tj ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 4 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 5 0 R >>
+endobj
+7 0 obj
+<< /Length 6563 >>
+stream
+0.08 0.2 0.29 rg BT /F2 13.0 Tf 50.0 792.0 Td (1. Scope and Flow Overview) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 767.6 Td (This contract includes recruiter authentication and recruiter workspace data. Shared candidate authentication is outside) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 756.9 Td (scope. Frontend route guards are for navigation only; the backend is the authorization boundary.) Tj ET
+0.08 0.2 0.29 rg BT /F2 13.0 Tf 50.0 742.1 Td (2. Common API Rules) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 717.7 Td (ItemRequirement) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 706.3 Td (Base URL | Frontend reads VITE_API_BASE_URL; it defaults to /api. Paths here are relative to that base.) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 695.0 Td (Encoding | JSON request/response bodies use application/json. List endpoints return a consistent envelope.) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 683.6 Td (Role | Use canonical role recruiter. Reject candidate or unknown roles from recruiter-only requests.) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 672.2 Td (Identity and scope | Resolve recruiter and organization from the authenticated session/token; never trust a client-supplied organization ID) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 662.8 Td (for authorization.) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 651.4 Td (Time and money | Use ISO-8601 UTC timestamps. Represent money as decimal string plus ISO-4217 currency. Do not calculate money in binary) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 642.1 Td (floating point.) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 630.7 Td (Errors | Use the shared error format in section 12. Provide stable codes and field-level errors where applicable.) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 619.3 Td (Security | Hash passwords, rate-limit auth/OTP, redact secrets, scope candidate/payment/profile data to organization, and enforce approval on) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 609.9 Td (every recruiter resource route.) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 598.5 Td (Pagination | List defaults: page=1, pageSize=20; clamp pageSize to 100.) Tj ET
+0.07 0.13 0.18 rg 53.0 548.8 496.0 42.8 re f
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 583.2 Td ({) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 574.5 Td (  "items": [],) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 565.7 Td (  "pagination": { "page": 1, "pageSize": 20, "total": 0, "totalPages": 0 }) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 557.0 Td (}) Tj ET
+0.08 0.2 0.29 rg BT /F2 13.0 Tf 50.0 542.3 Td (3. Recruiter Registration) Tj ET
+0.05 0.52 0.49 rg BT /F2 10.0 Tf 50.0 517.9 Td (POST/auth/register) Tj ET
+0.07 0.13 0.18 rg 53.0 380.8 496.0 121.2 re f
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 493.5 Td ({) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 484.8 Td (  "role": "recruiter",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 476.1 Td (  "fullName": "Rahul Menon",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 467.4 Td (  "email": "rahul@hospital.com",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 458.7 Td (  "phone": "+919876543210",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 450.0 Td (  "designation": "HR Manager",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 441.2 Td (  "organizationName": "MedCare Hospital",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 432.5 Td (  "organizationWebsite": "https://hospital.com",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 423.8 Td (  "city": "Chennai",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 415.1 Td (  "state": "Tamil Nadu",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 406.4 Td (  "password": "ExamplePassword@123",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 397.7 Td (  "termsAccepted": true) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 389.0 Td (}) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 374.3 Td (The current UI collects a ten-digit phone number and prepends +91. Confirm whether country code must be selectable.) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 363.6 Td (Password confirmation is checked in browser and is not sent.) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 348.8 Td (Backend behavior: Validate all fields; normalize email; create recruiter and organization with email unverified and) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 338.1 Td (verification status pending; send registration OTP; return 201 Created. Do not grant recruiter workspace access at) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 327.4 Td (registration.) Tj ET
+0.07 0.13 0.18 rg 53.0 239.5 496.0 77.7 re f
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 308.7 Td ({) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 300.0 Td (  "message": "Verification code sent",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 291.3 Td (  "userId": "user_123",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 282.5 Td (  "email": "rahul@hospital.com",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 273.8 Td (  "role": "recruiter",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 265.1 Td (  "emailVerified": false,) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 256.4 Td (  "organizationVerificationStatus": "pending") Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 247.7 Td (}) Tj ET
+0.08 0.2 0.29 rg BT /F2 13.0 Tf 50.0 233.0 Td (4. Email Verification and Resend) Tj ET
+0.05 0.52 0.49 rg BT /F2 10.0 Tf 50.0 208.6 Td (POST/auth/verify-code) Tj ET
+0.07 0.13 0.18 rg 53.0 176.0 496.0 16.7 re f
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 184.2 Td ({ "email": "rahul@hospital.com", "code": "482916", "purpose": "registration" }) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 169.5 Td (On success, consume the one-time code and mark the email verified. This must not approve the organization.) Tj ET
+0.07 0.13 0.18 rg 53.0 55.4 496.0 103.8 re f
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 150.7 Td ({) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 142.0 Td (  "verified": true,) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 133.3 Td (  "purpose": "registration",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 124.6 Td (  "user": {) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 115.9 Td (    "id": "user_123",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 107.2 Td (    "role": "recruiter",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 98.5 Td (    "email": "rahul@hospital.com",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 89.8 Td (    "emailVerified": true,) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 81.1 Td (    "organizationVerificationStatus": "pending") Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 72.4 Td (  }) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 63.6 Td (}) Tj ET
+.38 .49 .56 rg BT /F1 7 Tf 50 23 Td (MedHire - Recruiter Backend API and Flow Handoff) Tj ET
+.38 .49 .56 rg BT /F1 7 Tf 515 23 Td (2/6) Tj ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 4 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 7 0 R >>
+endobj
+9 0 obj
+<< /Length 6561 >>
+stream
+0.05 0.52 0.49 rg BT /F2 10.0 Tf 50.0 792.0 Td (POST/auth/resend-code) Tj ET
+0.07 0.13 0.18 rg 53.0 759.4 496.0 16.7 re f
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 767.6 Td ({ "email": "rahul@hospital.com", "purpose": "registration" }) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 752.9 Td (OTP is six numeric digits, expires in about 10 minutes, single-use, and invalidated after success. Rate-limit by account) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 742.2 Td (and IP \(suggested resend cooldown 60 seconds\), and limit verification attempts.) Tj ET
+0.08 0.2 0.29 rg BT /F2 13.0 Tf 50.0 727.4 Td (5. Recruiter Login and Access State) Tj ET
+0.05 0.52 0.49 rg BT /F2 10.0 Tf 50.0 703.0 Td (POST/auth/login) Tj ET
+0.07 0.13 0.18 rg 53.0 670.4 496.0 16.7 re f
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 678.6 Td ({ "email": "rahul@hospital.com", "password": "ExamplePassword@123", "rememberMe": true }) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 663.9 Td (rememberMe is a session-duration preference, not a user profile field. Successful login returns session information and the) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 653.2 Td (current authoritative organization status.) Tj ET
+0.07 0.13 0.18 rg 53.0 504.3 496.0 138.7 re f
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 634.5 Td ({) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 625.8 Td (  "accessToken": "eyJ...",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 617.1 Td (  "refreshToken": "refresh-token-value",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 608.3 Td (  "expiresIn": 3600,) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 599.6 Td (  "user": {) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 590.9 Td (    "id": "user_123",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 582.2 Td (    "role": "recruiter",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 573.5 Td (    "fullName": "Rahul Menon",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 564.8 Td (    "email": "rahul@hospital.com",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 556.1 Td (    "emailVerified": true,) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 547.4 Td (    "organizationId": "org_456",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 538.7 Td (    "organizationName": "MedCare Hospital",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 530.0 Td (    "organizationVerificationStatus": "pending") Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 521.2 Td (  }) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 512.5 Td (}) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 497.8 Td (StateFrontend route behaviorBackend behavior) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 486.4 Td (Email unverified | On the EMAIL_NOT_VERIFIED error, route to registration email verification; user enters the existing code or requests a) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 477.1 Td (resend. Do not store a session. | Return 403 Forbidden with code EMAIL_NOT_VERIFIED; do not issue access or refresh tokens.) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 465.7 Td (Organization pending | Show verification pending page; block recruiter workspace. | Return organizationVerificationStatus: "pending";) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 456.3 Td (resource APIs return 403.) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 444.9 Td (Organization approved | Open recruiter dashboard and workspace. | Return "approved"; authorize only this organization's data.) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 433.5 Td (Organization rejected | Show rejection/support/resubmission UX \(currently needs frontend decision\). | Return "rejected" and optionally a) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 424.2 Td (safe, user-facing reason.) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 412.8 Td (Wrong role / invalid credentials | Show form error; do not store a mismatched session. | Use generic credential errors where needed to avoid) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 403.4 Td (account enumeration.) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 392.0 Td (When organization approval changes, the next login/session refresh must return the latest state. Protect every resource) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 381.3 Td (with current backend status even when browser session data is stale.) Tj ET
+0.08 0.2 0.29 rg BT /F2 13.0 Tf 50.0 366.6 Td (6. Password Recovery) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 342.2 Td (Use shared auth endpoints while preserving recruiter context in the UI. Do not reveal whether the email exists.) Tj ET
+0.05 0.52 0.49 rg BT /F2 10.0 Tf 50.0 327.4 Td (POST/auth/forgot-password) Tj ET
+0.07 0.13 0.18 rg 53.0 294.8 496.0 16.7 re f
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 303.0 Td ({ "email": "rahul@hospital.com" }) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 288.3 Td (Return generic 202 Accepted for both known and unknown emails.) Tj ET
+0.05 0.52 0.49 rg BT /F2 10.0 Tf 50.0 273.6 Td (POST/auth/verify-code) Tj ET
+0.07 0.13 0.18 rg 53.0 241.0 496.0 16.7 re f
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 249.2 Td ({ "email": "rahul@hospital.com", "code": "482916", "purpose": "password_reset" }) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 234.5 Td (On success return a short-lived, single-use reset token. Keep this purpose distinct from registration verification.) Tj ET
+0.05 0.52 0.49 rg BT /F2 10.0 Tf 50.0 219.8 Td (POST/auth/reset-password) Tj ET
+0.07 0.13 0.18 rg 53.0 187.2 496.0 16.7 re f
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 195.4 Td ({ "email": "rahul@hospital.com", "resetToken": "reset-token-value", "newPassword": "NewExamplePassword@123" }) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 180.7 Td (Invalidate reset token and revoke sessions according to security policy. Confirmation password is frontend-only.) Tj ET
+0.08 0.2 0.29 rg BT /F2 13.0 Tf 50.0 166.0 Td (7. Recruiter Workspace API) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 141.5 Td (Every route in this section requires an approved recruiter access token:) Tj ET
+0.07 0.13 0.18 rg 53.0 97.2 496.0 34.1 re f
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 122.8 Td (Authorization: Bearer <accessToken>) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 114.1 Td (Accept: application/json) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 105.4 Td (Content-Type: application/json) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 90.7 Td (Return 403 ORGANIZATION_NOT_APPROVED for pending/rejected organizations. Derive the organization from token claims or) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 80.0 Td (server-side session.) Tj ET
+0.05 0.52 0.49 rg BT /F2 10.0 Tf 50.0 65.2 Td (GET/recruiter/dashboard) Tj ET
+.38 .49 .56 rg BT /F1 7 Tf 50 23 Td (MedHire - Recruiter Backend API and Flow Handoff) Tj ET
+.38 .49 .56 rg BT /F1 7 Tf 515 23 Td (3/6) Tj ET
+endstream
+endobj
+10 0 obj
+<< /Type /Page /Parent 4 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 9 0 R >>
+endobj
+11 0 obj
+<< /Length 6629 >>
+stream
+0.07 0.13 0.18 rg 53.0 692.7 496.0 103.8 re f
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 788.0 Td ({) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 779.3 Td (  "metrics": { "candidateSearches": 284, "profilesUnlocked": 47,) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 770.6 Td (    "shortlistedCandidates": 23, "availableCredits": 156 },) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 761.9 Td (  "organization": { "name": "MedCare Hospital", "location": "Chennai, IN",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 753.2 Td (    "verificationStatus": "approved" },) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 744.4 Td (  "recentActivity": [) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 735.7 Td (    { "id": "act_01", "description": "Candidate profile unlocked",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 727.0 Td (      "occurredAt": "2026-09-24T09:00:00Z" }) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 718.3 Td (  ],) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 709.6 Td (  "recommendedCandidates": []) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 700.9 Td (}) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 686.2 Td (Recommended profiles must follow the masking rules below.) Tj ET
+0.05 0.52 0.49 rg BT /F2 10.0 Tf 50.0 671.5 Td (GET/recruiter/candidates) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 651.1 Td (Query: query, specialty, location, minExperience, maxExperience, licenseState, employment, availability, page, pageSize.) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 636.3 Td (Return the common list envelope. Search item:) Tj ET
+0.07 0.13 0.18 rg 53.0 574.6 496.0 51.6 re f
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 617.6 Td ({ "id":"MH-10482", "initials":"MH", "title":"Registered Nurse",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 608.9 Td (  "specialty":"Critical Care", "experience":"5 Years Experience",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 600.2 Td (  "experienceYears":5, "location":"Chicago, IL", "education":"BSN",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 591.5 Td (  "license":"Active License - IL", "availability":"Immediate",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 582.8 Td (  "employment":"Full-time", "tags":["ICU","BLS","ACLS"], "unlocked":false }) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 568.1 Td (Search results must not return full name, personal email, phone, address, resume URL, or other private profile details) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 557.4 Td (before access is unlocked.) Tj ET
+0.05 0.52 0.49 rg BT /F2 10.0 Tf 50.0 542.6 Td (GET/recruiter/candidates/{candidateId}) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 522.2 Td (Return candidate summary, profile sections, access state, and credit balance. Contact fields remain null/masked until the) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 511.5 Td (organization has unlocked that candidate.) Tj ET
+0.07 0.13 0.18 rg 53.0 449.7 496.0 51.6 re f
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 492.8 Td ({ "candidate": {}, "profile": { "summary":"...", "workExperience":[],) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 484.1 Td (  "skills":[], "career":[], "contact": { "fullName":null, "email":null,) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 475.4 Td (    "phone":null, "address":null } },) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 466.7 Td (  "access": { "unlocked":false, "unlockCost":5 },) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 458.0 Td (  "creditBalance": { "available":156 } }) Tj ET
+0.05 0.52 0.49 rg BT /F2 10.0 Tf 50.0 443.2 Td (POST/recruiter/candidates/{candidateId}/unlock) Tj ET
+0.07 0.13 0.18 rg 53.0 393.2 496.0 34.1 re f
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 418.8 Td (Request: {}) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 410.1 Td (Response: { "candidateId":"MH-10482", "unlocked":true, "creditsUsed":5,) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 401.4 Td (  "creditBalance": { "available":151 }, "profile": {} }) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 386.7 Td (Atomically verify current organization approval and balance, debit once, record purchase, and grant access. Support an) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 376.0 Td (Idempotency-Key header so safe retries cannot double-charge. Return 409 INSUFFICIENT_CREDITS with no debit when balance is) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 365.3 Td (low.) Tj ET
+0.05 0.52 0.49 rg BT /F2 10.0 Tf 50.0 350.6 Td (GET/recruiter/purchased-candidates) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 330.2 Td (Query: query, specialty, location, status, page, pageSize. Return common list envelope. Each result belongs to this) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 319.4 Td (organization and includes id, initials, name, title, specialty, experience, location, unlockedDate, status) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 308.7 Td (\(Active/Contacted\). Only expose resume/contact access after purchase; deliver downloads with an authorized short-lived URL.) Tj ET
+0.05 0.52 0.49 rg BT /F2 10.0 Tf 50.0 294.0 Td (GET/recruiter/shortlisted-candidates) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 273.6 Td (Query: query, specialty, unlockStatus, location, page, pageSize. Return common list envelope. Candidate name stays masked) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 262.9 Td (while locked.) Tj ET
+0.05 0.52 0.49 rg BT /F2 10.0 Tf 50.0 248.2 Td (POST/recruiter/shortlisted-candidates) Tj ET
+0.07 0.13 0.18 rg 53.0 215.5 496.0 16.7 re f
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 223.8 Td ({ "candidateId":"MH-10482" }) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 209.0 Td (Return 201 \(or 200 if already saved\): { "candidateId":"MH-10482", "shortlisted":true }.) Tj ET
+0.05 0.52 0.49 rg BT /F2 10.0 Tf 50.0 194.3 Td (DELETE/recruiter/shortlisted-candidates/{candidateId}) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 173.9 Td (Return 204 No Content. Remove only the shortlist association; never delete the candidate or unlock purchase.) Tj ET
+0.05 0.52 0.49 rg BT /F2 10.0 Tf 50.0 159.2 Td (GET/recruiter/plans) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 138.8 Td (Return { "plans": [], "currentPlan": {} }. Plan fields: id, name, price, currency, billingInterval, credits, jobPosts,) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 128.1 Td (recruiterSeats, validityDays, features. Server is authoritative for price and entitlements.) Tj ET
+0.05 0.52 0.49 rg BT /F2 10.0 Tf 50.0 113.4 Td (GET/recruiter/credits) Tj ET
+0.07 0.13 0.18 rg 53.0 80.8 496.0 16.7 re f
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 89.0 Td ({ "available":156, "used":94, "currency":"USD" }) Tj ET
+0.08 0.2 0.29 rg BT /F2 13.0 Tf 50.0 74.3 Td (8. Checkout, Payment, and Invoice) Tj ET
+.38 .49 .56 rg BT /F1 7 Tf 50 23 Td (MedHire - Recruiter Backend API and Flow Handoff) Tj ET
+.38 .49 .56 rg BT /F1 7 Tf 515 23 Td (4/6) Tj ET
+endstream
+endobj
+12 0 obj
+<< /Type /Page /Parent 4 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 11 0 R >>
+endobj
+13 0 obj
+<< /Length 7870 >>
+stream
+0.05 0.52 0.49 rg BT /F2 10.0 Tf 50.0 792.0 Td (POST/recruiter/checkout) Tj ET
+0.07 0.13 0.18 rg 53.0 742.0 496.0 34.1 re f
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 767.6 Td ({ "planId":"professional",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 758.9 Td (  "successUrl":"https://app.example.com/recruiter/payment-success",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 750.2 Td (  "cancelUrl":"https://app.example.com/recruiter/payment-failed" }) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 735.5 Td (Return 201 Created with provider session and redirect URL:) Tj ET
+0.07 0.13 0.18 rg 53.0 699.8 496.0 25.4 re f
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 716.7 Td ({ "checkoutSessionId":"cs_123",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 708.0 Td (  "checkoutUrl":"https://payment-provider.example/session/cs_123" }) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 693.3 Td (Validate plan and price server-side. A verified provider webhook is the source of truth for transaction status and credit) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 682.6 Td (grant. Use idempotent webhook handling; failed/cancelled checkout leaves balance unchanged.) Tj ET
+0.05 0.52 0.49 rg BT /F2 10.0 Tf 50.0 667.9 Td (GET/recruiter/checkout/{checkoutSessionId}) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 647.5 Td (Return the authenticated organization's server-verified checkout status: pending, successful, failed, or cancelled. Return) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 636.8 Td (transaction ID and safe user-facing message when available. Scope the session to the owning organization. Update success) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 626.0 Td (only from a verified payment provider webhook, never from the browser redirect.) Tj ET
+0.05 0.52 0.49 rg BT /F2 10.0 Tf 50.0 611.3 Td (GET/recruiter/payment-history) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 590.9 Td (Query: status \(Successful/Failed/Pending\), startDate, endDate, page, pageSize. Return common list envelope.) Tj ET
+0.07 0.13 0.18 rg 53.0 537.9 496.0 42.8 re f
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 572.2 Td ({ "id":"TXN-2026-09187", "date":"2026-09-18T00:00:00Z",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 563.5 Td (  "plan":"Professional", "credits":50, "amount":"268.92", "currency":"USD",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 554.8 Td (  "method":"Visa ending in 4242", "status":"Successful",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 546.1 Td (  "invoiceAvailable":true }) Tj ET
+0.05 0.52 0.49 rg BT /F2 10.0 Tf 50.0 531.4 Td (GET/recruiter/payment-history/{transactionId}/invoice) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 511.0 Td (Authorize transaction ownership and invoice eligibility. Return invoice details or a short-lived authorized PDF URL/stream.) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 500.2 Td (Never expose public permanent invoice URLs.) Tj ET
+0.07 0.13 0.18 rg 53.0 438.5 496.0 51.6 re f
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 481.5 Td ({ "invoice": { "invoiceNumber":"INV-2026-1001", "date":"2026-09-18",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 472.8 Td (  "billedTo":{}, "billedFrom":{}, "lineItems":[], "subtotal":"250.00",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 464.1 Td (  "tax":"18.92", "total":"268.92", "currency":"USD",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 455.4 Td (  "transactionId":"TXN-2026-09187", "paymentMethod":"Visa ending in 4242",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 446.7 Td (  "status":"Successful" } }) Tj ET
+0.08 0.2 0.29 rg BT /F2 13.0 Tf 50.0 432.0 Td (9. Hospital Profile) Tj ET
+0.05 0.52 0.49 rg BT /F2 10.0 Tf 50.0 407.6 Td (GET/recruiter/hospital-profile) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 387.2 Td (Return the authenticated organization's editable profile, read-only review status, and hiring preferences:) Tj ET
+0.07 0.13 0.18 rg 53.0 299.3 496.0 77.7 re f
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 368.4 Td ({ "profile": { "hospitalName":"MedCare Hospital", "organizationType":"Hospital",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 359.7 Td (  "registrationNumber":"REG-123", "website":"https://hospital.com",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 351.0 Td (  "contactEmail":"hr@hospital.com", "hospitalPhone":"+919876543210",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 342.3 Td (  "address":"...", "city":"Chennai", "state":"Tamil Nadu", "postal":"600001",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 333.6 Td (  "country":"India", "recruiterName":"Rahul Menon", "designation":"HR Manager",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 324.9 Td (  "businessEmail":"rahul@hospital.com", "recruiterPhone":"+919876543210" },) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 316.2 Td (  "verification": { "status":"approved", "verifiedAt":"2026-09-20T12:00:00Z" },) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 307.5 Td (  "hiringPreferences": { "specialties":[], "locations":[], "employmentTypes":[] } }) Tj ET
+0.05 0.52 0.49 rg BT /F2 10.0 Tf 50.0 292.8 Td (PATCH/recruiter/hospital-profile) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 272.4 Td (Accept { "profile": { ...editableFields }, "hiringPreferences": { "specialties": [], "locations": [], "employmentTypes": []) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 261.6 Td (} }. Do not accept changes to verification status, organization ownership, or approval. Return the updated envelope. Return) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 250.9 Td (422 VALIDATION_ERROR with field errors for invalid values. Define whether changes to legal name, registration, or website) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 240.2 Td (trigger re-review.) Tj ET
+0.08 0.2 0.29 rg BT /F2 13.0 Tf 50.0 225.5 Td (10. Validation Rules) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 201.1 Td (Field/groupCurrent frontend ruleBackend must enforce) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 189.7 Td (Recruiter name, designation, organization name, city, state | Required, non-empty after trim. | Required, length bounds, normalize) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 180.3 Td (whitespace, reject invalid characters as appropriate.) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 168.9 Td (Email | Basic valid email format; normalized lowercase on submit. | Validate, normalize, enforce uniqueness and verification policy.) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 157.5 Td (Phone | Ten numeric digits; UI currently adds +91. | Validate E.164/country policy; confirm whether international numbers are supported.) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 146.2 Td (Website | Optional; if provided, valid http/https URL. | Validate URL and safe scheme. Do not fetch arbitrary URLs without SSRF controls.) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 134.8 Td (Password | 8?72 chars, uppercase, number, symbol; confirmation must match. | Enforce password policy and secure hashing; confirmation stays) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 125.4 Td (client-side.) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 114.0 Td (Terms | Must be accepted; sent as termsAccepted: true. | Record consent and applicable terms version/time as required.) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 102.6 Td (OTP | Exactly six numeric digits. | Expiry, single use, attempt cap, resend cooldown, anti-enumeration.) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 91.3 Td (Profile updates | Hospital profile UI currently has no field validation; add server validation. | Validate contact values and editable) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 81.9 Td (fields; lock legal/verification-owned fields.) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 70.5 Td (Search and filters | Search and filter field choices are UI-controlled. | Validate supported filters, clamp page values, scope query to) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 61.1 Td (approved organization permissions.) Tj ET
+.38 .49 .56 rg BT /F1 7 Tf 50 23 Td (MedHire - Recruiter Backend API and Flow Handoff) Tj ET
+.38 .49 .56 rg BT /F1 7 Tf 515 23 Td (5/6) Tj ET
+endstream
+endobj
+14 0 obj
+<< /Type /Page /Parent 4 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 13 0 R >>
+endobj
+15 0 obj
+<< /Length 7036 >>
+stream
+0.08 0.2 0.29 rg BT /F2 13.0 Tf 50.0 792.0 Td (11. Error Format and Status Codes) Tj ET
+0.07 0.13 0.18 rg 53.0 738.0 496.0 34.1 re f
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 763.6 Td ({ "error": { "code":"VALIDATION_ERROR",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 754.9 Td (  "message":"Please correct the highlighted fields.",) Tj ET
+0.9 0.94 0.96 rg BT /F3 6.5 Tf 57.0 746.2 Td (  "fields": { "email":"Enter a valid email address." } } }) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 731.4 Td (StatusMeaning / examples) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 720.1 Td (400 | Malformed JSON or invalid request shape.) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 708.7 Td (401 | Missing/expired token; invalid login/reset credentials.) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 697.3 Td (403 | Wrong role, unverified email, pending/rejected organization, or unauthorized action.) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 685.9 Td (404 | Resource unavailable or not visible to this organization.) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 674.5 Td (409 | Email conflict, insufficient credits, or conflicting state.) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 663.2 Td (422 | Field validation/business rule failure.) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 651.8 Td (429 | Login, OTP, resend, or payment rate limit.) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 640.4 Td (500 | Unexpected server error; do not return stack traces or secrets.) Tj ET
+0.08 0.2 0.29 rg BT /F2 13.0 Tf 50.0 629.0 Td (12. Data Protection and Authorization Requirements) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 60.0 604.6 Td (- Candidate records, purchases, shortlists, payments, invoices, and hospital profile reads/writes must be) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 60.0 593.9 Td (organization-scoped server-side.) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 60.0 581.2 Td (- Keep personal candidate details, resume links, and contact information masked until an authorized unlock purchase is) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 60.0 570.4 Td (confirmed.) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 60.0 557.7 Td (- Verify organization approval at action time, especially candidate unlock and checkout.) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 60.0 545.0 Td (- Never accept a client-submitted credit balance, plan price, payment success flag, organization ID for access scope, or) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 60.0 534.3 Td (verification status as authoritative.) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 60.0 521.6 Td (- Make credit debits and payment webhook processing transactional and idempotent.) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 60.0 508.8 Td (- Use secure transport, password hashing, token expiry/revocation, rate limiting, audit events for sensitive actions, and) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 60.0 498.1 Td (redacted logs.) Tj ET
+0.08 0.2 0.29 rg BT /F2 13.0 Tf 50.0 485.4 Td (13. Frontend Integration Status and Known Gaps) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 461.0 Td (Checkout now redirects to a hosted payment provider and checks the backend session status on return. Payment success and) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 450.3 Td (credit changes must come from verified provider webhooks. Payment history and invoices display only backend records.) Tj ET
+0.08 0.2 0.29 rg BT /F2 13.0 Tf 50.0 435.5 Td (14. Backend Delivery and Acceptance Checklist) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 60.0 411.1 Td (- Confirm API base URL, route names, request/response schemas, role names, and error codes.) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 60.0 398.4 Td (- Implement recruiter registration, OTP email delivery/verification/resend, login, and password recovery.) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 60.0 385.7 Td (- Define organization review lifecycle and rejected-account resubmission/support behavior.) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 60.0 373.0 Td (- Return organizationVerificationStatus and identity fields consistently from login and any session refresh.) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 60.0 360.2 Td (- Enforce approved organization status server-side for every recruiter resource/action.) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 60.0 347.5 Td (- Implement dashboard, candidate search/detail/unlock, purchased candidates, shortlist CRUD, plans, credits, hospital) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 60.0 336.8 Td (profile GET/PATCH.) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 60.0 324.1 Td (- Choose payment provider and implement hosted checkout, verified webhooks, idempotency, history, and secure invoice) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 60.0 313.4 Td (delivery.) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 60.0 300.6 Td (- Provide staging URL, CORS configuration, test accounts for pending/approved/rejected states, and representative data.) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 60.0 287.9 Td (- Test OTP expiry/replay/rate limits; wrong role; invalid credentials; pending/rejected access; insufficient credits;) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 60.0 277.2 Td (duplicate unlock retries; cross-organization access; failed payment; duplicate webhook; invoice ownership; profile) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 60.0 266.5 Td (validation.) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 60.0 253.8 Td (- Frontend team verifies every recruiter screen against the confirmed API schemas and acceptance cases before release.) Tj ET
+0.08 0.2 0.29 rg BT /F2 13.0 Tf 50.0 241.0 Td (15. Frontend Route and File Reference) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 216.6 Td (FlowRoutes / implementation) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 205.2 Td (Registration | /register/recruiter ? src/pages/RegisterRecruiter.jsx) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 193.9 Td (Login and role dispatch | /login-role=recruiter ? src/pages/Login.jsx) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 182.5 Td (Email OTP | /verify-email-role=recruiter ? src/pages/EmailVerification.jsx) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 171.1 Td (Forgot/reset password | /forgot-password-role=recruiter, /reset-password) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 159.7 Td (Pending review and access guard | /recruiter/verification-pending, src/components/recruiter/RequireRecruiterAccess.jsx) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 148.3 Td (Recruiter data API client | src/lib/recruiterApi.js) Tj ET
+0.15 0.22 0.28 rg BT /F1 7.0 Tf 50.0 137.0 Td (Related documents | Recruiter API contract source · Shared authentication contract · Recruiter login flow detail) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 125.6 Td (Prepared for the MedHire backend team. Treat endpoint names and schemas as proposed until confirmed. This document) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 114.9 Td (describes the required contract; it does not assert that backend endpoints are deployed or that end-to-end flows have) Tj ET
+0.15 0.22 0.28 rg BT /F1 8.0 Tf 50.0 104.1 Td (passed.) Tj ET
+.38 .49 .56 rg BT /F1 7 Tf 50 23 Td (MedHire - Recruiter Backend API and Flow Handoff) Tj ET
+.38 .49 .56 rg BT /F1 7 Tf 515 23 Td (6/6) Tj ET
+endstream
+endobj
+16 0 obj
+<< /Type /Page /Parent 4 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 15 0 R >>
+endobj
+17 0 obj
+<< /Type /Catalog /Pages 4 0 R >>
+endobj
+xref
+0 18
+0000000000 65535 f 
+0000000027 00000 n 
+0000000097 00000 n 
+0000000172 00000 n 
+0000000240 00000 n 
+0000000331 00000 n 
+0000001021 00000 n 
+0000001167 00000 n 
+0000007782 00000 n 
+0000007928 00000 n 
+0000014541 00000 n 
+0000014688 00000 n 
+0000021370 00000 n 
+0000021518 00000 n 
+0000029441 00000 n 
+0000029589 00000 n 
+0000036678 00000 n 
+0000036826 00000 n 
+trailer
+<< /Size 18 /Root 17 0 R >>
+startxref
+36876
+%%EOF

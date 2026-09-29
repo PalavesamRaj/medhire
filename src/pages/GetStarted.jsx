@@ -12,6 +12,7 @@ const roles = [
     desc: 'For doctors, nurses, pharmacists, technicians and other healthcare professionals looking for career opportunities.',
     cta: 'Register as Candidate',
     to: '/register/candidate',
+    loginTo: '/login?role=candidate',
     variant: 'primary',
   },
   {
@@ -21,6 +22,7 @@ const roles = [
     desc: 'For hospitals, healthcare organizations and recruitment teams looking to hire qualified healthcare talent.',
     cta: 'Register as Recruiter',
     to: '/register/recruiter',
+    loginTo: '/recruiter/login',
     variant: 'secondary',
   },
 ]
@@ -58,17 +60,12 @@ export default function GetStarted() {
                   {r.cta}
                 </Button>
               </Link>
+              <p className="mt-4 text-center text-xs text-ink-500">Already registered? <Link to={r.loginTo} className="font-semibold text-brand-600 hover:text-brand-700">Log in</Link></p>
             </div>
           </div>
         ))}
       </div>
 
-      <p className="mt-9 text-center text-xs text-ink-500">
-        Already have an account?{' '}
-        <Link to="/login" className="font-semibold text-brand-600 hover:text-brand-700">
-          Login
-        </Link>
-      </p>
       <p className="text-center text-xs">
         <Link to="/" className="font-semibold text-brand-600 hover:text-brand-700">
           <ArrowLeft className="mr-1 inline-block h-3.5 w-3.5 align-text-bottom" />

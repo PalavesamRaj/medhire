@@ -5,6 +5,7 @@ import Logo from '../components/layout/Logo'
 import RecoveryPanel from '../components/auth/RecoveryPanel'
 import Button from '../components/ui/Button'
 import { authApi } from '../lib/authApi'
+import { recruiterAuthApi } from '../lib/recruiterAuthApi'
 import { validateVerification } from '../lib/authValidation'
 import { useToast } from '../components/ui/ToastProvider'
 import verificationImage from '../assets/verfiytheemail.png'
@@ -71,11 +72,9 @@ export default function EmailVerification() {
     setError('')
     setLoading(true)
     try {
-      const response = await authApi.verifyCode({
-        email,
-        code,
-        purpose: source === 'reset' ? 'password_reset' : 'registration',
-      })
+      const response = role === 'recruiter' && source !== 'reset'
+        ? await recruiterAuthApi.verifyEmail({ email, code })
+        : await authApi.verifyCode({ email, code, purpose: source === 'reset' ? 'password_reset' : 'registration' })
       if (source === 'reset' && response.resetToken) {
         showToast('Email verified. You can now create a new password.')
         navigate(`/reset-password?role=${role}&email=${encodeURIComponent(email)}&resetToken=${encodeURIComponent(response.resetToken || '')}`)
@@ -96,7 +95,8 @@ export default function EmailVerification() {
     setError('')
     setResendLoading(true)
     try {
-      await authApi.resendCode({ email, purpose: source === 'reset' ? 'password_reset' : 'registration' })
+      if (role === 'recruiter' && source !== 'reset') await recruiterAuthApi.resendVerification({ email })
+      else await authApi.resendCode({ email, purpose: source === 'reset' ? 'password_reset' : 'registration' })
       showToast('A new verification code has been sent.')
       setResent(true)
       setCode('')

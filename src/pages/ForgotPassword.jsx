@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, MailCheck } from 'lucide-react'
 import AuthSplitLayout from '../components/auth/AuthSplitLayout'
 import { Field, Input } from '../components/ui/FormControls'
@@ -10,6 +10,8 @@ import { useToast } from '../components/ui/ToastProvider'
 import panelImage from '../assets/resetpass.png'
 
 export default function ForgotPassword() {
+  const [searchParams] = useSearchParams()
+  const role = searchParams.get('role') === 'recruiter' ? 'recruiter' : 'candidate'
   const showToast = useToast()
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
@@ -81,7 +83,7 @@ export default function ForgotPassword() {
             .
           </p>
           <Link
-            to={`/verify-email?email=${encodeURIComponent(email)}&source=reset`}
+            to={`/verify-email?role=${role}&email=${encodeURIComponent(email)}&source=reset`}
             className="w-full"
           >
             <Button variant="secondary" className="w-full justify-center">
@@ -110,7 +112,7 @@ export default function ForgotPassword() {
           </Button>
 
           <p className="text-center text-sm">
-            <Link to="/login" className="font-semibold text-brand-600 hover:text-brand-700">
+            <Link to={role === 'recruiter' ? '/recruiter/login' : '/login'} className="font-semibold text-brand-600 hover:text-brand-700">
               <ArrowLeft className="mr-1 inline-block h-4 w-4 align-text-bottom" />
               Back to Login
             </Link>

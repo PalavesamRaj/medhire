@@ -19,28 +19,33 @@ function validateRequired(value, label) {
 
 export function validateRegistration(form, role) {
   const errors = {}
-  const nameError = validateRequired(form.name, role === 'recruiter' ? 'Recruiter name' : 'Full name')
-  const emailError = validateEmail(form.email)
-  const phoneError = PHONE_PATTERN.test(form.phone.replace(/\D/g, ''))
+  const nameError = validateRequired(form.name || '', role === 'recruiter' ? 'Recruiter name' : 'Full name')
+  const emailError = validateEmail(form.email || '')
+  const phoneError = PHONE_PATTERN.test((form.phone || '').replace(/\D/g, ''))
     ? ''
     : 'Enter a valid 10-digit mobile number.'
-  const passwordError = validatePassword(form.password)
+  const passwordError = validatePassword(form.password || '')
 
   if (nameError) errors.name = nameError
   if (emailError) errors.email = emailError
   if (phoneError) errors.phone = phoneError
   if (passwordError) errors.password = passwordError
-  if (form.password !== form.confirmPassword) errors.confirmPassword = 'Passwords do not match.'
+  if ((form.password || '') !== (form.confirmPassword || '')) errors.confirmPassword = 'Passwords do not match.'
   if (!form.agree) errors.agree = 'Accept the Terms & Conditions and Privacy Policy to continue.'
 
   if (role === 'recruiter') {
-    if (!form.designation.trim()) errors.designation = 'Designation is required.'
-    if (!form.orgName.trim()) errors.orgName = 'Organization name is required.'
-    if (form.orgWebsite && !/^https?:\/\//i.test(form.orgWebsite.trim())) {
-      errors.orgWebsite = 'Use a complete website URL beginning with http:// or https://.'
+    if (!form.designation?.trim()) errors.designation = 'Designation is required.'
+    if (!form.orgName?.trim()) errors.orgName = 'Organization name is required.'
+    if (form.orgWebsite?.trim()) {
+      try {
+        const website = new URL(form.orgWebsite.trim())
+        if (!['http:', 'https:'].includes(website.protocol) || !website.hostname.includes('.')) throw new Error('invalid')
+      } catch {
+        errors.orgWebsite = 'Enter a valid website URL beginning with http:// or https://.'
+      }
     }
-    if (!form.city.trim()) errors.city = 'City is required.'
-    if (!form.state.trim()) errors.state = 'State is required.'
+    if (!form.city?.trim()) errors.city = 'City is required.'
+    if (!form.state?.trim()) errors.state = 'State is required.'
   }
 
   return errors
@@ -48,9 +53,9 @@ export function validateRegistration(form, role) {
 
 export function validateLogin(form) {
   const errors = {}
-  const emailError = validateEmail(form.email)
+  const emailError = validateEmail(form.email || '')
   if (emailError) errors.email = emailError
-  if (!form.password) errors.password = 'Password is required.'
+  if (!form.password?.trim()) errors.password = 'Password is required.'
   return errors
 }
 

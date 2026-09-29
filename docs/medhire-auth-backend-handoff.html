@@ -43,7 +43,7 @@
     <h1>Authentication Backend Contract</h1>
     <p class="subtitle">API requirements for candidate and recruiter registration, login, email verification, forgot password, and reset password.</p>
     <p><span class="badge">Frontend ready for API integration</span></p>
-    <div class="intro"><strong>Current frontend status:</strong> The auth screens currently use local demo navigation. Registration, login, verification, forgot-password, and reset-password API calls still need to be connected to the backend.</div>
+    <div class="intro"><strong>Current frontend status:</strong> The auth screens call the endpoints below. The single-document recruiter backend handoff is <a href="medhire-recruiter-backend-handoff.html">Recruiter Backend API and Flow Handoff</a>. For recruiter-only registration, login, email verification, and organization approval details, see the <a href="medhire-recruiter-login-flow-handoff.html">Recruiter Login Flow Handoff</a>. Recruiter workspace routes are in the separate <a href="recruiter-backend-api-handoff.md">Recruiter API Handoff</a>.</div>
   </div>
   <div class="meta"><strong>Project:</strong> MedHire<br><strong>Document:</strong> Backend API handoff<br><strong>Date:</strong> September 8, 2026</div>
 </section>
@@ -119,6 +119,7 @@
     "emailVerified": true
   }
 }</pre></div>
+<p class="small">For recruiter accounts, include <code>organizationVerificationStatus</code> with one of <code>pending</code>, <code>approved</code>, or <code>rejected</code>. The frontend only grants recruiter dashboard access for <code>approved</code>.</p>
 
 <div class="page-break"></div>
 <h2>5. Forgot Password</h2>

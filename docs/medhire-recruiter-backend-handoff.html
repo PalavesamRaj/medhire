@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MedHire Recruiter Backend API and Flow Handoff</title>
+<style>
+  @page { size:A4; margin:16mm 15mm; }
+  :root { --navy:#15324b; --blue:#176b87; --teal:#0d9488; --ink:#263746; --muted:#617383; --line:#d9e2e8; --soft:#f3f7f9; --code:#12212d; --amber:#a6530a; }
+  * { box-sizing:border-box; }
+  body { margin:0; color:var(--ink); font:9.8pt/1.46 Arial,Helvetica,sans-serif; }
+  h1,h2,h3,h4 { color:var(--navy); line-height:1.2; margin:0 0 7px; }
+  h1 { font-size:27pt; } h2 { font-size:15.5pt; margin-top:22px; padding-bottom:5px; border-bottom:2px solid var(--teal); }
+  h3 { font-size:11.5pt; margin-top:14px; } h4 { font-size:10pt; margin-top:11px; }
+  p { margin:5px 0 9px; } ul,ol { padding-left:20px; margin:5px 0 10px; } li { margin:3px 0; }
+  .cover { min-height:257mm; display:flex; flex-direction:column; justify-content:space-between; padding:14mm 4mm 9mm; page-break-after:always; }
+  .eyebrow { color:var(--teal); text-transform:uppercase; letter-spacing:2px; font-size:8.5pt; font-weight:bold; }
+  .subtitle { color:var(--muted); font-size:13.5pt; max-width:150mm; margin-top:11px; }
+  .meta { border-top:1px solid var(--line); padding-top:11px; color:var(--muted); }
+  .badge { display:inline-block; color:white; background:var(--amber); padding:5px 9px; border-radius:4px; font-size:8.3pt; font-weight:bold; }
+  .intro { background:var(--soft); border-left:4px solid var(--teal); padding:9px 12px; margin:10px 0 14px; }
+  .notice { background:#fff8e8; border-left:4px solid #e2a326; padding:9px 12px; margin:10px 0; }
+  .flow { display:flex; flex-wrap:wrap; gap:6px; margin:10px 0 14px; }
+  .step { flex:1 1 28%; min-width:38mm; background:var(--soft); border:1px solid var(--line); border-radius:5px; padding:7px; }
+  .step b { display:block; color:var(--navy); } .step span { color:var(--muted); font-size:8.5pt; }
+  .endpoint { page-break-inside:avoid; margin:11px 0 16px; }
+  .method { display:inline-block; color:white; background:var(--blue); border-radius:3px; padding:3px 6px; font-size:8pt; font-weight:bold; margin-right:6px; }
+  .path { font: bold 9.8pt Consolas,monospace; color:var(--navy); }
+  pre { background:var(--code); color:#e8f1f5; padding:9px 11px; border-radius:5px; overflow-wrap:anywhere; white-space:pre-wrap; font:7.7pt/1.4 Consolas,monospace; margin:7px 0 9px; }
+  code { font-family:Consolas,monospace; color:var(--blue); }
+  table { width:100%; border-collapse:collapse; margin:7px 0 12px; page-break-inside:avoid; }
+  th { background:var(--navy); color:white; text-align:left; font-size:8.2pt; }
+  th,td { border:1px solid var(--line); padding:5px 6px; vertical-align:top; } td { font-size:8.1pt; }
+  tr:nth-child(even) td { background:#f8fafb; }
+  .small { color:var(--muted); font-size:8.4pt; } .page-break { page-break-before:always; }
+  .checklist li { margin:4px 0; }
+  .footer-note { margin-top:18px; color:var(--muted); font-size:8.2pt; border-top:1px solid var(--line); padding-top:8px; }
+  a { color:var(--blue); }
+</style>
+</head>
+<body>
+<section class="cover">
+  <div>
+    <div class="eyebrow">MedHire Engineering Handoff</div>
+    <h1>Recruiter Backend<br>API and Flow Contract</h1>
+    <p class="subtitle">Single backend handoff for recruiter signup, email verification, organization review, login, recruiter workspace APIs, candidate access, credit purchases, invoices, and hospital profile management.</p>
+    <p><span class="badge">Proposed contract — backend team to confirm</span></p>
+    <div class="intro"><strong>Purpose:</strong> Use this document to agree on the complete recruiter journey and the API contract before backend implementation and frontend end-to-end testing. Endpoint paths and response formats below are proposed and must be confirmed against the backend.</div>
+  </div>
+  <div class="meta"><strong>Project:</strong> MedHire<br><strong>Audience:</strong> Backend engineering and frontend integration<br><strong>Prepared:</strong> September 24, 2026<br><strong>Related frontend:</strong> <code>src/lib/authApi.js</code>, <code>src/lib/recruiterAuthApi.js</code>, <code>src/lib/recruiterApi.js</code></div>
+</section>
+
+<h2>1. Scope and Flow Overview</h2>
+<div class="flow">
+  <div class="step"><b>1. Register</b><span>Create recruiter and organization; email verification is required.</span></div>
+  <div class="step"><b>2. Verify email</b><span>Consume registration code; keep organization review separate.</span></div>
+  <div class="step"><b>3. Sign in</b><span>Return authenticated recruiter session and organization status.</span></div>
+  <div class="step"><b>4. Organization review</b><span>Pending/rejected accounts cannot read recruiter resources.</span></div>
+  <div class="step"><b>5. Approved workspace</b><span>Search candidates, shortlist, unlock, manage credits/profile.</span></div>
+  <div class="step"><b>6. Payments</b><span>Hosted checkout; verified provider webhook records payment and credits.</span></div>
+</div>
+<p>This contract includes recruiter authentication and recruiter workspace data. Shared candidate authentication is outside scope. Frontend route guards are for navigation only; the backend is the authorization boundary.</p>
+
+<h2>2. Common API Rules</h2>
+<table><tr><th>Item</th><th>Requirement</th></tr>
+<tr><td>Base URL</td><td>Frontend reads <code>VITE_API_BASE_URL</code>; it defaults to <code>/api</code>. Paths here are relative to that base.</td></tr>
+<tr><td>Encoding</td><td>JSON request/response bodies use <code>application/json</code>. List endpoints return a consistent envelope.</td></tr>
+<tr><td>Role</td><td>Use canonical role <code>recruiter</code>. Reject candidate or unknown roles from recruiter-only requests.</td></tr>
+<tr><td>Identity and scope</td><td>Resolve recruiter and organization from the authenticated session/token; never trust a client-supplied organization ID for authorization.</td></tr>
+<tr><td>Time and money</td><td>Use ISO-8601 UTC timestamps. Represent money as decimal string plus ISO-4217 currency. Do not calculate money in binary floating point.</td></tr>
+<tr><td>Errors</td><td>Use the shared error format in section 12. Provide stable codes and field-level errors where applicable.</td></tr>
+<tr><td>Security</td><td>Hash passwords, rate-limit auth/OTP, redact secrets, scope candidate/payment/profile data to organization, and enforce approval on every recruiter resource route.</td></tr>
+<tr><td>Pagination</td><td>List defaults: <code>page=1</code>, <code>pageSize=20</code>; clamp pageSize to 100.</td></tr></table>
+<pre>{
+  "items": [],
+  "pagination": { "page": 1, "pageSize": 20, "total": 0, "totalPages": 0 }
+}</pre>
+
+<h2>3. Recruiter Registration</h2>
+<div class="endpoint"><h3><span class="method">POST</span><span class="path">/auth/register</span></h3>
+<pre>{
+  "role": "recruiter",
+  "fullName": "Rahul Menon",
+  "email": "rahul@hospital.com",
+  "phone": "+919876543210",
+  "designation": "HR Manager",
+  "organizationName": "MedCare Hospital",
+  "organizationWebsite": "https://hospital.com",
+  "city": "Chennai",
+  "state": "Tamil Nadu",
+  "password": "ExamplePassword@123",
+  "termsAccepted": true
+}</pre>
+<p>The current UI collects a ten-digit phone number and prepends <code>+91</code>. Confirm whether country code must be selectable. Password confirmation is checked in browser and is not sent.</p>
+<p><strong>Backend behavior:</strong> Validate all fields; normalize email; create recruiter and organization with email unverified and verification status pending; send registration OTP; return <code>201 Created</code>. Do not grant recruiter workspace access at registration.</p>
+<pre>{
+  "message": "Verification code sent",
+  "userId": "user_123",
+  "email": "rahul@hospital.com",
+  "role": "recruiter",
+  "emailVerified": false,
+  "organizationVerificationStatus": "pending"
+}</pre></div>
+
+<h2>4. Email Verification and Resend</h2>
+<div class="endpoint"><h3><span class="method">POST</span><span class="path">/auth/verify-code</span></h3>
+<pre>{ "email": "rahul@hospital.com", "code": "482916", "purpose": "registration" }</pre>
+<p>On success, consume the one-time code and mark the email verified. This must not approve the organization.</p>
+<pre>{
+  "verified": true,
+  "purpose": "registration",
+  "user": {
+    "id": "user_123",
+    "role": "recruiter",
+    "email": "rahul@hospital.com",
+    "emailVerified": true,
+    "organizationVerificationStatus": "pending"
+  }
+}</pre>
+<h3><span class="method">POST</span><span class="path">/auth/resend-code</span></h3>
+<pre>{ "email": "rahul@hospital.com", "purpose": "registration" }</pre>
+<p>OTP is six numeric digits, expires in about 10 minutes, single-use, and invalidated after success. Rate-limit by account and IP (suggested resend cooldown 60 seconds), and limit verification attempts.</p></div>
+
+<h2>5. Recruiter Login and Access State</h2>
+<div class="endpoint"><h3><span class="method">POST</span><span class="path">/auth/login</span></h3>
+<pre>{ "email": "rahul@hospital.com", "password": "ExamplePassword@123", "rememberMe": true }</pre>
+<p><code>rememberMe</code> is a session-duration preference, not a user profile field. Successful login returns session information and the current authoritative organization status.</p>
+<pre>{
+  "accessToken": "eyJ...",
+  "refreshToken": "refresh-token-value",
+  "expiresIn": 3600,
+  "user": {
+    "id": "user_123",
+    "role": "recruiter",
+    "fullName": "Rahul Menon",
+    "email": "rahul@hospital.com",
+    "emailVerified": true,
+    "organizationId": "org_456",
+    "organizationName": "MedCare Hospital",
+    "organizationVerificationStatus": "pending"
+  }
+}</pre></div>
+<table><tr><th>State</th><th>Frontend route behavior</th><th>Backend behavior</th></tr>
+<tr><td>Email unverified</td><td>On the <code>EMAIL_NOT_VERIFIED</code> error, route to registration email verification; user enters the existing code or requests a resend. Do not store a session.</td><td>Return <code>403 Forbidden</code> with code <code>EMAIL_NOT_VERIFIED</code>; do not issue access or refresh tokens.</td></tr>
+<tr><td>Organization pending</td><td>Show verification pending page; block recruiter workspace.</td><td>Return <code>organizationVerificationStatus: "pending"</code>; resource APIs return 403.</td></tr>
+<tr><td>Organization approved</td><td>Open recruiter dashboard and workspace.</td><td>Return <code>"approved"</code>; authorize only this organization's data.</td></tr>
+<tr><td>Organization rejected</td><td>Show rejection/support/resubmission UX (currently needs frontend decision).</td><td>Return <code>"rejected"</code> and optionally a safe, user-facing reason.</td></tr>
+<tr><td>Wrong role / invalid credentials</td><td>Show form error; do not store a mismatched session.</td><td>Use generic credential errors where needed to avoid account enumeration.</td></tr></table>
+<p>When organization approval changes, the next login/session refresh must return the latest state. Protect every resource with current backend status even when browser session data is stale.</p>
+
+<h2>6. Password Recovery</h2>
+<p>Use shared auth endpoints while preserving recruiter context in the UI. Do not reveal whether the email exists.</p>
+<div class="endpoint"><h3><span class="method">POST</span><span class="path">/auth/forgot-password</span></h3><pre>{ "email": "rahul@hospital.com" }</pre><p>Return generic <code>202 Accepted</code> for both known and unknown emails.</p>
+<h3><span class="method">POST</span><span class="path">/auth/verify-code</span></h3><pre>{ "email": "rahul@hospital.com", "code": "482916", "purpose": "password_reset" }</pre><p>On success return a short-lived, single-use reset token. Keep this purpose distinct from registration verification.</p>
+<h3><span class="method">POST</span><span class="path">/auth/reset-password</span></h3><pre>{ "email": "rahul@hospital.com", "resetToken": "reset-token-value", "newPassword": "NewExamplePassword@123" }</pre><p>Invalidate reset token and revoke sessions according to security policy. Confirmation password is frontend-only.</p></div>
+
+<div class="page-break"></div>
+<h2>7. Recruiter Workspace API</h2>
+<p>Every route in this section requires an approved recruiter access token:</p>
+<pre>Authorization: Bearer &lt;accessToken&gt;
+Accept: application/json
+Content-Type: application/json</pre>
+<p>Return <code>403 ORGANIZATION_NOT_APPROVED</code> for pending/rejected organizations. Derive the organization from token claims or server-side session.</p>
+
+<div class="endpoint"><h3><span class="method">GET</span><span class="path">/recruiter/dashboard</span></h3>
+<pre>{
+  "metrics": { "candidateSearches": 284, "profilesUnlocked": 47,
+    "shortlistedCandidates": 23, "availableCredits": 156 },
+  "organization": { "name": "MedCare Hospital", "location": "Chennai, IN",
+    "verificationStatus": "approved" },
+  "recentActivity": [
+    { "id": "act_01", "description": "Candidate profile unlocked",
+      "occurredAt": "2026-09-24T09:00:00Z" }
+  ],
+  "recommendedCandidates": []
+}</pre>
+<p>Recommended profiles must follow the masking rules below.</p></div>
+
+<div class="endpoint"><h3><span class="method">GET</span><span class="path">/recruiter/candidates</span></h3>
+<p>Query: <code>query</code>, <code>specialty</code>, <code>location</code>, <code>minExperience</code>, <code>maxExperience</code>, <code>licenseState</code>, <code>employment</code>, <code>availability</code>, <code>page</code>, <code>pageSize</code>.</p>
+<p>Return the common list envelope. Search item:</p>
+<pre>{ "id":"MH-10482", "initials":"MH", "title":"Registered Nurse",
+  "specialty":"Critical Care", "experience":"5 Years Experience",
+  "experienceYears":5, "location":"Chicago, IL", "education":"BSN",
+  "license":"Active License - IL", "availability":"Immediate",
+  "employment":"Full-time", "tags":["ICU","BLS","ACLS"], "unlocked":false }</pre>
+<p>Search results must not return full name, personal email, phone, address, resume URL, or other private profile details before access is unlocked.</p></div>
+
+<div class="endpoint"><h3><span class="method">GET</span><span class="path">/recruiter/candidates/{candidateId}</span></h3>
+<p>Return candidate summary, profile sections, access state, and credit balance. Contact fields remain null/masked until the organization has unlocked that candidate.</p>
+<pre>{ "candidate": {}, "profile": { "summary":"...", "workExperience":[],
+  "skills":[], "career":[], "contact": { "fullName":null, "email":null,
+    "phone":null, "address":null } },
+  "access": { "unlocked":false, "unlockCost":5 },
+  "creditBalance": { "available":156 } }</pre></div>
+
+<div class="endpoint"><h3><span class="method">POST</span><span class="path">/recruiter/candidates/{candidateId}/unlock</span></h3>
+<pre>Request: {}
+Response: { "candidateId":"MH-10482", "unlocked":true, "creditsUsed":5,
+  "creditBalance": { "available":151 }, "profile": {} }</pre>
+<p>Atomically verify current organization approval and balance, debit once, record purchase, and grant access. Support an <code>Idempotency-Key</code> header so safe retries cannot double-charge. Return <code>409 INSUFFICIENT_CREDITS</code> with no debit when balance is low.</p></div>
+
+<div class="endpoint"><h3><span class="method">GET</span><span class="path">/recruiter/purchased-candidates</span></h3>
+<p>Query: <code>query</code>, <code>specialty</code>, <code>location</code>, <code>status</code>, <code>page</code>, <code>pageSize</code>. Return common list envelope. Each result belongs to this organization and includes <code>id</code>, <code>initials</code>, <code>name</code>, <code>title</code>, <code>specialty</code>, <code>experience</code>, <code>location</code>, <code>unlockedDate</code>, <code>status</code> (Active/Contacted). Only expose resume/contact access after purchase; deliver downloads with an authorized short-lived URL.</p></div>
+
+<div class="endpoint"><h3><span class="method">GET</span><span class="path">/recruiter/shortlisted-candidates</span></h3>
+<p>Query: <code>query</code>, <code>specialty</code>, <code>unlockStatus</code>, <code>location</code>, <code>page</code>, <code>pageSize</code>. Return common list envelope. Candidate name stays masked while locked.</p>
+<h3><span class="method">POST</span><span class="path">/recruiter/shortlisted-candidates</span></h3><pre>{ "candidateId":"MH-10482" }</pre><p>Return <code>201</code> (or <code>200</code> if already saved): <code>{ "candidateId":"MH-10482", "shortlisted":true }</code>.</p>
+<h3><span class="method">DELETE</span><span class="path">/recruiter/shortlisted-candidates/{candidateId}</span></h3><p>Return <code>204 No Content</code>. Remove only the shortlist association; never delete the candidate or unlock purchase.</p></div>
+
+<div class="endpoint"><h3><span class="method">GET</span><span class="path">/recruiter/plans</span></h3><p>Return <code>{ "plans": [], "currentPlan": {} }</code>. Plan fields: <code>id</code>, <code>name</code>, <code>price</code>, <code>currency</code>, <code>billingInterval</code>, <code>credits</code>, <code>jobPosts</code>, <code>recruiterSeats</code>, <code>validityDays</code>, <code>features</code>. Server is authoritative for price and entitlements.</p>
+<h3><span class="method">GET</span><span class="path">/recruiter/credits</span></h3><pre>{ "available":156, "used":94, "currency":"USD" }</pre></div>
+
+<h2>8. Checkout, Payment, and Invoice</h2>
+<div class="notice"><strong>Payment security:</strong> Do not send raw card number, expiry, or CVV to MedHire API. Use provider-hosted checkout or provider tokenization. A browser redirect must never mark a payment successful or add credits.</div>
+<div class="endpoint"><h3><span class="method">POST</span><span class="path">/recruiter/checkout</span></h3>
+<pre>{ "planId":"professional",
+  "successUrl":"https://app.example.com/recruiter/payment-success",
+  "cancelUrl":"https://app.example.com/recruiter/payment-failed" }</pre>
+<p>Return <code>201 Created</code> with provider session and redirect URL:</p>
+<pre>{ "checkoutSessionId":"cs_123",
+  "checkoutUrl":"https://payment-provider.example/session/cs_123" }</pre>
+<p>Validate plan and price server-side. A verified provider webhook is the source of truth for transaction status and credit grant. Use idempotent webhook handling; failed/cancelled checkout leaves balance unchanged.</p></div>
+<div class="endpoint"><h3><span class="method">GET</span><span class="path">/recruiter/checkout/{checkoutSessionId}</span></h3><p>Return the authenticated organization's server-verified checkout status: <code>pending</code>, <code>successful</code>, <code>failed</code>, or <code>cancelled</code>. Return transaction ID and safe user-facing message when available. Scope the session to the owning organization. Update success only from a verified payment provider webhook, never from the browser redirect.</p></div>
+
+<div class="endpoint"><h3><span class="method">GET</span><span class="path">/recruiter/payment-history</span></h3>
+<p>Query: <code>status</code> (Successful/Failed/Pending), <code>startDate</code>, <code>endDate</code>, <code>page</code>, <code>pageSize</code>. Return common list envelope.</p>
+<pre>{ "id":"TXN-2026-09187", "date":"2026-09-18T00:00:00Z",
+  "plan":"Professional", "credits":50, "amount":"268.92", "currency":"USD",
+  "method":"Visa ending in 4242", "status":"Successful",
+  "invoiceAvailable":true }</pre></div>
+<div class="endpoint"><h3><span class="method">GET</span><span class="path">/recruiter/payment-history/{transactionId}/invoice</span></h3>
+<p>Authorize transaction ownership and invoice eligibility. Return invoice details or a short-lived authorized PDF URL/stream. Never expose public permanent invoice URLs.</p>
+<pre>{ "invoice": { "invoiceNumber":"INV-2026-1001", "date":"2026-09-18",
+  "billedTo":{}, "billedFrom":{}, "lineItems":[], "subtotal":"250.00",
+  "tax":"18.92", "total":"268.92", "currency":"USD",
+  "transactionId":"TXN-2026-09187", "paymentMethod":"Visa ending in 4242",
+  "status":"Successful" } }</pre></div>
+
+<h2>9. Hospital Profile</h2>
+<div class="endpoint"><h3><span class="method">GET</span><span class="path">/recruiter/hospital-profile</span></h3>
+<p>Return the authenticated organization's editable profile, read-only review status, and hiring preferences:</p>
+<pre>{ "profile": { "hospitalName":"MedCare Hospital", "organizationType":"Hospital",
+  "registrationNumber":"REG-123", "website":"https://hospital.com",
+  "contactEmail":"hr@hospital.com", "hospitalPhone":"+919876543210",
+  "address":"...", "city":"Chennai", "state":"Tamil Nadu", "postal":"600001",
+  "country":"India", "recruiterName":"Rahul Menon", "designation":"HR Manager",
+  "businessEmail":"rahul@hospital.com", "recruiterPhone":"+919876543210" },
+  "verification": { "status":"approved", "verifiedAt":"2026-09-20T12:00:00Z" },
+  "hiringPreferences": { "specialties":[], "locations":[], "employmentTypes":[] } }</pre></div>
+<div class="endpoint"><h3><span class="method">PATCH</span><span class="path">/recruiter/hospital-profile</span></h3>
+<p>Accept <code>{ "profile": { ...editableFields }, "hiringPreferences": { "specialties": [], "locations": [], "employmentTypes": [] } }</code>. Do not accept changes to verification status, organization ownership, or approval. Return the updated envelope. Return <code>422 VALIDATION_ERROR</code> with field errors for invalid values. Define whether changes to legal name, registration, or website trigger re-review.</p></div>
+
+<h2>10. Validation Rules</h2>
+<table><tr><th>Field/group</th><th>Current frontend rule</th><th>Backend must enforce</th></tr>
+<tr><td>Recruiter name, designation, organization name, city, state</td><td>Required, non-empty after trim.</td><td>Required, length bounds, normalize whitespace, reject invalid characters as appropriate.</td></tr>
+<tr><td>Email</td><td>Basic valid email format; normalized lowercase on submit.</td><td>Validate, normalize, enforce uniqueness and verification policy.</td></tr>
+<tr><td>Phone</td><td>Ten numeric digits; UI currently adds +91.</td><td>Validate E.164/country policy; confirm whether international numbers are supported.</td></tr>
+<tr><td>Website</td><td>Optional; if provided, valid http/https URL.</td><td>Validate URL and safe scheme. Do not fetch arbitrary URLs without SSRF controls.</td></tr>
+<tr><td>Password</td><td>8–72 chars, uppercase, number, symbol; confirmation must match.</td><td>Enforce password policy and secure hashing; confirmation stays client-side.</td></tr>
+<tr><td>Terms</td><td>Must be accepted; sent as <code>termsAccepted: true</code>.</td><td>Record consent and applicable terms version/time as required.</td></tr>
+<tr><td>OTP</td><td>Exactly six numeric digits.</td><td>Expiry, single use, attempt cap, resend cooldown, anti-enumeration.</td></tr>
+<tr><td>Profile updates</td><td>Hospital profile UI currently has no field validation; add server validation.</td><td>Validate contact values and editable fields; lock legal/verification-owned fields.</td></tr>
+<tr><td>Search and filters</td><td>Search and filter field choices are UI-controlled.</td><td>Validate supported filters, clamp page values, scope query to approved organization permissions.</td></tr></table>
+
+<h2>11. Error Format and Status Codes</h2>
+<pre>{ "error": { "code":"VALIDATION_ERROR",
+  "message":"Please correct the highlighted fields.",
+  "fields": { "email":"Enter a valid email address." } } }</pre>
+<table><tr><th>Status</th><th>Meaning / examples</th></tr>
+<tr><td>400</td><td>Malformed JSON or invalid request shape.</td></tr><tr><td>401</td><td>Missing/expired token; invalid login/reset credentials.</td></tr>
+<tr><td>403</td><td>Wrong role, unverified email, pending/rejected organization, or unauthorized action.</td></tr>
+<tr><td>404</td><td>Resource unavailable or not visible to this organization.</td></tr><tr><td>409</td><td>Email conflict, insufficient credits, or conflicting state.</td></tr>
+<tr><td>422</td><td>Field validation/business rule failure.</td></tr><tr><td>429</td><td>Login, OTP, resend, or payment rate limit.</td></tr><tr><td>500</td><td>Unexpected server error; do not return stack traces or secrets.</td></tr></table>
+
+<h2>12. Data Protection and Authorization Requirements</h2>
+<ul>
+<li>Candidate records, purchases, shortlists, payments, invoices, and hospital profile reads/writes must be organization-scoped server-side.</li>
+<li>Keep personal candidate details, resume links, and contact information masked until an authorized unlock purchase is confirmed.</li>
+<li>Verify organization approval at action time, especially candidate unlock and checkout.</li>
+<li>Never accept a client-submitted credit balance, plan price, payment success flag, organization ID for access scope, or verification status as authoritative.</li>
+<li>Make credit debits and payment webhook processing transactional and idempotent.</li>
+<li>Use secure transport, password hashing, token expiry/revocation, rate limiting, audit events for sensitive actions, and redacted logs.</li>
+</ul>
+
+<h2>13. Frontend Integration Status and Known Gaps</h2>
+<div class="intro"><strong>Authentication:</strong> Current frontend register/login/OTP/recovery screens call shared auth API methods through recruiter-specific auth mapping. The pending/approved route decision depends on the backend returning the role, token, email verification, and organization verification fields defined here.</div>
+<div class="notice"><strong>Workspace integration:</strong> Recruiter workspace screens now request data and actions through <code>src/lib/recruiterApi.js</code>. Recruiter sample records were removed; pages show loading, empty, or API error states instead of inventing records when an endpoint is unavailable. The proposed backend routes must be implemented and confirmed for the complete flow to run.</div>
+<p>Checkout now redirects to a hosted payment provider and checks the backend session status on return. Payment success and credit changes must come from verified provider webhooks. Payment history and invoices display only backend records.</p>
+
+<h2>14. Backend Delivery and Acceptance Checklist</h2>
+<ul class="checklist">
+<li>Confirm API base URL, route names, request/response schemas, role names, and error codes.</li>
+<li>Implement recruiter registration, OTP email delivery/verification/resend, login, and password recovery.</li>
+<li>Define organization review lifecycle and rejected-account resubmission/support behavior.</li>
+<li>Return <code>organizationVerificationStatus</code> and identity fields consistently from login and any session refresh.</li>
+<li>Enforce approved organization status server-side for every recruiter resource/action.</li>
+<li>Implement dashboard, candidate search/detail/unlock, purchased candidates, shortlist CRUD, plans, credits, hospital profile GET/PATCH.</li>
+<li>Choose payment provider and implement hosted checkout, verified webhooks, idempotency, history, and secure invoice delivery.</li>
+<li>Provide staging URL, CORS configuration, test accounts for pending/approved/rejected states, and representative data.</li>
+<li>Test OTP expiry/replay/rate limits; wrong role; invalid credentials; pending/rejected access; insufficient credits; duplicate unlock retries; cross-organization access; failed payment; duplicate webhook; invoice ownership; profile validation.</li>
+<li>Frontend team verifies every recruiter screen against the confirmed API schemas and acceptance cases before release.</li>
+</ul>
+<h2>15. Frontend Route and File Reference</h2>
+<table><tr><th>Flow</th><th>Routes / implementation</th></tr>
+<tr><td>Registration</td><td><code>/register/recruiter</code> — <code>src/pages/RegisterRecruiter.jsx</code></td></tr>
+<tr><td>Login and role dispatch</td><td><code>/login?role=recruiter</code> — <code>src/pages/Login.jsx</code></td></tr>
+<tr><td>Email OTP</td><td><code>/verify-email?role=recruiter</code> — <code>src/pages/EmailVerification.jsx</code></td></tr>
+<tr><td>Forgot/reset password</td><td><code>/forgot-password?role=recruiter</code>, <code>/reset-password</code></td></tr>
+<tr><td>Pending review and access guard</td><td><code>/recruiter/verification-pending</code>, <code>src/components/recruiter/RequireRecruiterAccess.jsx</code></td></tr>
+<tr><td>Recruiter data API client</td><td><code>src/lib/recruiterApi.js</code></td></tr>
+<tr><td>Related documents</td><td><a href="recruiter-backend-api-handoff.md">Recruiter API contract source</a> · <a href="medhire-auth-backend-handoff.html">Shared authentication contract</a> · <a href="medhire-recruiter-login-flow-handoff.html">Recruiter login flow detail</a></td></tr></table>
+<p class="footer-note">Prepared for the MedHire backend team. Treat endpoint names and schemas as proposed until confirmed. This document describes the required contract; it does not assert that backend endpoints are deployed or that end-to-end flows have passed.</p>
+</body>
+</html>
