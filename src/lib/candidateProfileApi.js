@@ -1,4 +1,4 @@
-export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api').replace(/\/$/, '')
+export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
 export const PROFILE_ENDPOINTS = {
   profile: '/candidate/profile', personal: '/candidate/profile/personal', professional: '/candidate/profile/professional',
   education: '/candidate/profile/education', workExperience: '/candidate/profile/work-experience', skills: '/candidate/profile/skills',

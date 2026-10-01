@@ -1,4 +1,4 @@
-export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api').replace(/\/$/, '')
+export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
 // Future backend contract. The UI deliberately uses the separate mock context today.
 export const CANDIDATE_ENDPOINTS = { dashboard: '/candidate/dashboard', profile: '/candidate/profile', resumes: '/candidate/resumes', privacy: '/candidate/privacy-settings', jobs: '/jobs', applications: '/candidate/applications', savedJobs: '/candidate/saved-jobs', summary: '/candidate/summary' }
 async function request(path, method = 'GET', body) {
