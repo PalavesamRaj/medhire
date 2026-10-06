@@ -4,6 +4,8 @@ import { build } from 'esbuild'
 import { validatePersonalInformation, validateProfessionalInformation, validateEducation, validateWorkExperience, validateSkills, validateCertifications, validateCareerPreferences, validateResume } from '../src/lib/candidateProfileValidation.js'
 import { loadProfileDraft, saveProfileDraft, clearProfileDraft, PROFILE_DRAFT_KEY } from '../src/lib/candidateProfileDraft.js'
 import { profilePath, profileSteps } from '../src/lib/candidateProfileOptions.js'
+import { getCandidateProfileCompletion } from '../src/lib/candidateProfileCompletion.js'
+import { VALIDATION_CONFIG } from '../src/lib/validationConfig.js'
 
 const personal = { firstName: 'Alex', lastName: 'Morgan', email: 'alex@example.com', phoneNumber: '+1 (555) 123-4567', dateOfBirth: '1994-04-19', gender: 'Female', country: 'United States', city: 'Boston' }
 test('personal information: required fields, email, phone and valid past birth date', () => {
@@ -59,6 +61,22 @@ test('profile setup order starts with resume upload for new candidates', () => {
   assert.equal(profilePath(2), '/candidate/profile/personal')
   assert.equal(profilePath(9), '/candidate/profile/complete')
 })
+test('profile strength excludes optional credentials and counts experience only above one year', () => {
+  const profile = {
+    personalInformation: personal,
+    professionalInformation: { currentJobTitle: 'Nurse', yearsOfExperience: 'Less than 1 year', specialty: 'Nursing' },
+    education: [{ id: 'edu', degree: 'Bachelor', fieldOfStudy: 'Nursing', institutionName: 'University', graduationYear: '2020' }],
+    skills: [{ name: 'Patient Care' }],
+    careerPreferences: { desiredJobTitle: 'Nurse', employmentTypes: ['Full Time'] },
+    workExperience: [], certifications: [],
+  }
+  assert.equal(getCandidateProfileCompletion(profile).percentage, 100)
+  const experienced = { ...profile, professionalInformation: { ...profile.professionalInformation, yearsOfExperience: '3–5 years' } }
+  assert.equal(getCandidateProfileCompletion(experienced).percentage, 83)
+  assert.equal(getCandidateProfileCompletion({ ...experienced, workExperience: [{ id: 'work', jobTitle: 'Nurse', employerName: 'Hospital', location: 'Boston', startMonth: '01', startYear: '2020', currentlyWorking: true }] }).percentage, 100)
+  VALIDATION_CONFIG.enabled = false
+  try { assert.equal(getCandidateProfileCompletion({}).percentage, 0) } finally { VALIDATION_CONFIG.enabled = true }
+})
 test('draft round trip omits File data and tolerates invalid or unavailable storage', () => {
   const entries = new Map()
   globalThis.sessionStorage = { getItem: (key) => entries.get(key) || null, setItem: (key, value) => entries.set(key, value), removeItem: (key) => entries.delete(key) }
@@ -75,7 +93,7 @@ test('draft round trip omits File data and tolerates invalid or unavailable stor
   assert.equal(clearProfileDraft(), false)
   assert.equal(loadProfileDraft().resume, null)
 })
-test('API adapter sends bearer auth, JSON sections and multipart final submission; surfaces failure', async () => {
+test('API adapter follows the updated candidate contract and surfaces failures', async () => {
   const result = await build({ entryPoints: ['src/lib/candidateProfileApi.js'], bundle: true, write: false, format: 'esm', platform: 'node', define: { 'import.meta.env.VITE_API_BASE_URL': '"https://profile.test/api"' } })
   const api = await import(`data:text/javascript;base64,${Buffer.from(result.outputFiles[0].text).toString('base64')}`)
   const oldFetch = globalThis.fetch
@@ -84,19 +102,34 @@ test('API adapter sends bearer auth, JSON sections and multipart final submissio
   globalThis.fetch = async (url, options) => { call = { url, ...options }; return { ok: true, status: 200, json: async () => ({ success: true }) } }
   try {
     await api.savePersonalInformation(personal)
-    assert.equal(call.url, 'https://profile.test/api/candidate/profile/personal')
+    assert.equal(call.url, 'https://profile.test/api/candidates/me/personal')
     assert.equal(call.headers.Authorization, 'Bearer test-token')
-    assert.deepEqual(JSON.parse(call.body), personal)
-    await api.submitCandidateProfile({ personalInformation: personal, resume: new Blob(['resume'], { type: 'application/pdf' }) })
+    assert.deepEqual(JSON.parse(call.body), { firstName: 'Alex', lastName: 'Morgan', phoneNumber: '+1 (555) 123-4567', dateOfBirth: '1994-04-19', gender: 'female', country: 'US', city: 'Boston' })
+    await api.saveWorkExperience([])
+    assert.equal(call.url, 'https://profile.test/api/candidates/me/experience')
+    await api.uploadResume(new Blob(['resume'], { type: 'application/pdf' }))
+    assert.equal(call.url, 'https://profile.test/api/candidates/me/resume')
     assert.ok(call.body instanceof FormData)
+    assert.equal(call.body.get('resume').name, 'blob')
     assert.equal(call.headers['Content-Type'], undefined)
-    assert.deepEqual(JSON.parse(call.body.get('profile')), { personalInformation: personal })
-    assert.ok(call.body.get('resume'))
-    globalThis.fetch = async () => ({ ok: false, status: 422, json: async () => ({ message: 'Invalid profile' }) })
-    await assert.rejects(api.submitCandidateProfile({}), /Invalid profile/)
+    await api.uploadProfilePhoto(new Blob(['photo'], { type: 'image/png' }))
+    assert.equal(call.url, 'https://profile.test/api/candidates/me/profile/photo')
+    assert.equal(call.body.get('photo').type, 'image/png')
+    await api.getCandidateOnboarding()
+    assert.equal(call.url, 'https://profile.test/api/candidates/me/onboarding')
+    await api.updateCandidateOnboardingStep('personal', 'SKIPPED')
+    assert.equal(call.url, 'https://profile.test/api/candidates/me/onboarding/steps/personal')
+    assert.equal(call.method, 'PATCH')
+    assert.deepEqual(JSON.parse(call.body), { status: 'SKIPPED' })
+    await api.submitCandidateProfile()
+    assert.equal(call.url, 'https://profile.test/api/candidates/me/profile/complete')
+    assert.equal(call.method, 'POST')
+    assert.deepEqual(JSON.parse(call.body), {})
+    globalThis.fetch = async () => ({ ok: false, status: 422, json: async () => ({ message: 'Please correct the highlighted fields.', errors: { firstName: 'Enter a valid first name.' } }) })
+    await assert.rejects(api.submitCandidateProfile(), (error) => error.message === 'Please correct the highlighted fields.' && error.status === 422 && error.fieldErrors.firstName === 'Enter a valid first name.')
     globalThis.fetch = async () => ({ ok: true, status: 200, json: async () => { throw new Error('HTML') } })
-    await assert.rejects(api.submitCandidateProfile({}), /unexpected response/)
+    await assert.rejects(api.submitCandidateProfile(), /unexpected response/)
     globalThis.fetch = async () => { throw new TypeError('Failed to fetch') }
-    await assert.rejects(api.submitCandidateProfile({}), /Unable to connect/)
+    await assert.rejects(api.submitCandidateProfile(), /Unable to connect/)
   } finally { globalThis.fetch = oldFetch }
 })

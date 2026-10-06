@@ -37,4 +37,6 @@ export function clearAuthSession() {
     storage.removeItem(REFRESH_TOKEN_KEY)
     storage.removeItem(USER_KEY)
   }
+  sessionStorage.removeItem('medhire_candidate_identity')
+  sessionStorage.removeItem('medhire_candidate_profile_draft')
 }

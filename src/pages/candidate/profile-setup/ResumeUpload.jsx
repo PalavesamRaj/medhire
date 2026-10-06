@@ -37,13 +37,16 @@ export default function ResumeUpload() {
       pending.current = true
       setBusy(true)
       try {
-        await candidateProfileApi.uploadResume(resume)
+        const response = await candidateProfileApi.uploadResume(resume)
+        updateSection('resumeMetadata', response?.data || response)
         toast('Your resume was uploaded successfully.')
         navigate(profilePath(2), { replace: true })
       } catch (requestError) { setError(requestError.message) }
       finally { pending.current = false; setBusy(false) }
       return
     }
+    if (profile.resumeMetadata) { navigate(profilePath(2), { replace: true }); return }
+    try { await candidateProfileApi.updateCandidateOnboardingStep('resume', 'SKIPPED') } catch { /* Resume and skip tracking are optional. */ }
     navigate(profilePath(2), { replace: true })
   }
   return <CandidateProfileLayout step={1} onSubmit={submit} busy={busy} error={error}>
@@ -53,6 +56,7 @@ export default function ResumeUpload() {
     </div>
     <p id="resume-error" role={fileError ? 'alert' : undefined} className="text-xs text-red-600">{fileError}</p>
     {profile.resume && <div className="flex min-w-0 items-center gap-3 rounded-lg border border-ink-200 p-3"><FileText className="shrink-0 text-green-600" size={24} /><div className="min-w-0 flex-1"><p className="break-all text-sm font-semibold text-ink-900">{profile.resume.name}</p><p className="mt-1 text-xs text-ink-400">{(profile.resume.size / 1024 / 1024).toFixed(2)} MB · Ready to upload</p></div><CheckCircle2 size={18} className="shrink-0 text-green-600" /><button type="button" aria-label="Remove resume" disabled={busy} className="rounded p-1 text-ink-600 hover:bg-ink-50" onClick={() => { updateSection('resume', null); setFileError('') }}><X size={18} /></button></div>}
+    {!profile.resume && profile.resumeMetadata && <p className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800">Resume on file: {profile.resumeMetadata.fileName || profile.resumeMetadata.name || 'Uploaded resume'} · {profile.resumeMetadata.approvalStatus || profile.resumeMetadata.status || 'Uploaded'}</p>}
     <p className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-700"><Info size={16} className="mt-0.5 shrink-0" />Your resume can be added now or later during onboarding. It is not required to continue.</p>
   </CandidateProfileLayout>
 }

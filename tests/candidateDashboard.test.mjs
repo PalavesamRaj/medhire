@@ -35,8 +35,11 @@ test('applications require an approved resume and reject duplicates', () => {
   assert.ok(validateApplication({ resumeId: 'pending' }, resumes, [], 'job').resumeId)
   assert.ok(validateApplication({ resumeId: 'approved' }, resumes, [{ jobId: 'job' }], 'job').application)
 })
-test('onboarding data replaces the demo identity and does not inherit demo history', () => {
-  assert.equal(state.candidateFromProfile(blankProfile).firstName, 'Sarah')
+test('blank profiles do not inherit demo identity, jobs or history', () => {
+  assert.equal(state.candidateFromProfile(blankProfile).firstName, 'Candidate')
+  assert.deepEqual(state.createDashboardState(blankProfile).jobs, [])
+  assert.deepEqual(state.createDashboardState(blankProfile).applications, [])
+  assert.deepEqual(state.createDashboardState(blankProfile).resumes, [])
   const own = { ...blankProfile, personalInformation: { firstName: 'Alex', lastName: 'Morgan', city: 'Boston' }, professionalInformation: { currentJobTitle: 'RN' }, education: [{ id: 'a', degree: 'BSN' }] }
   assert.equal(state.candidateFromProfile(own).firstName, 'Alex')
   assert.equal(state.candidateFromProfile(own).headline, 'RN')
@@ -46,11 +49,11 @@ test('onboarding data replaces the demo identity and does not inherit demo histo
   assert.deepEqual(result.resumes, [])
 })
 test('combined job filters are case insensitive and restrictive', () => {
-  const initial = state.createDashboardState(blankProfile)
-  assert.equal(state.filterJobs(initial.jobs, { q: ' icu ' }).length, 2)
-  assert.equal(state.filterJobs(initial.jobs, { q: 'icu', type: 'Contract' }).length, 1)
-  assert.equal(state.filterJobs(initial.jobs, { location: 'new york', specialty: 'Critical Care' }).length, 1)
-  assert.equal(state.filterJobs(initial.jobs, { hospital: 'missing' }).length, 0)
+  const jobs = [{ title: 'ICU Nurse', hospital: 'City Hospital', location: 'New York', specialty: 'Critical Care', type: 'Contract' }, { title: 'RN', hospital: 'Memorial', location: 'Boston', specialty: 'Emergency', type: 'Full-time' }]
+  assert.equal(state.filterJobs(jobs, { q: ' icu ' }).length, 1)
+  assert.equal(state.filterJobs(jobs, { q: 'icu', type: 'Contract' }).length, 1)
+  assert.equal(state.filterJobs(jobs, { location: 'new york', specialty: 'Critical Care' }).length, 1)
+  assert.equal(state.filterJobs(jobs, { hospital: 'missing' }).length, 0)
 })
 test('saved jobs toggle without duplicates and leave original state untouched', () => {
   const initial = state.createDashboardState(blankProfile)
@@ -60,7 +63,7 @@ test('saved jobs toggle without duplicates and leave original state untouched', 
   assert.deepEqual(state.dashboardReducer(next, { type: 'save-job', id: 'new-job' }).savedJobIds, initial.savedJobIds)
 })
 test('pending resumes never replace the active resume; activation is exclusive', () => {
-  const initial = state.createDashboardState(blankProfile)
+  const initial = { ...state.createDashboardState(blankProfile), resumes: [{ id: 'existing', status: 'Approved', active: true }] }
   const pending = state.dashboardReducer(initial, { type: 'add-resume', resume: { id: 'pending', status: 'Pending Review', active: false } })
   assert.equal(pending.resumes.filter((resume) => resume.active).length, 1)
   assert.equal(state.dashboardReducer(pending, { type: 'activate-resume', id: 'pending' }), pending)
@@ -85,10 +88,15 @@ test('dashboard API encodes paths and queries, adds auth and uses multipart for 
     assert.equal(new URL(request.url).searchParams.get('q'), 'nurse & ICU')
     assert.equal(request.headers.Authorization, 'Bearer candidate-token')
     await api.applyForJob('job/id', { resumeId: 'r' })
-    assert.ok(request.url.endsWith('/jobs/job%2Fid/apply'))
+    assert.ok(request.url.endsWith('/jobs/job%2Fid/applications'))
     assert.equal(JSON.parse(request.body).resumeId, 'r')
+    await api.saveJob('job/id')
+    assert.ok(request.url.endsWith('/candidates/me/saved-jobs'))
+    assert.equal(request.method, 'POST')
+    assert.deepEqual(JSON.parse(request.body), { jobId: 'job/id' })
     await api.uploadResume(new Blob(['resume']))
     assert.ok(request.body instanceof FormData)
+    assert.ok(request.url.endsWith('/candidates/me/resume'))
     assert.equal(request.headers['Content-Type'], undefined)
     globalThis.fetch = async () => ({ ok: false, status: 403, json: async () => ({ message: 'Forbidden' }) })
     await assert.rejects(api.getDashboard(), /Forbidden/)

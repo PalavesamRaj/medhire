@@ -1,5 +1,5 @@
 export const PROFILE_DRAFT_KEY = 'medhire_candidate_profile_draft'
-export const emptyProfile = () => ({ personalInformation: {}, professionalInformation: {}, education: [], workExperience: [], skills: [], certifications: [], careerPreferences: {}, resume: null })
+export const emptyProfile = () => ({ personalInformation: {}, professionalInformation: {}, education: [], workExperience: [], skills: [], certifications: [], careerPreferences: {}, resume: null, resumeMetadata: null })
 const cleanFields = (value) => Object.fromEntries(Object.entries(value).filter(([, item]) => typeof item === 'string' || typeof item === 'boolean'))
 
 export function loadProfileDraft() {

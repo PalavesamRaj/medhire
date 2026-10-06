@@ -2,9 +2,9 @@
 
 ## Preview
 
-Run `npm run dev` and open `/candidate/dashboard`. This candidate area is a frontend demo: it does not call a backend, send applications to employers, activate account security, or delete accounts. Existing authentication and onboarding routes remain separate from the candidate dashboard layout.
+Run `npm run dev` and open `/candidate/dashboard`. Candidate-owned dashboard data is loaded from the authenticated backend; absent or failed endpoints show empty/error states rather than seeded candidate records. Applications, resume upload/removal, saved jobs, profile updates, and supported privacy settings call the API. Account-security and deletion controls remain unavailable until those backend contracts exist.
 
-Data lives in `CandidateDashboardContext` while moving between candidate dashboard routes. Refreshing the page or leaving that layout resets demo changes. Uploaded File objects remain in memory only; object URLs are revoked when resume rows unmount. An existing onboarding draft/current profile supplies the candidate's details instead of the Sarah Johnson demo profile. New candidates do not inherit demo applications, resumes, or activity.
+Backend responses populate `CandidateDashboardContext` on login and refresh. Session drafts are used only for the candidate's own unfinished onboarding data when the profile service is unavailable; no Sarah Johnson sample candidate, jobs, applications, resumes, or activity are used at runtime. Uploaded files are sent to the backend, and object URLs are revoked when local previews unmount.
 
 ## Typography
 
@@ -33,10 +33,10 @@ Buttons and labels may use semibold versions of these sizes. Styles are additive
 | MyProfile | `/candidate/profile` | Read-only summary, professional details, work, education, skills and certifications |
 | EditProfile | `/candidate/edit-profile` | Controlled summary fields; Save updates shared state, Cancel discards local edits |
 | ResumeManagement | `/candidate/resume-management` | File selection, validation, pending uploads, local view/download, remove confirmation, approved resume activation |
-| PrivacySettings | `/candidate/privacy-settings` | Visibility and notification preferences, demo security toggle, local JSON export and demo deletion confirmation |
+| PrivacySettings | `/candidate/privacy-settings` | Backend-supported visibility preferences; security and deletion remain unavailable until contracted |
 | JobSearch | `/candidate/jobs` | URL-backed title/company/location search and employment/specialty filters |
 | JobDetails | `/candidate/jobs/:jobId` | Role details, responsibilities, requirements, save and apply actions; missing-job state |
-| ApplyJob | `/candidate/jobs/:jobId/apply` | Approved resume selection, cover note, duplicate protection, mock submission and redirect |
+| ApplyJob | `/candidate/jobs/:jobId/apply` | Approved resume selection, cover note, duplicate protection, backend submission and redirect |
 | MyApplications | `/candidate/applications` | Derived statistics, application list and working text/status filters |
 | SavedJobs | `/candidate/saved-jobs` | Shared bookmarks with details, remove and apply actions |
 | CandidateSummary | `/candidate/summary` | Shared analytics and accessible performance chart |
@@ -49,9 +49,9 @@ The former `/candidate/profile` redirect now renders My Profile as requested. Al
 
 `DashboardStatCard`, `JobCard`, `SaveJobButton`, `StatusBadge`, `ProfileSection`, `PageHeading`, `RecentActivity`, `ProfilePerformance` and `ConfirmDialog` provide shared visual and interaction patterns. The implementation reuses existing Button, Input, Select, Field, Badge, EmptyState and ToastProvider components.
 
-The supplied ZIP was inspected and its SVG assets were extracted to `src/assets/candidate/`. `CandidateIcon` uses the supplied monochrome SVG shapes as CSS masks to support active colors without replacing their artwork. The local profile avatar and stethoscope assets are used directly. `public/candidate-demo-resume.pdf` is an explicitly labeled sample document for working preview/download controls.
+The supplied ZIP was inspected and its SVG assets were extracted to `src/assets/candidate/`. `CandidateIcon` uses the supplied monochrome SVG shapes as CSS masks to support active colors without replacing their artwork. The stethoscope asset is used in the header; candidate photos are loaded from the profile service.
 
-Mock content is centralized in `candidateMockData.js`. `candidateDashboardState.js` contains profile mapping, the state reducer and job filtering. `CandidateDashboardContext.jsx` provides shared state and derives counts so bookmarks/applications stay consistent across screens. Demo counts follow the actual seeded arrays rather than the inconsistent counts across reference screenshots.
+`candidateDashboardState.js` contains profile mapping, the state reducer and job filtering. `CandidateDashboardContext.jsx` loads candidate-owned records and metrics from the backend and shares them across screens. No seeded data is added when a request fails.
 
 ## Global validation switch
 
@@ -69,7 +69,7 @@ With validation enabled, uploads accept PDF/DOC/DOCX up to 5 MB, including a zer
 
 `candidateDashboardApi.js` exports `getDashboard`, `getMyProfile`, `updateProfile`, `getResume`, `uploadResume`, `deleteResume`, `getPrivacySettings`, `updatePrivacySettings`, `searchJobs`, `getJobDetails`, `applyForJob`, `getApplications`, `getSavedJobs`, `saveJob`, `removeSavedJob`, and `getCandidateSummary` individually and as `candidateDashboardApi`.
 
-It uses `VITE_API_BASE_URL || 'http://localhost:5000/api'`, central endpoint constants, `medhire_access_token` in the Bearer authorization header, JSON for structured payloads and FormData for resume files. IDs and filters are encoded. Requests time out after 30 seconds and surface unsuccessful responses. These functions are prepared but not called by the current mock UI; replace the context's mock loading/mutations with service responses when the backend contract is available. No silent fallback reports a failed real request as a successful mock mutation.
+It uses `VITE_API_BASE_URL || '/api'`, central endpoint constants, the authenticated access token in the Bearer authorization header, JSON for structured payloads and FormData for resume/photo files. Candidate-owned APIs follow the `/candidates/me/...` contract; job APIs remain under `/jobs`, including `POST /jobs/:jobId/applications`. IDs and filters are encoded. Requests time out after 30 seconds and surface unsuccessful responses. Profile-photo upload uses the proposed `POST /candidates/me/profile/photo` route and must be confirmed with the backend team.
 
 ## Verification
 

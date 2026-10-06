@@ -80,7 +80,9 @@ export default function Login() {
           if (identity?.email !== email) sessionStorage.removeItem('medhire_candidate_profile_draft')
           sessionStorage.setItem('medhire_candidate_identity', JSON.stringify({ email }))
         } catch { /* Profile editing remains available when storage is disabled. */ }
-        navigate(response.user?.profileCompleted ? '/candidate/dashboard' : '/candidate/profile/resume')
+        const nextStepRoutes = { resume: 'resume', personal: 'personal', professional: 'professional', education: 'education', experience: 'work-experience', skills: 'skills', certifications: 'certifications', preferences: 'career-preferences' }
+        const nextStep = nextStepRoutes[response.onboarding?.nextStep]
+        navigate(response.user?.profileCompleted || response.onboarding?.profileCompleted ? '/candidate/dashboard' : nextStep ? `/candidate/profile/${nextStep}` : '/candidate/profile/resume')
       } else if (role === 'recruiter') {
         navigate(isRecruiterOrganizationApproved(response.user) ? '/recruiter/dashboard' : '/recruiter/verification-pending')
       } else navigate('/')
