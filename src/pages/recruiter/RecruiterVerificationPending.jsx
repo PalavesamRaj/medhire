@@ -111,9 +111,9 @@ export default function RecruiterVerificationPending() {
           </Link>
           <Link
             to="/"
-            className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 underline hover:text-slate-900"
+            className="group inline-flex h-10 items-center gap-2 rounded-full border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-600 shadow-sm transition-all hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
           >
-            <ArrowLeft className="h-3.5 w-3.5" />
+            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
             Back to Home
           </Link>
         </div>

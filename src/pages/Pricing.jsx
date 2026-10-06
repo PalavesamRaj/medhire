@@ -21,7 +21,6 @@ const plans = [
     features: ['100 candidate unlock credits', '15 active job postings', '5 recruiter seats', '90-day plan validity', 'Priority candidate alerts'],
     cta: 'Choose Professional',
     to: '/register/recruiter',
-    featured: true,
   },
   {
     name: 'Enterprise',
@@ -105,8 +104,7 @@ export default function Pricing() {
         </SectionIntro>
         <div className="mx-auto mt-12 grid max-w-7xl items-stretch gap-6 lg:grid-cols-3">
           {plans.map((plan) => (
-            <div key={plan.name} className={`flex flex-col rounded-xl bg-white p-8 ${plan.featured ? 'border-2 border-brand-600 shadow-lg' : 'border border-ink-200 shadow-sm'}`}>
-              {plan.featured && <span className="mb-5 self-start rounded-full bg-brand-50 px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-brand-600">Most Popular</span>}
+            <div key={plan.name} className="group flex flex-col rounded-xl border border-ink-200 bg-white p-8 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-brand-600 hover:shadow-lg hover:ring-1 hover:ring-brand-600 focus-within:-translate-y-1 focus-within:border-brand-600 focus-within:shadow-lg focus-within:ring-1 focus-within:ring-brand-600">
               <h3 className="text-xl font-bold text-ink-900">{plan.name}</h3>
               <p className="mt-2 min-h-10 text-sm leading-5 text-ink-600">{plan.description}</p>
               <div className="mt-5">
@@ -117,13 +115,13 @@ export default function Pricing() {
               <ul className="flex flex-1 flex-col gap-3">
                 {plan.features.map((feature) => (
                   <li key={feature} className="flex items-start gap-2.5 text-sm leading-5 text-ink-600">
-                    <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${plan.featured ? 'bg-brand-50 text-brand-600' : 'bg-accent-50 text-accent-600'}`}><Check className="h-3.5 w-3.5" /></span>
+                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent-50 text-accent-600 transition-colors group-hover:bg-brand-50 group-hover:text-brand-600 group-focus-within:bg-brand-50 group-focus-within:text-brand-600"><Check className="h-3.5 w-3.5" /></span>
                     {feature}
                   </li>
                 ))}
               </ul>
               <Link to={plan.to} className="mt-7">
-                <Button variant={plan.featured ? 'primary' : 'secondary'} className="w-full justify-center">{plan.cta}</Button>
+                <Button variant="secondary" className="w-full justify-center transition-colors group-hover:border-brand-600 group-hover:bg-brand-600 group-hover:text-white group-focus-within:border-brand-600 group-focus-within:bg-brand-600 group-focus-within:text-white">{plan.cta}</Button>
               </Link>
             </div>
           ))}

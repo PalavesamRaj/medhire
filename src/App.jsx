@@ -33,6 +33,8 @@ import Faq from './pages/Faq'
 import PrivacyPolicy from './pages/PrivacyPolicy'
 import TermsOfService from './pages/TermsOfService'
 import Pricing from './pages/Pricing'
+import FindJobs from './pages/FindJobs'
+import ForRecruiters from './pages/ForRecruiters'
 import GetStarted from './pages/GetStarted'
 import RegisterCandidate from './pages/RegisterCandidate'
 import RegisterRecruiter from './pages/RegisterRecruiter'
@@ -56,7 +58,6 @@ import RecruiterPaymentHistory from './pages/recruiter/RecruiterPaymentHistory'
 import RecruiterInvoice from './pages/recruiter/RecruiterInvoice'
 import RecruiterHospitalProfile from './pages/recruiter/RecruiterHospitalProfile'
 import RecruiterLayout from './components/recruiter/dashboard/RecruiterLayout'
-import Placeholder from './pages/Placeholder'
 
 function SiteLayout({ children }) {
   return (
@@ -145,8 +146,8 @@ export default function App() {
       <Route path="/faq" element={<SiteLayout><Faq /></SiteLayout>} />
       <Route path="/privacy-policy" element={<SiteLayout><PrivacyPolicy /></SiteLayout>} />
       <Route path="/terms-of-service" element={<SiteLayout><TermsOfService /></SiteLayout>} />
-      <Route path="/find-jobs" element={<SiteLayout><Placeholder title="Find Jobs" /></SiteLayout>} />
-      <Route path="/for-recruiters" element={<SiteLayout><Placeholder title="For Recruiters" /></SiteLayout>} />
+      <Route path="/find-jobs" element={<SiteLayout><FindJobs /></SiteLayout>} />
+      <Route path="/for-recruiters" element={<SiteLayout><ForRecruiters /></SiteLayout>} />
       <Route path="/pricing" element={<SiteLayout><Pricing /></SiteLayout>} />
       </Routes>
     </>

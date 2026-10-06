@@ -32,8 +32,7 @@ const plans = [
     ],
     cta: 'Choose Professional',
     to: '/register/recruiter',
-    variant: 'primary',
-    featured: true,
+    variant: 'secondary',
   },
   {
     tier: 'Enterprise',
@@ -65,19 +64,12 @@ export default function Pricing() {
         {plans.map((p) => (
           <div
             key={p.tier}
-            className={`flex flex-col rounded-xl border bg-white p-7 ${
-              p.featured ? 'border-brand-600 shadow-lg ring-1 ring-brand-600' : 'border-ink-200'
-            }`}
+            className="group flex flex-col rounded-xl border border-ink-200 bg-white p-7 transition-all duration-200 hover:-translate-y-1 hover:border-brand-600 hover:shadow-lg hover:ring-1 hover:ring-brand-600 focus-within:-translate-y-1 focus-within:border-brand-600 focus-within:shadow-lg focus-within:ring-1 focus-within:ring-brand-600"
           >
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold uppercase tracking-wide text-ink-400">
                 {p.tier}
               </p>
-              {p.featured && (
-                <span className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-semibold text-brand-700">
-                  Most Popular
-                </span>
-              )}
             </div>
 
             <p className="mt-3 text-3xl font-extrabold text-ink-900">
@@ -96,7 +88,7 @@ export default function Pricing() {
             </ul>
 
             <Link to={p.to} className="mt-6">
-              <Button variant={p.variant} className="w-full justify-center">
+              <Button variant={p.variant} className="w-full justify-center transition-colors group-hover:border-brand-600 group-hover:bg-brand-600 group-hover:text-white group-focus-within:border-brand-600 group-focus-within:bg-brand-600 group-focus-within:text-white">
                 {p.cta}
               </Button>
             </Link>

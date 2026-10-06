@@ -120,6 +120,25 @@
   }
 }</pre></div>
 <p class="small">For recruiter accounts, include <code>organizationVerificationStatus</code> with one of <code>pending</code>, <code>approved</code>, or <code>rejected</code>. The frontend only grants recruiter dashboard access for <code>approved</code>.</p>
+<div class="notice"><strong>Recruiter pending-review details:</strong> The frontend verification-pending page displays organization name, recruiter contact number, and registration date from the authenticated <code>user</code> object returned by this login endpoint. Read these values from the existing recruiter/organization records; no separate pending-details endpoint is required.</div>
+<pre>{
+  "accessToken": "eyJ...",
+  "refreshToken": "refresh-token-value",
+  "expiresIn": 3600,
+  "user": {
+    "id": "user_123",
+    "role": "recruiter",
+    "fullName": "Anita Sharma",
+    "email": "anita@example.com",
+    "emailVerified": true,
+    "organizationId": "org_456",
+    "organizationName": "MedCare Hospital",
+    "phone": "+919876543210",
+    "createdAt": "2026-09-24T10:30:00Z",
+    "organizationVerificationStatus": "pending"
+  }
+}</pre>
+<p class="small"><code>createdAt</code> is the recruiter's registration timestamp in ISO-8601 UTC. Keep the property names shown (<code>organizationName</code>, <code>phone</code>, <code>createdAt</code>) or coordinate a frontend mapping if the API uses different names. Return these fields for all recruiter statuses so the same session shape is consistent.</p>
 
 <div class="page-break"></div>
 <h2>5. Forgot Password</h2>

@@ -187,8 +187,12 @@ export default function Contact() {
             already matching on MedHire.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <Button size="lg" variant="secondary">Create Your Profile</Button>
-            <Button size="lg" variant="outline">Start Hiring</Button>
+            <Link to="/register/candidate">
+              <Button size="lg" variant="secondary">Create Your Profile</Button>
+            </Link>
+            <Link to="/register/recruiter">
+              <Button size="lg" variant="outline">Start Hiring</Button>
+            </Link>
           </div>
         </div>
       </section>
