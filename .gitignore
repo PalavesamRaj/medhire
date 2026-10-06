@@ -1,0 +1,11 @@
+node_modules/
+tmp/
+tmp-chrome-pdf-profile/
+artifacts/
+dist/
+.env
+.env.*
+!.env.example
+.vite/
+.vercel
+.env*

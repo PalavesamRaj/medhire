@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MedHire Recruiter Login Flow — Backend Handoff</title>
+<style>
+  @page { size: A4; margin: 17mm 16mm; }
+  :root { --navy:#15324b; --blue:#176b87; --teal:#0d9488; --ink:#263746; --muted:#617383; --line:#d9e2e8; --soft:#f3f7f9; --code:#12212d; }
+  * { box-sizing:border-box; }
+  body { margin:0; color:var(--ink); font:10.2pt/1.48 Arial,Helvetica,sans-serif; }
+  h1,h2,h3 { color:var(--navy); line-height:1.2; margin:0 0 8px; }
+  h1 { font-size:27pt; } h2 { font-size:16pt; margin-top:23px; padding-bottom:6px; border-bottom:2px solid var(--teal); }
+  h3 { font-size:12pt; margin-top:15px; } p { margin:6px 0 10px; }
+  .cover { min-height:255mm; display:flex; flex-direction:column; justify-content:space-between; padding:14mm 4mm 10mm; page-break-after:always; }
+  .eyebrow { color:var(--teal); text-transform:uppercase; letter-spacing:2px; font-size:9pt; font-weight:bold; }
+  .subtitle { color:var(--muted); font-size:14pt; max-width:145mm; margin-top:12px; }
+  .meta { border-top:1px solid var(--line); padding-top:12px; color:var(--muted); }
+  .badge { display:inline-block; color:white; background:#b45309; padding:5px 9px; border-radius:4px; font-size:8.5pt; font-weight:bold; }
+  .intro { background:var(--soft); border-left:4px solid var(--teal); padding:10px 13px; margin:12px 0 16px; }
+  .flow { display:flex; flex-wrap:wrap; gap:6px; margin:12px 0 16px; }
+  .step { flex:1 1 28%; min-width:38mm; background:var(--soft); border:1px solid var(--line); border-radius:5px; padding:8px; }
+  .step b { display:block; color:var(--navy); } .step span { color:var(--muted); font-size:9pt; }
+  .endpoint { page-break-inside:avoid; margin:13px 0 18px; }
+  .method { color:white; background:var(--blue); border-radius:3px; padding:4px 7px; font-size:8.5pt; font-weight:bold; margin-right:7px; }
+  .path { font: bold 10.5pt Consolas,monospace; color:var(--navy); }
+  pre { background:var(--code); color:#e8f1f5; padding:10px 12px; border-radius:5px; overflow-wrap:anywhere; white-space:pre-wrap; font:8pt/1.42 Consolas,monospace; margin:8px 0 10px; }
+  code { font-family:Consolas,monospace; color:var(--blue); }
+  table { width:100%; border-collapse:collapse; margin:8px 0 13px; page-break-inside:avoid; }
+  th { background:var(--navy); color:white; text-align:left; font-size:8.5pt; }
+  th,td { border:1px solid var(--line); padding:6px 7px; vertical-align:top; } td { font-size:8.5pt; }
+  tr:nth-child(even) td { background:#f8fafb; }
+  .small { color:var(--muted); font-size:8.7pt; } .page-break { page-break-before:always; }
+  .checklist { padding-left:18px; } .checklist li { margin:5px 0; }
+  .footer-note { margin-top:20px; color:var(--muted); font-size:8.5pt; border-top:1px solid var(--line); padding-top:8px; }
+</style>
+</head>
+<body>
+<section class="cover">
+  <div>
+    <div class="eyebrow">MedHire Engineering Handoff</div>
+    <h1>Recruiter Login<br>and Verification Flow</h1>
+    <p class="subtitle">Backend contract for recruiter registration, email verification, sign in, organization review, protected hospital access, and password recovery.</p>
+    <p><span class="badge">Proposed API contract — backend confirmation required</span></p>
+    <div class="intro"><strong>Scope:</strong> This handoff covers recruiter authentication and the transition from verified email to pending organization review and approved recruiter access. Candidate and recruiter resource APIs are described separately in <a href="recruiter-backend-api-handoff.md">Recruiter API Handoff</a>.</div>
+  </div>
+  <div class="meta"><strong>Project:</strong> MedHire<br><strong>Document:</strong> Recruiter login flow handoff<br><strong>Prepared:</strong> September 24, 2026<br><strong>Frontend base:</strong> <code>VITE_API_BASE_URL</code> (defaults to <code>/api</code>)</div>
+</section>
+
+<h2>1. End-to-End Flow</h2>
+<div class="flow">
+  <div class="step"><b>1. Register</b><span>POST /auth/register; create unverified recruiter; send email code.</span></div>
+  <div class="step"><b>2. Verify email</b><span>POST /auth/verify-code; mark email verified.</span></div>
+  <div class="step"><b>3. Sign in</b><span>POST /auth/login; return role, session, and organization status.</span></div>
+  <div class="step"><b>4. Pending review</b><span>Pending or rejected organization cannot access recruiter resources.</span></div>
+  <div class="step"><b>5. Approved access</b><span>Approved status opens recruiter dashboard and hospital profile.</span></div>
+  <div class="step"><b>6. Recover account</b><span>Forgot password → verify reset code → set a new password.</span></div>
+</div>
+<p>The browser can guide navigation, but the backend must enforce recruiter role, email verification, organization approval, and organization ownership on every protected request.</p>
+
+<h2>2. Common API and Security Rules</h2>
+<table><tr><th>Item</th><th>Requirement</th></tr>
+<tr><td>Base URL</td><td>Frontend uses <code>VITE_API_BASE_URL</code>; endpoint paths below are relative to it. With the default value the login endpoint is <code>/api/auth/login</code>.</td></tr>
+<tr><td>Format</td><td>JSON request and response bodies use <code>application/json</code>.</td></tr>
+<tr><td>Roles</td><td>Canonical role is exactly <code>recruiter</code> for recruiter registration, verification, and login.</td></tr>
+<tr><td>Email</td><td>Normalize and compare case-insensitively. Use the same account identity across registration, OTP, resend, and login.</td></tr>
+<tr><td>Password</td><td>Hash server-side; never return it or log it. Current frontend requires 8–72 characters with uppercase, number, and symbol.</td></tr>
+<tr><td>Verification code</td><td>Six numeric digits, single-use, short-lived (about 10 minutes), and rate-limited for resend and attempts.</td></tr>
+<tr><td>Session</td><td>Return a short-lived access token. Prefer a Secure, HttpOnly refresh cookie; confirm refresh and revocation behavior with frontend.</td></tr>
+<tr><td>Organization status</td><td>Return <code>organizationVerificationStatus</code> on the user as <code>pending</code>, <code>approved</code>, or <code>rejected</code>. Keep this field authoritative and update it when review status changes.</td></tr>
+<tr><td>Authorization</td><td>Verify token, recruiter role, email verification, and organization approval on every recruiter resource endpoint. Never rely on React route guards for security.</td></tr></table>
+
+<h2>3. Recruiter Registration</h2>
+<div class="endpoint"><h3><span class="method">POST</span><span class="path">/auth/register</span></h3>
+<pre>{
+  "role": "recruiter",
+  "fullName": "Rahul Menon",
+  "email": "rahul@hospital.com",
+  "phone": "+919876543210",
+  "designation": "HR Manager",
+  "organizationName": "MedCare Hospital",
+  "organizationWebsite": "https://hospital.com",
+  "city": "Chennai",
+  "state": "Tamil Nadu",
+  "password": "ExamplePassword@123",
+  "termsAccepted": true
+}</pre>
+<p class="small">The UI collects a 10-digit phone number and currently prepends <code>+91</code>. The browser validates confirmation password but does not send it.</p>
+<p><strong>Backend:</strong> Validate required fields, persist recruiter and organization in a non-approved state, send registration OTP, and return <code>201 Created</code>. Do not grant protected recruiter access at registration.</p>
+<pre>{
+  "message": "Verification code sent",
+  "userId": "user_123",
+  "email": "rahul@hospital.com",
+  "role": "recruiter",
+  "emailVerified": false,
+  "organizationVerificationStatus": "pending"
+}</pre></div>
+
+<h2>4. Email Verification and Resend</h2>
+<div class="endpoint"><h3><span class="method">POST</span><span class="path">/auth/verify-code</span></h3>
+<pre>{ "email": "rahul@hospital.com", "code": "482916", "purpose": "registration" }</pre>
+<p>On success, consume the code and mark email verified. Organization review remains independent; email verification must not approve the hospital.</p>
+<pre>{
+  "verified": true,
+  "purpose": "registration",
+  "user": {
+    "id": "user_123",
+    "role": "recruiter",
+    "email": "rahul@hospital.com",
+    "emailVerified": true,
+    "organizationVerificationStatus": "pending"
+  }
+}</pre>
+<h3><span class="method">POST</span><span class="path">/auth/resend-code</span></h3>
+<pre>{ "email": "rahul@hospital.com", "purpose": "registration" }</pre>
+<p>Rate-limit by account and IP; return a generic response where appropriate to avoid account enumeration.</p></div>
+
+<h2>5. Recruiter Login and Routing Contract</h2>
+<div class="endpoint"><h3><span class="method">POST</span><span class="path">/auth/login</span></h3>
+<pre>{ "email": "rahul@hospital.com", "password": "ExamplePassword@123", "rememberMe": true }</pre>
+<p><code>rememberMe</code> is a session-duration preference, not an account profile field. Return the recruiter role and organization state with the authenticated user.</p>
+<pre>{
+  "accessToken": "eyJ...",
+  "refreshToken": "refresh-token-value",
+  "expiresIn": 3600,
+  "user": {
+    "id": "user_123",
+    "role": "recruiter",
+    "fullName": "Rahul Menon",
+    "email": "rahul@hospital.com",
+    "emailVerified": true,
+    "organizationId": "org_456",
+    "organizationName": "MedCare Hospital",
+    "organizationVerificationStatus": "pending"
+  }
+}</pre></div>
+<table><tr><th>Login response state</th><th>Expected frontend behavior</th><th>Backend requirement</th></tr>
+<tr><td>Wrong account role</td><td>Reject recruiter login; do not store the session.</td><td>Return role accurately; frontend accepts only recruiter for recruiter login.</td></tr>
+<tr><td>Unverified email</td><td>On <code>EMAIL_NOT_VERIFIED</code>, send the user to registration email verification; they can enter the existing code or request resend.</td><td>Return <code>403 EMAIL_NOT_VERIFIED</code> with no access or refresh tokens; rate-limit resend.</td></tr>
+<tr><td>Email verified + organization pending</td><td>Store the session and show Verification Pending; block recruiter resources.</td><td>Return <code>organizationVerificationStatus: "pending"</code>.</td></tr>
+<tr><td>Organization approved</td><td>Store session and enter recruiter dashboard/hospital profile.</td><td>Return <code>organizationVerificationStatus: "approved"</code>.</td></tr>
+<tr><td>Organization rejected</td><td>Do not grant dashboard access; show a clear support/resubmission path.</td><td>Return <code>"rejected"</code> and rejection guidance if policy allows.</td></tr></table>
+<p class="small"><strong>Important implementation gap to resolve:</strong> the current login UI routes both pending and rejected states to the same pending screen. Decide the rejected-account UX and provide status/reason fields before production.</p>
+
+<div class="page-break"></div>
+<h2>6. Approval and Protected Recruiter Resources</h2>
+<p>When MedHire approves an organization, update its status in the source of truth. On the recruiter’s next login (or a future session-refresh/status endpoint), return the approved status. A stale browser session may continue to show pending until refreshed or reauthenticated; the backend must still enforce current approval on every resource request.</p>
+<table><tr><th>Request</th><th>Required behavior</th></tr>
+<tr><td>Pending/rejected recruiter calls recruiter data API</td><td>Return <code>403</code> with stable code <code>ORGANIZATION_NOT_APPROVED</code> (or a distinct rejected code). Return no protected data.</td></tr>
+<tr><td>Approved recruiter calls recruiter data API</td><td>Authorize the recruiter and scope all reads/writes to their organization.</td></tr>
+<tr><td>Missing, expired, or revoked token</td><td>Return <code>401</code>; frontend must ask for login again.</td></tr>
+<tr><td>Token belongs to candidate or another role</td><td>Return <code>403</code>; never expose recruiter information.</td></tr></table>
+<p>Dashboard, candidate search, shortlist, purchased profiles, plans/credits, checkout, payment history/invoices, and hospital profile contracts are in <a href="recruiter-backend-api-handoff.md">Recruiter API Handoff</a>.</p>
+
+<h2>7. Password Recovery for Recruiters</h2>
+<p>The existing recovery endpoints are shared across roles. Preserve account identity and role through the recovery UI.</p>
+<div class="endpoint"><h3><span class="method">POST</span><span class="path">/auth/forgot-password</span></h3><pre>{ "email": "rahul@hospital.com" }</pre><p>Return a generic <code>202 Accepted</code> whether the email exists or not.</p>
+<h3><span class="method">POST</span><span class="path">/auth/verify-code</span></h3><pre>{ "email": "rahul@hospital.com", "code": "482916", "purpose": "password_reset" }</pre><p>Return a short-lived, single-use reset token. Do not treat a reset code as email registration verification.</p>
+<h3><span class="method">POST</span><span class="path">/auth/reset-password</span></h3><pre>{ "email": "rahul@hospital.com", "resetToken": "reset-token-value", "newPassword": "NewExamplePassword@123" }</pre><p>Invalidate the reset token and revoke other sessions as required. The confirmation password remains frontend-only.</p></div>
+
+<h2>8. Validation and Error Contract</h2>
+<p>Frontend validation improves usability; the backend must independently repeat all security and business validation. Return field-level errors in this shared envelope:</p>
+<pre>{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Please correct the highlighted fields.",
+    "fields": { "email": "Enter a valid email address." }
+  }
+}</pre>
+<table><tr><th>Status</th><th>Meaning</th></tr>
+<tr><td>400 / 422</td><td>Malformed data or field/business validation failure.</td></tr><tr><td>401</td><td>Invalid credentials, expired session, or invalid reset token.</td></tr>
+<tr><td>403</td><td>Wrong role, unverified email, or organization not approved.</td></tr><tr><td>409</td><td>Email already registered or conflicting account state.</td></tr>
+<tr><td>429</td><td>Login, verification, or resend rate limit reached.</td></tr><tr><td>500</td><td>Unexpected server error; do not include secrets or stack traces.</td></tr></table>
+<p>Current browser checks include required recruiter identity/organization/location fields, email format, ten-digit phone input, strong password, matching confirmation, accepted terms, required login password, and six-digit numeric verification code.</p>
+
+<h2>9. Frontend Flow and Files</h2>
+<table><tr><th>Step</th><th>Route / file</th><th>Current behavior</th></tr>
+<tr><td>Recruiter registration</td><td><code>/register/recruiter</code> · <code>src/pages/RegisterRecruiter.jsx</code></td><td>Calls recruiter registration wrapper; validates fields; moves to verification after API success.</td></tr>
+<tr><td>Recruiter login</td><td><code>/login?role=recruiter</code> · <code>src/pages/Login.jsx</code></td><td>Checks response role/token; routes unverified users to OTP, approved users to dashboard, others to pending.</td></tr>
+<tr><td>Email verification</td><td><code>/verify-email?role=recruiter</code> · <code>src/pages/EmailVerification.jsx</code></td><td>Verifies six-digit registration code and supports resend.</td></tr>
+<tr><td>Pending review</td><td><code>/recruiter/verification-pending</code> · <code>src/pages/recruiter/RecruiterVerificationPending.jsx</code></td><td>Shows registration details and sign-out. Dashboard route guard returns unapproved users here.</td></tr>
+<tr><td>Protected pages</td><td><code>/recruiter/*</code> · <code>src/components/recruiter/RequireRecruiterAccess.jsx</code></td><td>Client-side role/status gate. Backend authorization remains mandatory.</td></tr>
+<tr><td>API wrappers</td><td><code>src/lib/recruiterAuthApi.js</code>, <code>src/lib/authApi.js</code></td><td>Recruiter role mapping and shared auth request/error handling.</td></tr></table>
+
+<h2>10. Backend Completion Checklist</h2>
+<ul class="checklist">
+<li>Confirm endpoint paths, field names, error envelope, status codes, and API base URL.</li>
+<li>Implement recruiter registration that creates an unverified account and a pending organization record.</li>
+<li>Implement registration OTP delivery, expiry, one-time use, resend throttling, and attempt limits.</li>
+<li>Return role, email verification state, organization ID, organization name, and verification status from login.</li>
+<li>Define rejected-organization login and resubmission behavior.</li>
+<li>Implement secure access/refresh token lifecycle, session revocation, and logout/expiry behavior.</li>
+<li>Enforce role, email verification, current organization approval, and organization scoping server-side.</li>
+<li>Implement password recovery without disclosing account existence.</li>
+<li>Test pending, approved, rejected, unverified, wrong-role, expired-token, and rate-limited cases.</li>
+<li>Provide a staging base URL and test recruiter accounts for frontend end-to-end verification.</li>
+</ul>
+
+<h2>11. Current Integration Status</h2>
+<div class="intro"><strong>Frontend status:</strong> Recruiter register, login, registration OTP, resend, forgot-password, and reset-password screens call shared auth endpoints through the frontend API wrappers. Recruiter workspace pages now request live data/actions through <code>src/lib/recruiterApi.js</code> and do not fall back to sample recruiter records. The API paths remain proposed; no backend availability or end-to-end API success is asserted by this document. The complete combined handoff is <a href="medhire-recruiter-backend-handoff.html">Recruiter Backend API and Flow Handoff</a>.</div>
+<p class="footer-note">Prepared for the MedHire backend team. This is a proposed integration contract based on the current frontend. Confirm the API schema and security policy before implementation. Related documents: <a href="medhire-auth-backend-handoff.html">Authentication Backend Contract</a> and <a href="recruiter-backend-api-handoff.md">Recruiter API Handoff</a>.</p>
+</body>
+</html>
