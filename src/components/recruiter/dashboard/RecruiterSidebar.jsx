@@ -1,5 +1,5 @@
 import React from 'react'
-import { BadgeDollarSign, Bookmark, Building2, CreditCard, LayoutDashboard, Search, Users, X, BriefcaseBusiness } from 'lucide-react'
+import { BadgeDollarSign, Bookmark, Building2, CreditCard, LayoutDashboard, Search, Users, X, BriefcaseBusiness, ShieldCheck } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 
 export const recruiterNavigation = [
@@ -12,7 +12,7 @@ export const recruiterNavigation = [
   ['Plans & Credits', '/recruiter/plans-credits', BadgeDollarSign],
   ['Payment History', '/recruiter/payment-history', CreditCard],
   ['Hospital Profile', '/recruiter/hospital-profile', Building2],
-  ['Account Security', '/account/security', Building2],
+  ['Account Security', '/recruiter/account-security', ShieldCheck],
 ]
 
 export default function RecruiterSidebar({ open, onNavigate }) {

@@ -47,6 +47,7 @@ import PasswordResetSuccess from './pages/PasswordResetSuccess'
 import RecruiterVerificationPending from './pages/recruiter/RecruiterVerificationPending'
 import RequireRecruiterAccess from './components/recruiter/RequireRecruiterAccess'
 import RequireCandidateAccess from './components/candidate/RequireCandidateAccess'
+import { getAuthenticatedUser } from './lib/authSession'
 import RecruiterDashboard from './pages/recruiter/RecruiterDashboard'
 import RecruiterJobs from './pages/recruiter/RecruiterJobs'
 import RecruiterTeam from './pages/recruiter/RecruiterTeam'
@@ -85,6 +86,14 @@ function ScrollToTop() {
   return null
 }
 
+function AccountSecurityRedirect() {
+  const user = getAuthenticatedUser()
+  const role = String(user?.role || user?.userType || '').toLowerCase()
+  if (role === 'candidate') return <Navigate to="/candidate/account-security" replace />
+  if (role === 'recruiter') return <Navigate to="/recruiter/account-security" replace />
+  return <Navigate to="/login" replace />
+}
+
 export default function App() {
   return (
     <>
@@ -107,6 +116,7 @@ export default function App() {
           <Route path="edit-profile" element={<EditProfile />} />
           <Route path="resume-management" element={<ResumeManagement />} />
           <Route path="privacy-settings" element={<PrivacySettings />} />
+          <Route path="account-security" element={<AccountSecurity />} />
           <Route path="jobs" element={<JobSearch />} />
           <Route path="jobs/:jobId" element={<JobDetails />} />
           <Route path="jobs/:jobId/apply" element={<ApplyJob />} />
@@ -125,7 +135,7 @@ export default function App() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/verify-email" element={<EmailVerification />} />
       <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/account/security" element={<AccountSecurity />} />
+      <Route path="/account/security" element={<AccountSecurityRedirect />} />
       <Route path="/password-reset-success" element={<PasswordResetSuccess />} />
 
       <Route path="/recruiter/verification-pending" element={<RequireRecruiterAccess allowPending><RecruiterVerificationPending /></RequireRecruiterAccess>} />
@@ -145,6 +155,7 @@ export default function App() {
         <Route path="payment-history" element={<RecruiterPaymentHistory />} />
         <Route path="payment-history/invoices/:transactionId" element={<RecruiterInvoice />} />
         <Route path="hospital-profile" element={<RecruiterHospitalProfile />} />
+        <Route path="account-security" element={<AccountSecurity />} />
         <Route path="candidates/:candidateId" element={<RecruiterCandidateProfile />} />
         <Route path="candidates/:candidateId/unlocked" element={<RecruiterCandidateProfile />} />
       </Route>
