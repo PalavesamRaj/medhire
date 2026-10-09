@@ -77,7 +77,7 @@ export default function EmailVerification() {
         : await authApi.verifyCode({ email, code, purpose: source === 'reset' ? 'password_reset' : 'registration' })
       if (source === 'reset' && response.resetToken) {
         showToast('Email verified. You can now create a new password.')
-        navigate(`/reset-password?role=${role}&email=${encodeURIComponent(email)}&resetToken=${encodeURIComponent(response.resetToken || '')}`)
+        navigate(`/reset-password?role=${role}&email=${encodeURIComponent(email)}`, { state: { resetToken: response.resetToken } })
       } else if (source === 'reset') {
         setError('Verification succeeded, but the reset session was not returned. Request a new code.')
       } else {

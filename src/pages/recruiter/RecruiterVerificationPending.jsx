@@ -1,12 +1,36 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { ArrowLeft, Check, CircleHelp, LogOut } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import Logo from '../../components/layout/Logo'
-import { clearAuthSession, getAuthenticatedUser } from '../../lib/authSession'
+import { getAuthenticatedUser, updateAuthenticatedUser } from '../../lib/authSession'
+import { logout } from '../../lib/http'
+import { authApi } from '../../lib/authApi'
+import { recruiterApi } from '../../lib/recruiterApi'
+import OrganizationDocuments from '../../components/recruiter/OrganizationDocuments'
 
 export default function RecruiterVerificationPending() {
   const navigate = useNavigate()
-  const user = getAuthenticatedUser()
+  const [user, setUser] = useState(getAuthenticatedUser)
+
+  // Re-check the organization status so the recruiter never has to sign out and in to see the decision.
+  useEffect(() => {
+    let active = true
+    const check = async () => {
+      try {
+        const response = await authApi.me()
+        const fresh = response?.user || response?.data?.user
+        if (!active || !fresh) return
+        updateAuthenticatedUser(fresh)
+        setUser((previous) => ({ ...previous, ...fresh }))
+        const status = String(fresh.organizationVerificationStatus || '').toLowerCase()
+        if (['approved', 'verified'].includes(status)) navigate('/recruiter/dashboard', { replace: true })
+      } catch { /* keep showing the last known status */ }
+    }
+    check()
+    const timer = setInterval(check, 30000)
+    window.addEventListener('focus', check)
+    return () => { active = false; clearInterval(timer); window.removeEventListener('focus', check) }
+  }, [navigate])
   const registrationDetails = [
     ['Hospital / Organization', user?.organizationName || user?.organization?.name || 'Organization details pending'],
     ['Recruiter Name', user?.fullName || 'Recruiter'],
@@ -15,8 +39,42 @@ export default function RecruiterVerificationPending() {
     ['Registration Date', user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Pending'],
   ]
 
-  const handleSignOut = () => {
-    clearAuthSession()
+  const rejected = String(user?.organizationVerificationStatus || '').toLowerCase() === 'rejected'
+  const [editValues, setEditValues] = useState({ hospitalName: user?.organizationName || user?.organization?.name || '', registrationNumber: user?.registrationNumber || user?.organization?.registrationNumber || '', website: user?.website || user?.organization?.website || '', address: user?.address || user?.organization?.address || '', city: user?.city || user?.organization?.city || '', state: user?.state || user?.organization?.state || '' })
+  const [editing, setEditing] = useState(false)
+  const [profileSaving, setProfileSaving] = useState(false)
+  const [note, setNote] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const resubmit = async () => {
+    setSaving(true)
+    setError('')
+    try {
+      await recruiterApi.resubmitOrganization(note.trim())
+      updateAuthenticatedUser({ organizationVerificationStatus: 'pending' })
+      navigate(0)
+    } catch (requestError) {
+      setError(requestError.message || 'Unable to resubmit. Please try again.')
+    } finally {
+      setSaving(false)
+    }
+  }
+  const saveRejectedProfile = async (event) => {
+    event.preventDefault()
+    setProfileSaving(true)
+    setError('')
+    try {
+      const response = await recruiterApi.updateHospitalProfile({ profile: editValues })
+      const updated = response?.data?.profile || response?.profile || editValues
+      setEditValues({ ...editValues, ...updated })
+      updateAuthenticatedUser({ organizationName: updated.hospitalName || updated.organizationName || editValues.hospitalName, registrationNumber: updated.registrationNumber || editValues.registrationNumber, website: updated.website || editValues.website, address: updated.address || editValues.address, city: updated.city || editValues.city, state: updated.state || editValues.state })
+      setEditing(false)
+    } catch (requestError) { setError(requestError.message || 'Unable to update organization details.') }
+    finally { setProfileSaving(false) }
+  }
+
+  const handleSignOut = async () => {
+    await logout()
     navigate('/login?role=recruiter')
   }
 
@@ -39,13 +97,27 @@ export default function RecruiterVerificationPending() {
       <main className="mx-auto flex max-w-3xl flex-col items-center gap-8 px-5 py-12 sm:px-12 lg:py-16">
         <section className="flex max-w-2xl flex-col items-center gap-3 text-center">
           <p className="text-xs font-bold uppercase tracking-wide text-teal-600">Account Status</p>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Account Verification Pending</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">{rejected ? 'Verification Not Approved' : 'Account Verification Pending'}</h1>
           <p className="text-sm leading-5 text-slate-500">
             Your recruiter account is being reviewed by the MedHire team. We verify hospital and
             organization information before enabling candidate access.
           </p>
         </section>
 
+        <OrganizationDocuments />
+
+        {rejected && <section className="w-full rounded-xl border border-red-200 bg-red-50 p-5" aria-label="Resubmit for review">
+          <h2 className="text-sm font-bold text-red-800">Why it was not approved</h2>
+          <p className="mt-1 text-sm text-red-700">{user?.rejectionReason || user?.organizationRejectionReason || 'No reason was provided. Please contact support.'}</p>
+          <form onSubmit={saveRejectedProfile} className="mt-4 grid gap-3 sm:grid-cols-2">
+            {Object.entries({ hospitalName: 'Organization name', registrationNumber: 'Registration number', website: 'Website', address: 'Address', city: 'City', state: 'State' }).map(([key, label]) => <label key={key} className="text-xs font-semibold text-slate-700">{label}<input value={editValues[key]} disabled={!editing || profileSaving} onChange={(event) => setEditValues((current) => ({ ...current, [key]: event.target.value }))} className="mt-1 h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-sm font-normal" /></label>)}
+            <div className="flex items-center gap-2 sm:col-span-2">{editing ? <><button type="submit" disabled={profileSaving} className="h-9 rounded-lg bg-slate-800 px-3 text-xs font-semibold text-white disabled:opacity-50">{profileSaving ? 'Saving…' : 'Save organization details'}</button><button type="button" disabled={profileSaving} onClick={() => setEditing(false)} className="h-9 rounded-lg border border-slate-300 px-3 text-xs font-semibold">Cancel</button></> : <button type="button" onClick={() => setEditing(true)} className="h-9 rounded-lg border border-red-300 bg-white px-3 text-xs font-semibold text-red-800">Edit organization details</button>}</div>
+          </form>
+          <label htmlFor="resubmit-note" className="mt-4 block text-sm font-semibold text-slate-900">Note for the reviewer (what you corrected)</label>
+          <textarea id="resubmit-note" value={note} onChange={(event) => setNote(event.target.value)} maxLength={500} rows={3} className="mt-1 w-full rounded-lg border border-slate-200 bg-white p-3 text-sm focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20" />
+          {error && <p role="alert" className="mt-2 text-sm text-red-700">{error}</p>}
+          <button type="button" onClick={resubmit} disabled={saving} className="mt-3 inline-flex h-10 items-center rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60">{saving ? 'Submitting…' : 'Resubmit for Review'}</button>
+        </section>}
         <section className="flex w-full items-center" aria-label="Verification progress">
           <div className="flex shrink-0 items-center gap-2">
             <span className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-blue-600 bg-blue-50">

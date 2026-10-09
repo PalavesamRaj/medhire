@@ -8,6 +8,7 @@ export const candidateNavigation = [
   ['Edit Profile', '/candidate/edit-profile', 'edit-3'],
   ['Resume Management', '/candidate/resume-management', 'file-text'],
   ['Privacy Settings', '/candidate/privacy-settings', 'settings-2'],
+  ['Account Security', '/account/security', 'settings-2'],
   ['Job Search', '/candidate/jobs', 'user-search'],
   ['My Applications', '/candidate/applications', 'app-window'],
   ['Saved Jobs', '/candidate/saved-jobs', 'bookmark'],

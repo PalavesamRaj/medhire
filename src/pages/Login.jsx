@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import React, { useEffect, useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import AuthSplitLayout from '../components/auth/AuthSplitLayout'
 import { Field, Input } from '../components/ui/FormControls'
 import { PasswordField } from '../components/ui/PasswordField'
@@ -23,6 +23,8 @@ const loginPanelPoints = [
 export default function Login() {
   const navigate = useNavigate()
   const showToast = useToast()
+  const [searchParams] = useSearchParams()
+  useEffect(() => { if (searchParams.get('expired') === '1') showToast('Your session expired. Please log in again.') }, [searchParams, showToast])
   const [form, setForm] = useState({
     email: '',
     password: '',
@@ -57,7 +59,7 @@ export default function Login() {
     setError('')
     setLoading(true)
     try {
-      const response = await authApi.login({ email: form.email.trim().toLowerCase(), password: form.password, rememberMe: form.remember })
+      const response = await authApi.login({ email: form.email.trim().toLowerCase(), password: form.password, rememberMe: form.remember, portal: 'app' })
       const role = String(response.user?.role || response.role || '').toLowerCase()
       if (!['candidate', 'recruiter'].includes(role)) {
         throw new Error('The login service returned an incomplete account session. Please try again.')

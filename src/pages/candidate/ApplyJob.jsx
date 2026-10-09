@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useCandidateDashboard } from '../../context/CandidateDashboardContext'
 import PageHeading from '../../components/candidate/dashboard/PageHeading'
@@ -54,6 +54,10 @@ export default function ApplyJob() {
       const response = await candidateDashboardApi.applyForJob(jobId, { resumeId: form.resumeId, coverLetter: form.coverNote.trim() })
       const data = response?.data || response || {}
       const application = data.application || data
+      application.id = application.id || application.applicationId
+      application.applicationId = application.applicationId || application.id
+      application.status = application.status || 'Applied'
+      application.appliedAt = application.appliedAt || new Date().toISOString()
       dispatch({ type: 'apply', application: { ...application, jobId: application.jobId || jobId }, activity: { id: application.id || crypto.randomUUID(), icon: 'send-horizontal', text: `Application submitted – ${job.title} at ${job.hospital}`, time: 'Just now' } })
       toast('Your application was submitted.')
       navigate('/candidate/applications')

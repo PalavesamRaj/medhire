@@ -1,4 +1,5 @@
 import { getAccessToken } from './authSession'
+import { authedFetch } from './http'
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
 
@@ -10,7 +11,7 @@ function getErrorMessage(payload, fallback) {
 
 async function request(path, options = {}) {
   const token = getAccessToken()
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await authedFetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -39,4 +40,7 @@ export const authApi = {
   verifyCode: (body) => request('/auth/verify-code', { method: 'POST', body }),
   resendCode: (body) => request('/auth/resend-code', { method: 'POST', body }),
   resetPassword: (body) => request('/auth/reset-password', { method: 'POST', body }),
+  changePassword: (body) => request('/auth/change-password', { method: 'POST', body }),
+  changeEmail: (body) => request('/auth/change-email', { method: 'POST', body }),
+  me: () => request('/auth/me'),
 }

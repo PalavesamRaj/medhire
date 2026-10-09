@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { AlertCircle, Check, Eye, EyeOff, Circle } from 'lucide-react'
 import Logo from '../components/layout/Logo'
 import RecoveryPanel from '../components/auth/RecoveryPanel'
@@ -11,11 +11,12 @@ import resetImage from '../assets/resetpass.png'
 
 export default function ResetPassword() {
   const navigate = useNavigate()
+  const location = useLocation()
   const showToast = useToast()
   const [searchParams] = useSearchParams()
   const role = searchParams.get('role') === 'recruiter' ? 'recruiter' : 'candidate'
   const email = searchParams.get('email') || ''
-  const resetToken = searchParams.get('resetToken') || ''
+  const resetToken = location.state?.resetToken || ''
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')

@@ -4,6 +4,7 @@ import { ArrowRight, User, Briefcase, Building2 } from 'lucide-react'
 import Badge from '../components/ui/Badge'
 import Button from '../components/ui/Button'
 import { Field, Input, Select } from '../components/ui/FormControls'
+import { submitContactForm } from '../lib/publicApi'
 
 const contactCards = [
   {
@@ -37,14 +38,23 @@ export default function Contact() {
     type: '',
     subject: '',
     message: '',
+    website: '',
   })
+  const [status, setStatus] = useState({ state: 'idle', message: '' })
 
   const update = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }))
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    // Wire up to your backend / email service here.
-    console.log('Contact form submitted:', form)
+    if (status.state === 'sending') return
+    setStatus({ state: 'sending', message: '' })
+    try {
+      await submitContactForm(form)
+      setStatus({ state: 'sent', message: 'Thank you. Your message has been received and our team will reply by email.' })
+      setForm({ name: '', email: '', phone: '', type: '', subject: '', message: '', website: '' })
+    } catch (requestError) {
+      setStatus({ state: 'error', message: requestError.status === 429 ? 'You have sent several messages recently. Please try again later.' : requestError.message || 'We could not send your message. Please try again.' })
+    }
   }
 
   return (
@@ -128,9 +138,11 @@ export default function Contact() {
                 />
               </Field>
 
+              <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" value={form.website} onChange={update('website')} className="hidden" />
+              {status.message && <p role={status.state === 'error' ? 'alert' : 'status'} className={`text-sm ${status.state === 'error' ? 'text-red-600' : 'text-teal-700'}`}>{status.message}</p>}
               <div className="flex flex-wrap items-center gap-4">
-                <Button type="submit" icon={ArrowRight}>
-                  Send Message
+                <Button type="submit" icon={ArrowRight} disabled={status.state === 'sending'}>
+                  {status.state === 'sending' ? 'Sending…' : 'Send Message'}
                 </Button>
                 <p className="text-xs text-ink-400">
                   By submitting you agree to our confidential HIPAA guidelines.

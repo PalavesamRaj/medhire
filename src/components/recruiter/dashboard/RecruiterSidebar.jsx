@@ -5,12 +5,14 @@ import { NavLink } from 'react-router-dom'
 export const recruiterNavigation = [
   ['Dashboard', '/recruiter/dashboard', LayoutDashboard],
   ['Job Postings', '/recruiter/jobs', BriefcaseBusiness],
+  ['Team', '/recruiter/team', Users],
   ['Find Candidates', '/recruiter/find-candidates', Search],
   ['Purchased Candidates', '/recruiter/purchased-candidates', Users],
   ['Shortlisted Candidates', '/recruiter/shortlisted-candidates', Bookmark],
   ['Plans & Credits', '/recruiter/plans-credits', BadgeDollarSign],
   ['Payment History', '/recruiter/payment-history', CreditCard],
   ['Hospital Profile', '/recruiter/hospital-profile', Building2],
+  ['Account Security', '/account/security', Building2],
 ]
 
 export default function RecruiterSidebar({ open, onNavigate }) {

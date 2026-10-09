@@ -1,10 +1,12 @@
 import { getAccessToken } from './authSession'
+import { authedFetch } from './http'
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
 
 export const RECRUITER_ENDPOINTS = {
   dashboard: '/recruiter/dashboard',
   jobs: '/recruiter/jobs',
+  applications: '/recruiter/applications',
   candidates: '/recruiter/candidates',
   purchasedCandidates: '/recruiter/purchased-candidates',
   shortlistedCandidates: '/recruiter/shortlisted-candidates',
@@ -21,18 +23,18 @@ function getErrorMessage(payload, fallback) {
   return fallback
 }
 
-async function request(path, { method = 'GET', body, signal, idempotencyKey } = {}) {
+export async function request(path, { method = 'GET', body, signal, idempotencyKey } = {}) {
   const token = getAccessToken()
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await authedFetch(`${API_BASE_URL}${path}`, {
     method,
     signal,
     headers: {
       Accept: 'application/json',
-      ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+      ...(body !== undefined && !(body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
     },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
   })
 
   if (response.status === 204) return null
@@ -60,10 +62,19 @@ const idPath = (base, id) => `${base}/${encodeURIComponent(id)}`
 
 export const recruiterApi = {
   getDashboard: () => request(RECRUITER_ENDPOINTS.dashboard),
+  getTeam: () => request('/recruiter/team'),
+  inviteTeamMember: (body) => request('/recruiter/team/invitations', { method: 'POST', body }),
+  removeTeamMember: (userId) => request(idPath('/recruiter/team', userId), { method: 'DELETE' }),
   getJobs: (filters = {}) => request(withQuery(RECRUITER_ENDPOINTS.jobs, filters)),
   createJob: (body) => request(RECRUITER_ENDPOINTS.jobs, { method: 'POST', body }),
+  updateJob: (jobId, body) => request(idPath(RECRUITER_ENDPOINTS.jobs, jobId), { method: 'PATCH', body }),
+  closeJob: (jobId) => request(`${idPath(RECRUITER_ENDPOINTS.jobs, jobId)}/close`, { method: 'POST', body: {} }),
+  getJobApplications: (jobId, filters = {}) => request(withQuery(`${idPath(RECRUITER_ENDPOINTS.jobs, jobId)}/applications`, filters)),
+  getApplication: (applicationId) => request(idPath(RECRUITER_ENDPOINTS.applications, applicationId)),
+  updateApplicationStatus: (applicationId, status) => request(`${idPath(RECRUITER_ENDPOINTS.applications, applicationId)}/status`, { method: 'PATCH', body: { status } }),
+  resubmitOrganization: (message = '') => request('/recruiter/organization/resubmit', { method: 'POST', body: { message } }),
   searchCandidates: (filters = {}) => request(withQuery(RECRUITER_ENDPOINTS.candidates, filters)),
-  getCandidate: (candidateId) => request(idPath(RECRUITER_ENDPOINTS.candidates, candidateId)),
+  getCandidate: (publicId) => request(idPath(RECRUITER_ENDPOINTS.candidates, publicId)),
   unlockCandidate: (candidateId, idempotencyKey) => request(`${idPath(RECRUITER_ENDPOINTS.candidates, candidateId)}/unlock`, { method: 'POST', body: {}, idempotencyKey }),
   getPurchasedCandidates: (filters = {}) => request(withQuery(RECRUITER_ENDPOINTS.purchasedCandidates, filters)),
   getShortlistedCandidates: (filters = {}) => request(withQuery(RECRUITER_ENDPOINTS.shortlistedCandidates, filters)),
@@ -75,6 +86,9 @@ export const recruiterApi = {
   getCheckoutSession: (sessionId) => request(`${idPath(RECRUITER_ENDPOINTS.checkout, sessionId)}`),
   getPaymentHistory: (filters = {}) => request(withQuery(RECRUITER_ENDPOINTS.paymentHistory, filters)),
   getInvoice: (transactionId) => request(`${idPath(RECRUITER_ENDPOINTS.paymentHistory, transactionId)}/invoice`),
+  getOrganizationDocuments: () => request('/recruiter/organization/documents'),
+  uploadOrganizationDocument: (file, type) => { const body = new FormData(); body.append('type', type); body.append('document', file); return request('/recruiter/organization/documents', { method: 'POST', body }) },
+  deleteOrganizationDocument: (documentId) => request(`/recruiter/organization/documents/${encodeURIComponent(documentId)}`, { method: 'DELETE' }),
   getHospitalProfile: () => request(RECRUITER_ENDPOINTS.hospitalProfile),
   updateHospitalProfile: (body) => request(RECRUITER_ENDPOINTS.hospitalProfile, { method: 'PATCH', body }),
 }

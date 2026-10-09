@@ -13,6 +13,7 @@ const listFrom = (response, keys) => {
   for (const key of keys) if (Array.isArray(data[key])) return data[key]
   return []
 }
+const RESUME_STATUS = { PENDING: 'Pending', APPROVED: 'Approved', REJECTED: 'Rejected' }
 export function CandidateDashboardProvider({ children }) {
   const { profile } = useCandidateProfile()
   const [state, dispatch] = useReducer(dashboardReducer, profile, createDashboardState)
@@ -37,11 +38,11 @@ export function CandidateDashboardProvider({ children }) {
         jobs: mergedJobs.map(normalizeJob).filter((job, index, all) => all.findIndex((item) => item.id === job.id) === index),
         applications: applicationRecords,
         savedJobIds: savedRecords.map((item) => typeof item === 'string' ? item : item.jobId || item.job?.id || item.id).filter(Boolean),
-        resumes: resumes ? listFrom(resumes, ['resumes', 'items']).map((item) => ({ ...item, id: item.id || item.resumeId, name: item.name || item.fileName, uploaded: item.uploaded || item.uploadedAt, status: item.status || item.approvalStatus, active: Boolean(item.active) })) : [],
+        resumes: resumes ? listFrom(resumes, ['resumes', 'items']).map((item) => ({ ...item, id: item.id || item.resumeId, name: item.name || item.fileName, uploaded: item.uploaded || item.uploadedAt, status: RESUME_STATUS[String(item.approvalStatus || item.status || '').toUpperCase()] || 'Pending', rejectionReason: item.rejectionReason ?? null, reviewedAt: item.reviewedAt ?? null, active: item.active === true })) : [],
         activities: dashboard ? dashboard.recentActivity || dashboard.activities || [] : [],
         privacy: privacy ? (() => {
           const values = privacy.privacy || privacy
-          return { maskContact: values.maskContact ?? values.contactVisible === false, searchable: values.searchable ?? values.recruiterDiscoverable ?? values.profileVisible ?? false, shareSavedJobs: values.shareSavedJobs ?? false, resumeVisible: values.resumeVisible ?? false, openToWork: values.openToWork ?? false, emailNotifications: values.emailNotifications ?? false, twoFactor: values.twoFactor ?? false }
+          return { maskContact: values.maskContact ?? (values.contactVisible == null ? undefined : values.contactVisible === false), searchable: values.searchable ?? values.recruiterDiscoverable ?? values.profileVisible, shareSavedJobs: values.shareSavedJobs, resumeVisible: values.resumeVisible, openToWork: values.openToWork, emailNotifications: values.emailNotifications, twoFactor: values.twoFactor }
         })() : {},
         metrics: { ...(dashboard || {}), ...(dashboard?.metrics || {}), ...(summary || {}), ...(summary?.metrics || {}) },
         summary: summary?.data || summary || {},

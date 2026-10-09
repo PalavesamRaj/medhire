@@ -1,4 +1,5 @@
 import { getAccessToken } from './authSession.js'
+import { authedFetch } from './http'
 
 export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
 export const PROFILE_ENDPOINTS = {
@@ -25,7 +26,7 @@ async function request(path, method = 'GET', data) {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 30000)
   try {
-    const response = await fetch(`${API_BASE_URL}${path}`, {
+    const response = await authedFetch(`${API_BASE_URL}${path}`, {
       method, signal: controller.signal,
       headers: { ...(multipart ? {} : { 'Content-Type': 'application/json' }), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       body: data === undefined ? undefined : multipart ? data : JSON.stringify(data),

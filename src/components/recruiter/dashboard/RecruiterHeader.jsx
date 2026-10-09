@@ -1,8 +1,10 @@
 import React, { useState } from 'react'
-import { Bell, LogOut, Menu, Search, X } from 'lucide-react'
+import { LogOut, Menu, Search, X } from 'lucide-react'
+import NotificationBell from '../../common/NotificationBell'
 import { Link, useNavigate } from 'react-router-dom'
 import Logo from '../../layout/Logo'
-import { clearAuthSession, getAuthenticatedUser } from '../../../lib/authSession'
+import { getAuthenticatedUser } from '../../../lib/authSession'
+import { logout } from '../../../lib/http'
 
 export default function RecruiterHeader({ menuOpen, onToggleMenu }) {
   const [query, setQuery] = useState('')
@@ -16,8 +18,8 @@ export default function RecruiterHeader({ menuOpen, onToggleMenu }) {
     navigate(`/recruiter/find-candidates?search=${encodeURIComponent(query.trim())}`)
   }
 
-  const handleSignOut = () => {
-    clearAuthSession()
+  const handleSignOut = async () => {
+    await logout()
     navigate('/login?role=recruiter')
   }
 
@@ -53,23 +55,7 @@ export default function RecruiterHeader({ menuOpen, onToggleMenu }) {
       </form>
 
       <div className="flex items-center gap-3">
-        <div className="relative">
-          <button
-            type="button"
-            aria-label="Notifications"
-            aria-expanded={notificationsOpen}
-            onClick={() => setNotificationsOpen((open) => !open)}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-900 hover:bg-slate-100"
-          >
-            <Bell className="h-5 w-5" />
-          </button>
-          {notificationsOpen && (
-            <div className="absolute right-0 top-11 z-40 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-slate-200 bg-white p-4 shadow-lg">
-              <h2 className="text-sm font-bold text-slate-900">Recent Activity</h2>
-            <p className="mt-3 text-xs text-slate-500">Notifications will appear here when activity updates are available.</p>
-            </div>
-          )}
-        </div>
+        <NotificationBell />
         <Link to="/recruiter/dashboard" className="flex items-center gap-3">
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-700">
             {initials}

@@ -23,7 +23,7 @@ export const recruiterAuthApi = {
   }),
 
   login: async ({ email, password, rememberMe }) => {
-    const response = await authApi.login({ email: email.trim().toLowerCase(), password, rememberMe })
+    const response = await authApi.login({ email: email.trim().toLowerCase(), password, rememberMe, portal: 'app' })
     return requireRecruiter(response)
   },
 

@@ -36,6 +36,7 @@ import Pricing from './pages/Pricing'
 import FindJobs from './pages/FindJobs'
 import ForRecruiters from './pages/ForRecruiters'
 import GetStarted from './pages/GetStarted'
+import FrontendPrototype from './pages/FrontendPrototype'
 import RegisterCandidate from './pages/RegisterCandidate'
 import RegisterRecruiter from './pages/RegisterRecruiter'
 import Login from './pages/Login'
@@ -45,8 +46,12 @@ import ResetPassword from './pages/ResetPassword'
 import PasswordResetSuccess from './pages/PasswordResetSuccess'
 import RecruiterVerificationPending from './pages/recruiter/RecruiterVerificationPending'
 import RequireRecruiterAccess from './components/recruiter/RequireRecruiterAccess'
+import RequireCandidateAccess from './components/candidate/RequireCandidateAccess'
 import RecruiterDashboard from './pages/recruiter/RecruiterDashboard'
 import RecruiterJobs from './pages/recruiter/RecruiterJobs'
+import RecruiterTeam from './pages/recruiter/RecruiterTeam'
+import AccountSecurity from './pages/AccountSecurity'
+import RecruiterJobApplicants from './pages/recruiter/RecruiterJobApplicants'
 import RecruiterFindCandidates from './pages/recruiter/RecruiterFindCandidates'
 import RecruiterCandidateProfile from './pages/recruiter/RecruiterCandidateProfile'
 import RecruiterPurchasedCandidates from './pages/recruiter/RecruiterPurchasedCandidates'
@@ -85,7 +90,7 @@ export default function App() {
     <>
       <ScrollToTop />
       <Routes>
-      <Route path="/candidate" element={<CandidateProfileProvider><Outlet /></CandidateProfileProvider>}>
+      <Route path="/candidate" element={<RequireCandidateAccess><CandidateProfileProvider><Outlet /></CandidateProfileProvider></RequireCandidateAccess>}>
         <Route index element={<Navigate to="profile/resume" replace />} />
         <Route path="profile/resume" element={<ResumeUpload />} />
         <Route path="profile/personal" element={<PersonalInformation />} />
@@ -112,6 +117,7 @@ export default function App() {
       </Route>
       {/* Standalone auth flow — no site nav/footer, matches the Figma "Get Started" screens */}
       <Route path="/get-started" element={<GetStarted />} />
+      <Route path="/prototype" element={<FrontendPrototype />} />
       <Route path="/register/candidate" element={<RegisterCandidate />} />
       <Route path="/register/recruiter" element={<RegisterRecruiter />} />
       <Route path="/login" element={<Login />} />
@@ -119,6 +125,7 @@ export default function App() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/verify-email" element={<EmailVerification />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/account/security" element={<AccountSecurity />} />
       <Route path="/password-reset-success" element={<PasswordResetSuccess />} />
 
       <Route path="/recruiter/verification-pending" element={<RequireRecruiterAccess allowPending><RecruiterVerificationPending /></RequireRecruiterAccess>} />
@@ -126,6 +133,8 @@ export default function App() {
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<RecruiterDashboard />} />
         <Route path="jobs" element={<RecruiterJobs />} />
+        <Route path="team" element={<RecruiterTeam />} />
+        <Route path="jobs/:jobId/applications" element={<RecruiterJobApplicants />} />
         <Route path="find-candidates" element={<RecruiterFindCandidates />} />
         <Route path="purchased-candidates" element={<RecruiterPurchasedCandidates />} />
         <Route path="shortlisted-candidates" element={<RecruiterShortlistedCandidates />} />

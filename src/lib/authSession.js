@@ -10,6 +10,23 @@ export function getAccessToken() {
   }
 }
 
+export function getRefreshToken() {
+  try {
+    return localStorage.getItem(REFRESH_TOKEN_KEY) || sessionStorage.getItem(REFRESH_TOKEN_KEY)
+  } catch {
+    return null
+  }
+}
+
+// Saves rotated tokens into whichever storage already holds the session (remember-me aware).
+export function storeTokens(tokens) {
+  try {
+    const storage = localStorage.getItem(ACCESS_TOKEN_KEY) ? localStorage : sessionStorage
+    if (tokens.accessToken) storage.setItem(ACCESS_TOKEN_KEY, tokens.accessToken)
+    if (tokens.refreshToken) storage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken)
+  } catch { /* storage unavailable */ }
+}
+
 export function getAuthenticatedUser() {
   try {
     const serialized = localStorage.getItem(USER_KEY) || sessionStorage.getItem(USER_KEY)
@@ -39,4 +56,15 @@ export function clearAuthSession() {
   }
   sessionStorage.removeItem('medhire_candidate_identity')
   sessionStorage.removeItem('medhire_candidate_profile_draft')
+}
+
+export function updateAuthenticatedUser(patch) {
+  for (const storage of [localStorage, sessionStorage]) {
+    try {
+      const serialized = storage.getItem(USER_KEY)
+      if (serialized) storage.setItem(USER_KEY, JSON.stringify({ ...JSON.parse(serialized), ...patch }))
+    } catch {
+      /* storage unavailable */
+    }
+  }
 }
