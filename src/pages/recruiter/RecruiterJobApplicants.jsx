@@ -13,7 +13,7 @@ const NEXT_STATUSES = {
   APPLIED: ['UNDER_REVIEW', 'SHORTLISTED', 'REJECTED'],
   UNDER_REVIEW: ['SHORTLISTED', 'INTERVIEW', 'REJECTED'],
   SHORTLISTED: ['INTERVIEW', 'HIRED', 'REJECTED'],
-  INTERVIEW: ['SHORTLISTED', 'HIRED', 'REJECTED'],
+  INTERVIEW: ['HIRED', 'REJECTED'],
   REJECTED: [], HIRED: [],
 }
 const statusKey = (status) => String(status || 'APPLIED').toUpperCase().replaceAll(' ', '_')
