@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import { recruiterApi } from '../../lib/recruiterApi'
 import { RecruiterApiError, RecruiterLoading } from '../../components/recruiter/RecruiterApiState'
+import { getAuthenticatedUser } from '../../lib/authSession'
 
 const statusTone = (status) => {
   const normalized = String(status || '').toLowerCase()
@@ -18,6 +19,30 @@ function initials(name = '') {
 }
 
 const removedStatuses = new Set(['removed', 'revoked', 'deactivated', 'deleted', 'disabled'])
+const invitationStorageKey = () => {
+  const user = getAuthenticatedUser() || {}
+  const organization = user.organization || {}
+  const scope = user.organizationId || user.organization_id || organization.id || organization.organizationId || user.email || user.id || 'default'
+  return `medhire_recruiter_pending_invitations:${String(scope).trim().toLowerCase()}`
+}
+
+function readSavedInvitations() {
+  try {
+    const invitations = JSON.parse(sessionStorage.getItem(invitationStorageKey()) || '[]')
+    if (!Array.isArray(invitations)) return []
+    return invitations.filter((invitation) => {
+      if (!invitation?.email || removedStatuses.has(String(invitation.status || '').toLowerCase())) return false
+      const expiresAt = invitation.expiresAt || invitation.expires_at
+      return !expiresAt || !Number.isFinite(Date.parse(expiresAt)) || Date.parse(expiresAt) > Date.now()
+    })
+  } catch {
+    return []
+  }
+}
+
+function saveInvitations(invitations) {
+  try { sessionStorage.setItem(invitationStorageKey(), JSON.stringify(invitations)) } catch { /* Team list still works if storage is disabled. */ }
+}
 
 function normalizeTeamResponse(payload) {
   const envelope = payload || {}
@@ -113,11 +138,19 @@ export default function RecruiterTeam() {
     try {
       const response = await recruiterApi.getTeam()
       const normalized = normalizeTeamResponse(response)
-      const pendingInvitations = mergeInvitations(normalized.pendingInvitations, localInvitations)
+      const activeEmails = new Set(normalized.items
+        .filter((member) => ['active', 'accepted'].includes(String(member.status || '').toLowerCase()))
+        .map((member) => String(member.email || '').trim().toLowerCase())
+        .filter(Boolean))
+      const savedInvitations = readSavedInvitations().filter((invitation) => !activeEmails.has(String(invitation.email).trim().toLowerCase()))
+      const pendingInvitations = normalized.hasPendingInvitations
+        ? normalized.pendingInvitations
+        : mergeInvitations(savedInvitations, localInvitations)
+      saveInvitations(pendingInvitations)
       setTeam({
         ...normalized,
         pendingInvitations,
-        hasPendingInvitations: normalized.hasPendingInvitations || localInvitations.length > 0,
+        hasPendingInvitations: normalized.hasPendingInvitations || pendingInvitations.length > 0,
       })
     } catch (reason) {
       setError(reason)
@@ -157,9 +190,11 @@ export default function RecruiterTeam() {
       const invitee = { fullName: form.fullName.trim(), email: form.email.trim().toLowerCase() }
       const response = await recruiterApi.inviteTeamMember({ ...(invitee.fullName ? { fullName: invitee.fullName } : {}), email: invitee.email })
       const pendingInvitation = normalizeInvitation(response, invitee)
+      const savedInvitations = mergeInvitations(readSavedInvitations(), [pendingInvitation])
+      saveInvitations(savedInvitations)
       setTeam((current) => ({
         ...current,
-        pendingInvitations: mergeInvitations(current.pendingInvitations, [pendingInvitation]),
+        pendingInvitations: mergeInvitations(current.pendingInvitations, savedInvitations),
         hasPendingInvitations: true,
       }))
       setForm({ fullName: '', email: '' })
