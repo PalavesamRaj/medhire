@@ -13,12 +13,16 @@ async function publicRequest(path, options = {}) {
   return payload
 }
 
-export function searchPublicJobs({ q = '', location = '', specialty = '' } = {}, signal) {
+export function searchPublicJobs({ q = '', location = '', specialty = '', employmentType = '', workSetting = '', sort = 'newest', page = 1, pageSize = 50 } = {}, signal) {
   const query = new URLSearchParams()
   if (q) query.set('q', q)
   if (location) query.set('location', location)
   if (specialty) query.set('specialty', specialty)
-  query.set('pageSize', '50')
+  if (employmentType) query.set('employmentType', employmentType)
+  if (workSetting) query.set('workSetting', workSetting)
+  if (sort) query.set('sort', sort)
+  query.set('page', String(page))
+  query.set('pageSize', String(pageSize))
   return publicRequest(`/jobs?${query}`, { signal })
 }
 
