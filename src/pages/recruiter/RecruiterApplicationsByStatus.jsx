@@ -150,28 +150,30 @@ export default function RecruiterApplicationsByStatus({ status }) {
     {actionError && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{actionError}</p>}
     {loadError && <RecruiterApiError error={loadError} onRetry={load} />}
     <section className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-      <div className="min-w-[1120px]">
-        <div className="grid grid-cols-[minmax(180px,1fr)_160px_112px_55px_120px_110px_90px_minmax(155px,auto)] gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3 text-xs font-bold uppercase text-slate-700"><span>Candidate</span><span>Role</span><span>Specialty</span><span>Exp</span><span>Location</span><span>Date</span><span>Status</span><span>Actions</span></div>
-        {loading ? <RecruiterLoading label={`Loading ${view.title.toLowerCase()} applications…`} /> : pageRows.map((item, index) => {
+      {loading ? <RecruiterLoading label={`Loading ${view.title.toLowerCase()} applications…`} /> : !loadError && pageRows.length === 0 ? <div className="p-5"><RecruiterEmpty>{rows.length ? 'No applications match your filters.' : `No ${view.title.toLowerCase()} applications found.`}</RecruiterEmpty></div> : !loadError && <table className="w-full min-w-[1200px] table-fixed border-collapse text-left">
+        <colgroup><col style={{ width: '18%' }} /><col style={{ width: '17%' }} /><col style={{ width: '12%' }} /><col style={{ width: '6%' }} /><col style={{ width: '14%' }} /><col style={{ width: '10%' }} /><col style={{ width: '10%' }} /><col style={{ width: '13%' }} /></colgroup>
+        <thead><tr className="border-b border-slate-200 bg-slate-50 text-xs font-bold uppercase text-slate-700"><th scope="col" className="px-4 py-3">Candidate</th><th scope="col" className="px-4 py-3">Role</th><th scope="col" className="px-4 py-3">Specialty</th><th scope="col" className="px-4 py-3">Exp</th><th scope="col" className="px-4 py-3">Location</th><th scope="col" className="px-4 py-3">Date</th><th scope="col" className="px-4 py-3">Status</th><th scope="col" className="px-4 py-3">Actions</th></tr></thead>
+        <tbody>
+        {pageRows.map((item, index) => {
           const candidate = item.candidatePreview || applicantFrom(item)
           const applicationId = item.applicationId || item.application_id || item.id
           const appliedAt = item.appliedAt || item.applied_at || item.createdAt || item.created_at
           const candidateLabel = candidate.name || (candidate.id ? `Candidate ${String(candidate.id).slice(0, 8)}` : 'Applicant')
           const nextStatuses = NEXT_STATUSES[view.status] || []
           const statusTone = view.status === 'HIRED' ? 'success' : view.status === 'REJECTED' ? 'error' : view.status === 'INTERVIEW' ? 'teal' : 'warning'
-          return <article key={applicationId || index} className="grid grid-cols-[minmax(180px,1fr)_160px_112px_55px_120px_110px_90px_minmax(155px,auto)] items-center gap-3 border-b border-slate-100 px-4 py-3.5 last:border-b-0">
-            <div className="flex items-center gap-2.5"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-bold text-blue-600">{candidate.initials || 'C'}</span><span className="text-sm font-semibold text-slate-900">{candidateLabel}</span></div>
-            <div className="min-w-0 text-sm text-slate-600"><span className="block truncate">{candidate.title || '—'}</span><Link to={`/recruiter/jobs/${encodeURIComponent(item.jobId)}/applications`} className="mt-1 block truncate text-xs font-semibold text-blue-600 hover:text-blue-700">Applied to: {item.jobTitle || 'Job posting'}</Link></div>
-            <div className="text-sm text-slate-600">{candidate.specialty || '—'}</div><div className="text-sm text-slate-600">{candidate.experience ?? '—'}</div>
-            <div className="flex items-center gap-1 text-sm text-slate-600"><MapPin className="h-3.5 w-3.5 shrink-0 text-slate-400" />{candidate.location || item.jobLocation || '—'}</div>
-            <div className="text-xs text-slate-500">{formatDate(appliedAt)}</div><div><Badge tone={statusTone} className="normal-case tracking-normal">{view.title}</Badge></div>
-            <div className="flex flex-wrap items-center gap-2">{candidate.id ? <Link to={`/recruiter/candidates/${encodeURIComponent(candidate.id)}`} state={{ candidate: { ...candidate, publicId: candidate.id } }} aria-label={`View ${candidateLabel}`} className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-blue-600"><Eye className="h-3.5 w-3.5" /></Link> : <span className="text-xs text-slate-400">No profile</span>}
+          return <tr key={applicationId || index} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/60">
+            <td className="px-4 py-4"><div className="flex min-w-0 items-center gap-2.5"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-bold text-blue-600">{candidate.initials || 'C'}</span><span className="truncate text-sm font-semibold text-slate-900">{candidateLabel}</span></div></td>
+            <td className="px-4 py-4"><div className="min-w-0 text-sm text-slate-600"><span className="block truncate">{candidate.title || '—'}</span><Link to={`/recruiter/jobs/${encodeURIComponent(item.jobId)}/applications`} className="mt-1 block truncate text-xs font-semibold text-blue-600 hover:text-blue-700">Applied to: {item.jobTitle || 'Job posting'}</Link></div></td>
+            <td className="break-words px-4 py-4 text-sm text-slate-600">{candidate.specialty || '—'}</td><td className="px-4 py-4 text-sm text-slate-600">{candidate.experience ?? '—'}</td>
+            <td className="px-4 py-4"><span className="flex items-center gap-1 text-sm text-slate-600"><MapPin className="h-3.5 w-3.5 shrink-0 text-slate-400" />{candidate.location || item.jobLocation || '—'}</span></td>
+            <td className="px-4 py-4 text-xs text-slate-500">{formatDate(appliedAt)}</td><td className="px-4 py-4"><Badge tone={statusTone} className="normal-case tracking-normal">{view.title}</Badge></td>
+            <td className="px-4 py-4"><div className="flex flex-wrap items-center gap-2">{candidate.id ? <Link to={`/recruiter/candidates/${encodeURIComponent(candidate.id)}`} state={{ candidate: { ...candidate, publicId: candidate.id } }} aria-label={`View ${candidateLabel}`} className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-blue-600"><Eye className="h-3.5 w-3.5" /></Link> : <span className="text-xs text-slate-400">No profile</span>}
               {nextStatuses.length > 0 && <select aria-label={`Move ${candidateLabel} to next step`} disabled={statusBusy === applicationId} defaultValue="" onChange={(event) => { const next = event.target.value; event.target.value = ''; if (next === 'REJECTED') { setActionError(''); setRejectTarget(item); setRejectReason('') } else if (next) changeStatus(item, next) }} className="h-8 max-w-36 rounded-md border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-700 disabled:opacity-50"><option value="" disabled>{statusBusy === applicationId ? 'Saving…' : 'Next step'}</option>{nextStatuses.map((nextStatus) => <option key={nextStatus} value={nextStatus}>{STATUS_LABELS[nextStatus] || nextStatus}</option>)}</select>}
-            </div>
-          </article>
+            </div></td>
+          </tr>
         })}
-        {!loading && !loadError && !pageRows.length && <div className="p-5"><RecruiterEmpty>{rows.length ? 'No applications match your filters.' : `No ${view.title.toLowerCase()} applications found.`}</RecruiterEmpty></div>}
-      </div>
+        </tbody>
+      </table>}
     </section>
     <div className="flex items-center justify-between gap-3 text-xs text-slate-500"><span>Showing {pageRows.length ? `${(page - 1) * pageSize + 1}-${(page - 1) * pageSize + pageRows.length}` : '0'} of {visibleRows.length}</span><div className="flex items-center gap-2"><button type="button" disabled={page <= 1 || loading} onClick={() => setPage((value) => value - 1)} className="rounded border px-3 py-2 disabled:opacity-40">Prev</button><span>Page {page} of {totalPages}</span><button type="button" disabled={page >= totalPages || loading} onClick={() => setPage((value) => value + 1)} className="rounded border px-3 py-2 disabled:opacity-40">Next</button></div></div>
     {(query || specialty || location) && <button type="button" onClick={clearFilters} className="self-start text-xs font-semibold text-blue-600">Clear filters</button>}
