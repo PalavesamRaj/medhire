@@ -1,12 +1,19 @@
 import React, { useEffect, useState } from 'react'
-import { ArrowRight, Bookmark, Check, Eye, Search, ShieldCheck, ShoppingCart, UserRound, WalletCards } from 'lucide-react'
+import { ArrowRight, Bookmark, Briefcase, CalendarDays, Check, CheckCircle2, ClipboardList, Eye, ShieldCheck, ShoppingCart, UserRound, WalletCards, XCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import Badge from '../../components/ui/Badge'
-import { RecruiterApiError, RecruiterEmpty, RecruiterLoading } from '../../components/recruiter/RecruiterApiState'
+import { RecruiterApiError, RecruiterEmpty, RecruiterLoading, getListResponse } from '../../components/recruiter/RecruiterApiState'
 import { recruiterApi } from '../../lib/recruiterApi'
 import { getAuthenticatedUser } from '../../lib/authSession'
 
-const metricIcons = [Search, Eye, UserRound, WalletCards]
+const metricItems = [
+  { label: 'Applied', key: 'APPLIED', icon: Briefcase },
+  { label: 'Under Review', key: 'UNDER_REVIEW', icon: ClipboardList },
+  { label: 'Shortlisted', key: 'SHORTLISTED', icon: Bookmark },
+  { label: 'Interview', key: 'INTERVIEW', icon: CalendarDays },
+  { label: 'Hired', key: 'HIRED', icon: CheckCircle2 },
+  { label: 'Rejected', key: 'REJECTED', icon: XCircle },
+]
 
 function unwrap(value) {
   let current = value
@@ -67,9 +74,8 @@ function normalizeDashboard(payload, supplemental = {}) {
   const creditValue = firstValue(creditSources, ['availableCredits', 'creditsAvailable', 'creditBalance', 'remainingCredits', 'balance', 'available', 'totalCredits'])
   const nestedCreditValue = typeof creditValue === 'object' ? firstValue([creditValue], ['available', 'balance', 'remaining', 'amount', 'credits']) : creditValue
   const metrics = {
-    candidateSearches: firstValue(sources, ['candidateSearches', 'candidate_searches', 'searches', 'searchCount', 'search_count', 'totalSearches', 'total_searches']),
-    profilesUnlocked: firstValue(sources, ['profilesUnlocked', 'profiles_unlocked', 'unlockedProfiles', 'unlocked_profiles', 'totalProfilesUnlocked', 'totalUnlocks', 'total_unlocks', 'unlockCount']) ?? supplemental.purchasedTotal,
-    shortlistedCandidates: firstValue(sources, ['shortlistedCandidates', 'shortlisted_candidates', 'shortlistedCount', 'shortlisted_count', 'totalShortlistedCandidates', 'totalShortlisted', 'shortlistCount']) ?? supplemental.shortlistedTotal,
+    applicationCounts: supplemental.applicationCounts,
+    purchasedCandidates: supplemental.purchasedTotal,
     availableCredits: firstValue(sources, ['availableCredits', 'available_credits', 'creditsAvailable', 'creditBalance', 'credit_balance', 'remainingCredits', 'remaining_credits']) ?? (typeof nestedCreditValue === 'number' || typeof nestedCreditValue === 'string' ? nestedCreditValue : undefined),
     usedCredits: firstValue(creditSources, ['usedCredits', 'creditsUsed', 'used', 'consumedCredits']),
     totalCredits: firstValue(creditSources, ['totalCredits', 'creditLimit', 'purchasedCredits', 'allocatedCredits']),
@@ -152,18 +158,34 @@ export default function RecruiterDashboard() {
     Promise.allSettled([
       recruiterApi.getDashboard(),
       recruiterApi.getCreditBalance(),
-      recruiterApi.getShortlistedCandidates({ page: 1, pageSize: 1 }),
       recruiterApi.getPurchasedCandidates({ page: 1, pageSize: 1 }),
-    ]).then(([dashboardResult, creditResult, shortlistResult, purchasedResult]) => {
+      recruiterApi.getJobs(),
+    ]).then(async ([dashboardResult, creditResult, purchasedResult, jobsResult]) => {
       if (!current) return
       if (dashboardResult.status === 'rejected') {
         setError(dashboardResult.reason)
         return
       }
       setError(null)
+      let applicationCounts
+      if (jobsResult.status === 'fulfilled') {
+        const jobs = getListResponse(jobsResult.value).items
+        const applicationResults = await Promise.allSettled(jobs.map(async (job) => {
+          const jobId = job.id || job.jobId || job.job_id
+          return jobId ? getListResponse(await recruiterApi.getJobApplications(jobId)).items : []
+        }))
+        if (applicationResults.every((result) => result.status === 'fulfilled')) {
+          applicationCounts = { APPLIED: 0, UNDER_REVIEW: 0, SHORTLISTED: 0, INTERVIEW: 0, HIRED: 0, REJECTED: 0 }
+          applicationResults.forEach((result) => result.value.forEach((application) => {
+            const status = String(application.status || application.applicationStatus || application.application_status || 'APPLIED').toUpperCase().replaceAll(' ', '_')
+            if (Object.prototype.hasOwnProperty.call(applicationCounts, status)) applicationCounts[status] += 1
+          }))
+        }
+      }
+      if (!current) return
       const normalized = normalizeDashboard(dashboardResult.value, {
         credits: creditResult.status === 'fulfilled' ? creditResult.value : null,
-        shortlistedTotal: shortlistResult.status === 'fulfilled' ? responseTotal(shortlistResult.value) : undefined,
+        applicationCounts,
         purchasedTotal: purchasedResult.status === 'fulfilled' ? responseTotal(purchasedResult.value) : undefined,
       })
       setDashboard(normalized)
@@ -175,11 +197,10 @@ export default function RecruiterDashboard() {
 
   const organization = dashboard?.organization || {}
   const metrics = dashboard?.metrics || {}
-  const metricItems = [
-    ['Candidate Searches', metrics.candidateSearches],
-    ['Profiles Unlocked', metrics.profilesUnlocked],
-    ['Shortlisted Candidates', metrics.shortlistedCandidates],
-    ['Available Credits', metrics.availableCredits],
+  const dashboardMetricItems = [
+    ...metricItems.map((item) => ({ ...item, value: metrics.applicationCounts?.[item.key] })),
+    { label: 'Purchased Candidates', value: metrics.purchasedCandidates, icon: UserRound },
+    { label: 'Available Credits', value: metrics.availableCredits, icon: WalletCards },
   ]
   const candidates = dashboard?.recommendedCandidates || []
   const activities = dashboard?.recentActivity || []
@@ -215,8 +236,7 @@ export default function RecruiterDashboard() {
     <RecruiterApiError error={error} onRetry={() => { setError(null); setReload(value => value + 1) }} />
     {loading ? <RecruiterLoading label="Loading your recruiter dashboard…" /> : dashboard && <>
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {metricItems.map(([label, value], index) => {
-          const Icon = metricIcons[index]
+        {dashboardMetricItems.map(({ label, value, icon: Icon }) => {
           return <article key={label} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm shadow-slate-900/5">
             <div className="flex items-center justify-between gap-3 text-xs font-semibold text-slate-500"><span>{label}</span><Icon className="h-4 w-4 shrink-0 text-blue-600" /></div>
             <div className="mt-2 text-2xl font-extrabold text-slate-900">{value ?? '—'}</div>
