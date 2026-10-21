@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, MapPin, Users } from 'lucide-react'
+import { Eye, MapPin, Search } from 'lucide-react'
+import Badge from '../../components/ui/Badge'
 import { RecruiterApiError, RecruiterEmpty, RecruiterLoading, getListResponse } from '../../components/recruiter/RecruiterApiState'
 import RecruiterRejectApplicationDialog from '../../components/recruiter/RecruiterRejectApplicationDialog'
 import { recruiterApi } from '../../lib/recruiterApi'
@@ -54,6 +55,9 @@ export default function RecruiterApplicationsByStatus({ status }) {
   const [actionError, setActionError] = useState('')
   const [statusBusy, setStatusBusy] = useState('')
   const [query, setQuery] = useState('')
+  const [specialty, setSpecialty] = useState('')
+  const [location, setLocation] = useState('')
+  const [page, setPage] = useState(1)
   const [rejectTarget, setRejectTarget] = useState(null)
   const [rejectReason, setRejectReason] = useState('')
 
@@ -121,55 +125,56 @@ export default function RecruiterApplicationsByStatus({ status }) {
 
   const visibleRows = useMemo(() => {
     const needle = query.trim().toLowerCase()
-    if (!needle) return rows
     return rows.filter((item) => {
       const candidate = item.candidatePreview || applicantFrom(item)
-      return [candidate.name, candidate.id, candidate.title, candidate.specialty, candidate.location, item.jobTitle, item.jobLocation]
-        .filter(Boolean).join(' ').toLowerCase().includes(needle)
+      const searchable = [candidate.name, candidate.id, candidate.title, candidate.specialty, candidate.location, item.jobTitle, item.jobLocation]
+        .filter(Boolean).join(' ').toLowerCase()
+      return (!needle || searchable.includes(needle)) &&
+        (!specialty || String(candidate.specialty || '').toLowerCase().includes(specialty.trim().toLowerCase())) &&
+        (!location || String(candidate.location || item.jobLocation || '').toLowerCase().includes(location.trim().toLowerCase()))
     })
-  }, [rows, query])
+  }, [rows, query, specialty, location])
+  const pageSize = 20
+  const totalPages = Math.max(1, Math.ceil(visibleRows.length / pageSize))
+  const pageRows = visibleRows.slice((page - 1) * pageSize, page * pageSize)
+  const clearFilters = () => { setQuery(''); setSpecialty(''); setLocation(''); setPage(1) }
+  const formatDate = (value) => value && !Number.isNaN(new Date(value).getTime()) ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(value)) : '—'
 
-  return <div className="flex flex-col gap-6">
-    <header>
-      <p className="text-xs font-bold tracking-wide text-teal-600">RECRUITER PORTAL</p>
-      <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">{view.title} candidates</h1>
-      <p className="mt-1 text-sm text-slate-500">{view.subtitle} Applications and job details are loaded from your recruiter account.</p>
-    </header>
-    <nav aria-label="Application status pages" className="flex flex-wrap gap-2">
-      {VIEWS.map((item) => <Link key={item.status} to={`/recruiter/applications/${item.status.toLowerCase()}`} aria-current={item.status === view.status ? 'page' : undefined} className={`rounded-full px-4 py-2 text-sm font-semibold ${item.status === view.status ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'}`}>{item.title}</Link>)}
-    </nav>
-    <label className="block"><span className="sr-only">Search candidates and jobs</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search candidate or job title…" className="h-11 w-full rounded-lg border border-slate-200 bg-white px-4 text-sm outline-none focus:border-blue-400" /></label>
-    {!loading && !loadError && <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600"><Users className="h-5 w-5 text-blue-600" /><strong className="text-slate-900">{visibleRows.length}</strong> {view.title.toLowerCase()} {visibleRows.length === 1 ? 'application' : 'applications'}</div>}
+  return <div className="flex flex-col gap-5">
+    <section><p className="text-xs font-bold uppercase tracking-wide text-teal-600">Hiring Workflow</p><h1 className="mt-1 text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">{view.title} Candidates</h1><p className="mt-1 text-sm text-slate-500">{view.subtitle}</p></section>
+    <div className="flex flex-col gap-3 sm:flex-row">
+      <label className="relative block min-w-0 flex-1"><span className="sr-only">Search {view.title.toLowerCase()} candidates</span><Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-500" /><input type="search" value={query} onChange={(event) => { setQuery(event.target.value); setPage(1) }} placeholder={`Search ${view.title.toLowerCase()} candidates or jobs…`} className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-3 text-xs outline-none focus:border-blue-500" /></label>
+      <input value={specialty} onChange={(event) => { setSpecialty(event.target.value); setPage(1) }} aria-label="Filter by specialty" placeholder="Specialty" className="h-10 rounded-md border border-slate-200 bg-white px-4 text-xs font-bold text-slate-800 outline-none focus:border-blue-500 sm:w-40" />
+      <input value={location} onChange={(event) => { setLocation(event.target.value); setPage(1) }} aria-label="Filter by location" placeholder="Location" className="h-10 rounded-md border border-slate-200 bg-white px-4 text-xs font-bold text-slate-800 outline-none focus:border-blue-500 sm:w-40" />
+    </div>
     {actionError && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{actionError}</p>}
     {loadError && <RecruiterApiError error={loadError} onRetry={load} />}
-    {loading ? <RecruiterLoading label={`Loading ${view.title.toLowerCase()} applications…`} /> : !loadError && visibleRows.length === 0 ? <RecruiterEmpty><span>{rows.length ? 'No applications match your search.' : `No ${view.title.toLowerCase()} applications found.`}</span></RecruiterEmpty> : !loadError && <div className="grid gap-3">
-      {visibleRows.map((item) => {
-        const candidate = item.candidatePreview || applicantFrom(item)
-        const applicationId = item.applicationId || item.application_id || item.id
-        const appliedAt = item.appliedAt || item.applied_at || item.createdAt || item.created_at
-        return <article key={applicationId} className="flex flex-col justify-between gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:flex-row lg:items-center">
-          <div className="flex min-w-0 items-start gap-4">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-50 font-bold text-blue-700">{candidate.initials}</span>
-            <div className="min-w-0">
-              <h2 className="font-bold text-slate-900">{candidate.name || (candidate.id ? `Candidate ${candidate.id.slice(0, 8)}` : 'Applicant')}</h2>
-              <p className="mt-1 text-sm text-slate-600">{[candidate.title, candidate.specialty, candidate.experience ? `${candidate.experience} years experience` : ''].filter(Boolean).join(' · ') || 'Candidate profile summary is not available.'}</p>
-              {candidate.location && <p className="mt-1 flex items-center gap-1 text-sm text-slate-500"><MapPin className="h-4 w-4" />{candidate.location}</p>}
-              <p className="mt-2 text-sm font-semibold text-slate-800">{item.jobTitle}</p>
-              <p className="mt-1 text-xs text-slate-500">Applied {appliedAt ? new Date(appliedAt).toLocaleDateString() : '—'}</p>
+    <section className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+      <div className="min-w-[1120px]">
+        <div className="grid grid-cols-[minmax(165px,1fr)_130px_100px_50px_110px_145px_95px_100px_minmax(140px,auto)] gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3 text-xs font-bold uppercase text-slate-700"><span>Candidate</span><span>Professional Title</span><span>Specialty</span><span>Exp</span><span>Location</span><span>Job Posting</span><span>Applied Date</span><span>Status</span><span>Actions</span></div>
+        {loading ? <RecruiterLoading label={`Loading ${view.title.toLowerCase()} applications…`} /> : pageRows.map((item, index) => {
+          const candidate = item.candidatePreview || applicantFrom(item)
+          const applicationId = item.applicationId || item.application_id || item.id
+          const appliedAt = item.appliedAt || item.applied_at || item.createdAt || item.created_at
+          const candidateLabel = candidate.name || (candidate.id ? `Candidate ${String(candidate.id).slice(0, 8)}` : 'Applicant')
+          const nextStatuses = NEXT_STATUSES[view.status] || []
+          const statusTone = view.status === 'HIRED' ? 'success' : view.status === 'REJECTED' ? 'error' : view.status === 'INTERVIEW' ? 'teal' : 'warning'
+          return <article key={applicationId || index} className="grid grid-cols-[minmax(165px,1fr)_130px_100px_50px_110px_145px_95px_100px_minmax(140px,auto)] items-center gap-3 border-b border-slate-100 px-4 py-3.5 last:border-b-0">
+            <div className="flex items-center gap-2.5"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-bold text-blue-600">{candidate.initials || 'C'}</span><span className="text-sm font-semibold text-slate-900">{candidateLabel}</span></div>
+            <div className="text-sm text-slate-600">{candidate.title || '—'}</div><div className="text-sm text-slate-600">{candidate.specialty || '—'}</div><div className="text-sm text-slate-600">{candidate.experience ?? '—'}</div>
+            <div className="flex items-center gap-1 text-sm text-slate-600"><MapPin className="h-3.5 w-3.5 shrink-0 text-slate-400" />{candidate.location || item.jobLocation || '—'}</div>
+            <Link to={`/recruiter/jobs/${encodeURIComponent(item.jobId)}/applications`} className="text-sm font-medium text-blue-700 hover:underline">{item.jobTitle || 'Job posting'}</Link>
+            <div className="text-xs text-slate-500">{formatDate(appliedAt)}</div><div><Badge tone={statusTone} className="normal-case tracking-normal">{view.title}</Badge></div>
+            <div className="flex flex-wrap items-center gap-2">{candidate.id ? <Link to={`/recruiter/candidates/${encodeURIComponent(candidate.id)}`} state={{ candidate: { ...candidate, publicId: candidate.id } }} aria-label={`View ${candidateLabel}`} className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-blue-600"><Eye className="h-3.5 w-3.5" /></Link> : <span className="text-xs text-slate-400">No profile</span>}
+              {nextStatuses.length > 0 && <select aria-label={`Move ${candidateLabel} to next step`} disabled={statusBusy === applicationId} defaultValue="" onChange={(event) => { const next = event.target.value; event.target.value = ''; if (next === 'REJECTED') { setActionError(''); setRejectTarget(item); setRejectReason('') } else if (next) changeStatus(item, next) }} className="h-8 max-w-36 rounded-md border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-700 disabled:opacity-50"><option value="" disabled>{statusBusy === applicationId ? 'Saving…' : 'Next step'}</option>{nextStatuses.map((nextStatus) => <option key={nextStatus} value={nextStatus}>{STATUS_LABELS[nextStatus] || nextStatus}</option>)}</select>}
             </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-3 lg:justify-end">
-            <span className="rounded-full bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700">{view.title}</span>
-            {candidate.id && <Link to={`/recruiter/candidates/${encodeURIComponent(candidate.id)}`} state={{ candidate: { ...candidate, publicId: candidate.id } }} className="text-sm font-semibold text-blue-600 hover:text-blue-700">View profile</Link>}
-            {NEXT_STATUSES[view.status]?.length > 0 && <select aria-label={`Move application to another status for ${candidate.name || candidate.id || 'candidate'}`} disabled={statusBusy === applicationId} defaultValue="" onChange={(event) => { const next = event.target.value; event.target.value = ''; if (next === 'REJECTED') { setActionError(''); setRejectTarget(item); setRejectReason('') } else if (next) changeStatus(item, next) }} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50">
-              <option value="" disabled>{statusBusy === applicationId ? 'Saving…' : 'Move to next step'}</option>
-              {NEXT_STATUSES[view.status].map((nextStatus) => <option key={nextStatus} value={nextStatus}>{STATUS_LABELS[nextStatus]}</option>)}
-            </select>}
-            <Link to={`/recruiter/jobs/${encodeURIComponent(item.jobId)}/applications`} className="inline-flex items-center gap-1 text-sm font-semibold text-slate-700 hover:text-blue-600">Manage job applicants <ArrowRight className="h-4 w-4" /></Link>
-          </div>
-        </article>
-      })}
-    </div>}
+          </article>
+        })}
+        {!loading && !loadError && !pageRows.length && <div className="p-5"><RecruiterEmpty>{rows.length ? 'No applications match your filters.' : `No ${view.title.toLowerCase()} applications found.`}</RecruiterEmpty></div>}
+      </div>
+    </section>
+    <div className="flex items-center justify-between gap-3 text-xs text-slate-500"><span>Showing {pageRows.length ? `${(page - 1) * pageSize + 1}-${(page - 1) * pageSize + pageRows.length}` : '0'} of {visibleRows.length}</span><div className="flex items-center gap-2"><button type="button" disabled={page <= 1 || loading} onClick={() => setPage((value) => value - 1)} className="rounded border px-3 py-2 disabled:opacity-40">Prev</button><span>Page {page} of {totalPages}</span><button type="button" disabled={page >= totalPages || loading} onClick={() => setPage((value) => value + 1)} className="rounded border px-3 py-2 disabled:opacity-40">Next</button></div></div>
+    {(query || specialty || location) && <button type="button" onClick={clearFilters} className="self-start text-xs font-semibold text-blue-600">Clear filters</button>}
     <RecruiterRejectApplicationDialog open={Boolean(rejectTarget)} candidateName={rejectTarget ? (rejectTarget.candidatePreview || applicantFrom(rejectTarget)).name : ''} jobTitle={rejectTarget?.jobTitle || ''} reason={rejectReason} onReasonChange={setRejectReason} onCancel={() => { if (!statusBusy) { setRejectTarget(null); setRejectReason('') } }} onConfirm={confirmRejection} busy={Boolean(rejectTarget && statusBusy === (rejectTarget.applicationId || rejectTarget.application_id || rejectTarget.id))} error={actionError} />
   </div>
 }
