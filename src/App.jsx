@@ -54,7 +54,6 @@ import RecruiterJobs from './pages/recruiter/RecruiterJobs'
 import RecruiterTeam from './pages/recruiter/RecruiterTeam'
 import AccountSecurity from './pages/AccountSecurity'
 import RecruiterJobApplicants from './pages/recruiter/RecruiterJobApplicants'
-import RecruiterFindCandidates from './pages/recruiter/RecruiterFindCandidates'
 import RecruiterCandidateProfile from './pages/recruiter/RecruiterCandidateProfile'
 import RecruiterPurchasedCandidates from './pages/recruiter/RecruiterPurchasedCandidates'
 import RecruiterShortlistedCandidates from './pages/recruiter/RecruiterShortlistedCandidates'
@@ -148,7 +147,7 @@ export default function App() {
         <Route path="jobs" element={<RecruiterJobs />} />
         <Route path="team" element={<RecruiterTeam />} />
         <Route path="jobs/:jobId/applications" element={<RecruiterJobApplicants />} />
-        <Route path="find-candidates" element={<RecruiterFindCandidates />} />
+        <Route path="find-candidates" element={<Navigate to="/recruiter/dashboard" replace />} />
         <Route path="purchased-candidates" element={<RecruiterPurchasedCandidates />} />
         <Route path="shortlisted-candidates" element={<RecruiterShortlistedCandidates />} />
         <Route path="applications/under-review" element={<RecruiterApplicationsByStatus status="UNDER_REVIEW" />} />

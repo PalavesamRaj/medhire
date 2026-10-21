@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { ArrowRight, Bookmark, Briefcase, CalendarDays, Check, CheckCircle2, ClipboardList, Eye, ShieldCheck, ShoppingCart, UserRound, WalletCards, XCircle } from 'lucide-react'
+import { ArrowRight, Bookmark, Briefcase, CalendarDays, CheckCircle2, ClipboardList, ShieldCheck, ShoppingCart, UserRound, WalletCards, XCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import Badge from '../../components/ui/Badge'
 import { RecruiterApiError, RecruiterEmpty, RecruiterLoading, getListResponse } from '../../components/recruiter/RecruiterApiState'
@@ -148,8 +148,6 @@ export default function RecruiterDashboard() {
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(true)
   const [reload, setReload] = useState(0)
-  const [shortlisting, setShortlisting] = useState('')
-  const [shortlistedIds, setShortlistedIds] = useState(new Set())
   const user = getAuthenticatedUser()
 
   useEffect(() => {
@@ -168,29 +166,43 @@ export default function RecruiterDashboard() {
       }
       setError(null)
       let applicationCounts
+      let appliedCandidates = []
       if (jobsResult.status === 'fulfilled') {
         const jobs = getListResponse(jobsResult.value).items
         const applicationResults = await Promise.allSettled(jobs.map(async (job) => {
           const jobId = job.id || job.jobId || job.job_id
-          return jobId ? getListResponse(await recruiterApi.getJobApplications(jobId)).items : []
+          return jobId ? getListResponse(await recruiterApi.getJobApplications(jobId)).items.map(application => ({ ...application, jobId, jobTitle: job.title || job.jobTitle || job.job_title })) : []
         }))
         if (applicationResults.every((result) => result.status === 'fulfilled')) {
           applicationCounts = { APPLIED: 0, UNDER_REVIEW: 0, SHORTLISTED: 0, INTERVIEW: 0, HIRED: 0, REJECTED: 0 }
-          applicationResults.forEach((result) => result.value.forEach((application) => {
+          const applications = applicationResults.flatMap(result => result.value)
+          applications.forEach((application) => {
             const status = String(application.status || application.applicationStatus || application.application_status || 'APPLIED').toUpperCase().replaceAll(' ', '_')
             if (Object.prototype.hasOwnProperty.call(applicationCounts, status)) applicationCounts[status] += 1
-          }))
+          })
+          appliedCandidates = applications
+            .filter(application => String(application.status || application.applicationStatus || application.application_status || 'APPLIED').toUpperCase().replaceAll(' ', '_') === 'APPLIED')
+            .map(application => {
+              const candidate = application.candidate || application.applicant || application.candidateProfile || application.candidate_profile || {}
+              return {
+                ...candidate,
+                ...application,
+                candidateId: application.candidateId ?? application.candidate_id ?? candidate.candidateId ?? candidate.candidate_id ?? candidate.publicId ?? candidate.public_id ?? candidate.id,
+                fullName: application.fullName ?? application.full_name ?? application.name ?? candidate.fullName ?? candidate.full_name ?? candidate.name,
+                resume: application.resume ?? candidate.resume,
+                resumes: application.resumes ?? candidate.resumes,
+              }
+            })
         }
       }
       if (!current) return
-      const normalized = normalizeDashboard(dashboardResult.value, {
+      const dashboardPayload = { ...unwrap(dashboardResult.value), recommendedCandidates: appliedCandidates }
+      const normalized = normalizeDashboard(dashboardPayload, {
         credits: creditResult.status === 'fulfilled' ? creditResult.value : null,
         applicationCounts,
         purchasedTotal: purchasedResult.status === 'fulfilled' ? responseTotal(purchasedResult.value) : undefined,
       })
       setDashboard(normalized)
-      const existing = normalized.recommendedCandidates.filter(candidate => candidate.shortlisted ?? candidate.isShortlisted ?? candidate.is_shortlisted).map(candidate => candidate.publicId).filter(Boolean)
-      setShortlistedIds(new Set(existing))
     }).finally(() => { if (current) setLoading(false) })
     return () => { current = false }
   }, [reload])
@@ -203,25 +215,18 @@ export default function RecruiterDashboard() {
     { label: 'Available Credits', value: metrics.availableCredits, icon: WalletCards },
   ]
   const candidates = dashboard?.recommendedCandidates || []
+  const groupedCandidates = Object.values(candidates.reduce((groups, candidate) => {
+    const key = candidate.publicId || candidate.id
+    if (!groups[key]) groups[key] = { ...candidate, applications: [] }
+    groups[key].applications.push(candidate)
+    return groups
+  }, {}))
   const activities = dashboard?.recentActivity || []
   const totalCredits = Number(metrics.totalCredits)
   const usedCredits = Number(metrics.usedCredits)
   const creditProgress = Number.isFinite(totalCredits) && totalCredits > 0 && Number.isFinite(usedCredits)
     ? Math.max(0, Math.min(100, (usedCredits / totalCredits) * 100))
     : 0
-
-  async function handleShortlist(candidateId) {
-    if (!candidateId || shortlisting) return
-    setShortlisting(candidateId)
-    try {
-      await recruiterApi.addShortlistedCandidate(candidateId)
-      setShortlistedIds(previous => new Set([...previous, candidateId]))
-    } catch (requestError) {
-      setError(requestError)
-    } finally {
-      setShortlisting('')
-    }
-  }
 
   return <div className="flex flex-col gap-5">
     <section className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
@@ -256,11 +261,9 @@ export default function RecruiterDashboard() {
           </section>
 
           <section>
-            <div className="mb-3 flex items-center justify-between gap-3"><h2 className="text-lg font-bold text-slate-900">Recommended Candidates</h2><Link to="/recruiter/find-candidates" className="text-xs font-semibold text-blue-600 hover:text-blue-700">Find candidates <ArrowRight className="ml-1 inline h-3 w-3" /></Link></div>
-            {candidates.length ? <div className="flex flex-col gap-3">
-              {candidates.map(candidate => {
-                const isShortlisted = shortlistedIds.has(candidate.publicId)
-                return <article key={candidate.publicId || candidate.id} className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm shadow-slate-900/5 sm:flex-row sm:items-center">
+            <div className="mb-3"><h2 className="text-lg font-bold text-slate-900">Recommended Candidates</h2></div>
+            {groupedCandidates.length ? <div className="flex flex-col gap-3">
+              {groupedCandidates.map(candidate => <article key={candidate.publicId || candidate.id} className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm shadow-slate-900/5 sm:flex-row sm:items-center">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-bold text-blue-600">{candidate.initials || 'MH'}</div>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
@@ -270,15 +273,9 @@ export default function RecruiterDashboard() {
                     </div>
                     <p className="mt-1 text-[11px] text-slate-500">{[candidate.experience, candidate.location, candidate.openToWork ? 'Avail: Open to work' : ''].filter(Boolean).join('  ·  ') || 'Candidate details unavailable'}</p>
                     {candidate.tags.length > 0 && <div className="mt-2 flex flex-wrap gap-1">{candidate.tags.map((tag, index) => <span key={`${tag}-${index}`} className="rounded-sm bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600">{tag}</span>)}</div>}
+                    <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">{candidate.applications.map((application, index) => <Link key={`${application.jobId}-${index}`} to={`/recruiter/jobs/${encodeURIComponent(application.jobId)}/applications`} className="text-[11px] font-semibold text-blue-600 hover:text-blue-700">{application.jobTitle || 'Applied job posting'} <ArrowRight className="ml-0.5 inline h-3 w-3" /></Link>)}</div>
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    {candidate.publicId ? <Link to={`/recruiter/candidates/${encodeURIComponent(candidate.publicId)}`} className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md bg-blue-600 px-3 text-[11px] font-bold text-white hover:bg-blue-700"><Eye className="h-3 w-3" />View Profile</Link> : <span className="text-[11px] text-slate-400">Profile unavailable</span>}
-                    <button type="button" onClick={() => handleShortlist(candidate.publicId)} disabled={!candidate.publicId || isShortlisted || shortlisting === candidate.publicId} aria-label={isShortlisted ? 'Candidate shortlisted' : 'Shortlist candidate'} title={isShortlisted ? 'Shortlisted' : 'Shortlist candidate'} className={`flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 transition hover:border-blue-200 hover:bg-blue-50 disabled:cursor-default ${isShortlisted ? 'text-blue-600' : 'text-slate-500'}`}>
-                      {isShortlisted ? <Check className="h-3.5 w-3.5" /> : <Bookmark className="h-3.5 w-3.5" />}
-                    </button>
-                  </div>
-                </article>
-              })}
+                </article>)}
             </div> : <RecruiterEmpty>No recommended candidates are available.</RecruiterEmpty>}
           </section>
         </div>

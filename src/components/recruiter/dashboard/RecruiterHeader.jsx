@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { LogOut, Menu, Search, X } from 'lucide-react'
+import React from 'react'
+import { LogOut, Menu, X } from 'lucide-react'
 import NotificationBell from '../../common/NotificationBell'
 import { Link, useNavigate } from 'react-router-dom'
 import Logo from '../../layout/Logo'
@@ -7,16 +7,9 @@ import { getAuthenticatedUser } from '../../../lib/authSession'
 import { logout } from '../../../lib/http'
 
 export default function RecruiterHeader({ menuOpen, onToggleMenu }) {
-  const [query, setQuery] = useState('')
-  const [notificationsOpen, setNotificationsOpen] = useState(false)
   const navigate = useNavigate()
   const user = getAuthenticatedUser()
   const initials = (user?.fullName || user?.email || 'R').split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'R'
-
-  const handleSearch = (event) => {
-    event.preventDefault()
-    navigate(`/recruiter/find-candidates?search=${encodeURIComponent(query.trim())}`)
-  }
 
   const handleSignOut = async () => {
     await logout()
@@ -39,20 +32,6 @@ export default function RecruiterHeader({ menuOpen, onToggleMenu }) {
           <Logo />
         </Link>
       </div>
-
-      <form onSubmit={handleSearch} role="search" className="order-3 w-full sm:order-none sm:w-96">
-        <label className="relative block">
-          <span className="sr-only">Search candidates</span>
-          <Search className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
-          <input
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search candidates, specialties..."
-            className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 pl-10 pr-3 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-          />
-        </label>
-      </form>
 
       <div className="flex items-center gap-3">
         <NotificationBell />

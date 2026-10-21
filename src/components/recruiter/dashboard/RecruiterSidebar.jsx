@@ -1,5 +1,5 @@
 import React from 'react'
-import { BadgeDollarSign, Bookmark, Building2, CreditCard, LayoutDashboard, Search, Users, X, BriefcaseBusiness, ShieldCheck, CalendarDays, UserCheck, UserX, ClipboardList } from 'lucide-react'
+import { BadgeDollarSign, Bookmark, Building2, CreditCard, LayoutDashboard, Users, X, BriefcaseBusiness, ShieldCheck, CalendarDays, UserCheck, UserX, ClipboardList } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 
 export const recruiterNavigation = [
@@ -13,7 +13,6 @@ export const recruiterNavigation = [
     ['Rejected', '/recruiter/applications/rejected', UserX],
   ] },
   { section: 'Recruiting tools', items: [
-    ['Find Candidates', '/recruiter/find-candidates', Search],
     ['Purchased Candidates', '/recruiter/purchased-candidates', Users],
   ] },
   { section: 'Organization', items: [
@@ -29,7 +28,7 @@ export default function RecruiterSidebar({ open, onNavigate }) {
   return (
     <aside
       id="recruiter-navigation"
-      className={`${open ? 'block' : 'hidden'} border-b border-slate-200 bg-white px-4 py-5 lg:sticky lg:top-16 lg:block lg:h-[calc(100dvh-4rem)] lg:w-60 lg:shrink-0 lg:border-b-0 lg:border-r`}
+      className={`${open ? 'block' : 'hidden'} border-b border-slate-200 bg-white px-4 py-5 lg:sticky lg:top-16 lg:block lg:h-[calc(100dvh-4rem)] lg:w-60 lg:shrink-0 lg:overflow-y-auto lg:border-b-0 lg:border-r`}
     >
       <div className="mb-3 flex items-center justify-between lg:hidden">
         <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Recruiter Portal</span>
