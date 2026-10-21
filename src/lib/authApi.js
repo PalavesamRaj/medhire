@@ -51,5 +51,7 @@ export const authApi = {
   changePassword: (body) => request('/auth/change-password', { method: 'PATCH', body }),
   changeEmail: (body) => request('/auth/change-email', { method: 'POST', body }),
   confirmEmailChange: (token) => request('/auth/change-email/confirm', { method: 'POST', body: { token } }),
+  getInvitationPreview: (token) => request(`/auth/invitations/${encodeURIComponent(token)}`),
+  acceptInvitation: (body) => request('/auth/accept-invite', { method: 'POST', body }),
   me: () => request('/auth/me'),
 }

@@ -6,6 +6,7 @@ import { Field, Input } from '../components/ui/FormControls'
 import { PasswordField } from '../components/ui/PasswordField'
 import Button from '../components/ui/Button'
 import { recruiterAuthApi } from '../lib/recruiterAuthApi'
+import { storePendingRecruiterProfile } from '../lib/authSession'
 import { validateRegistration } from '../lib/authValidation'
 import { useToast } from '../components/ui/ToastProvider'
 import panelImage from '../assets/recruiter-candidate-grid.png'
@@ -56,6 +57,7 @@ export default function RegisterRecruiter() {
     setLoading(true)
     try {
       await recruiterAuthApi.register(form)
+      storePendingRecruiterProfile(form)
       showToast('Recruiter account created. Check your email to verify it.')
       navigate(`/verify-email?role=recruiter&email=${encodeURIComponent(form.email.trim().toLowerCase())}&source=registration`)
     } catch (requestError) {

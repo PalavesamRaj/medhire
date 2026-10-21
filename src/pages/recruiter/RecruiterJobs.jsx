@@ -76,9 +76,21 @@ export default function RecruiterJobs() {
   const [success, setSuccess] = useState('')
   const [editingJobId, setEditingJobId] = useState('')
   const [editingJob, setEditingJob] = useState(null)
+  const [formOpen, setFormOpen] = useState(false)
   const [activeFilter, setActiveFilter] = useState('ALL')
   const [query, setQuery] = useState('')
   const formRef = useRef(null)
+  const focusAfterOpen = useRef(false)
+
+  useEffect(() => {
+    if (!formOpen || !focusAfterOpen.current) return undefined
+    const frame = requestAnimationFrame(() => {
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      document.getElementById('job-posting-title')?.focus({ preventScroll: true })
+      focusAfterOpen.current = false
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [formOpen])
 
   const loadJobs = useCallback(async () => {
     setLoading(true)
@@ -146,6 +158,7 @@ export default function RecruiterJobs() {
         : 'Your job posting was submitted. It becomes visible to candidates once an administrator approves it.')
       setEditingJobId('')
       setEditingJob(null)
+      setFormOpen(false)
       await loadJobs()
     } catch (requestError) {
       setError(requestError.message || 'Unable to publish this job. Please try again.')
@@ -155,6 +168,10 @@ export default function RecruiterJobs() {
   }
 
   const editJob = (job) => {
+    if (!['PENDING_APPROVAL', 'REJECTED'].includes(statusKey(job.status))) {
+      setError('Only jobs that are pending review or rejected can be edited. Active jobs can be closed.')
+      return
+    }
     setEditingJobId(jobId(job))
     setEditingJob(job)
     const description = job.description || ''
@@ -163,8 +180,6 @@ export default function RecruiterJobs() {
     setForm({ title: job.title || job.jobTitle || '', specialty: job.specialty || job.department || '', location: job.location || job.city || '', employmentType: displayEmploymentType(job.employmentType || job.type), salaryRange: job.salaryRange || job.salary || '', description: requirementMatch ? description.slice(0, requirementMatch.index) : description, requirements })
     setError('')
     setSuccess('')
-    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    document.getElementById('job-posting-title')?.focus({ preventScroll: true })
   }
 
   const cancelEdit = () => {
@@ -172,6 +187,7 @@ export default function RecruiterJobs() {
     setEditingJob(null)
     setForm(emptyForm)
     setError('')
+    setFormOpen(false)
   }
 
   const closeJob = async (job) => {
@@ -187,6 +203,11 @@ export default function RecruiterJobs() {
   }
 
   const focusForm = () => {
+    if (!formOpen) {
+      focusAfterOpen.current = true
+      setFormOpen(true)
+      return
+    }
     formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     document.getElementById('job-posting-title')?.focus({ preventScroll: true })
   }
@@ -199,8 +220,8 @@ export default function RecruiterJobs() {
           <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">Job postings</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Create openings, track review status, and manage applicants from one place.</p>
         </div>
-        <button type="button" onClick={focusForm} className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2">
-          <Plus className="h-4 w-4" /> Create job posting
+        <button type="button" onClick={() => formOpen && !editingJobId ? setFormOpen(false) : focusForm()} className={`inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${formOpen && !editingJobId ? 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50' : 'bg-blue-600 text-white shadow-sm hover:bg-blue-700'}`}>
+          {formOpen && !editingJobId ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />} {editingJobId ? 'Continue editing' : formOpen ? 'Hide form' : 'Create job posting'}
         </button>
       </header>
 
@@ -211,7 +232,9 @@ export default function RecruiterJobs() {
         <MetricCard label="Applicants" value={counts.applicants} icon={Users} tone="slate" />
       </section>
 
-      <section ref={formRef} className="scroll-mt-24 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm shadow-slate-900/5">
+      {success && <p role="status" className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />{success}</p>}
+
+      {formOpen && <section ref={formRef} className="scroll-mt-24 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm shadow-slate-900/5">
         <div className="flex flex-col gap-4 border-b border-slate-100 bg-gradient-to-r from-white to-blue-50/60 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div className="flex items-center gap-3">
             <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100 text-blue-700">{editingJobId ? <Pencil className="h-5 w-5" /> : <Plus className="h-5 w-5" />}</span>
@@ -233,7 +256,6 @@ export default function RecruiterJobs() {
           <div className="sm:col-span-2"><Field label="Job description" hint="Describe the role, responsibilities, and what makes this opportunity a good fit."><textarea name="description" value={form.description} onChange={update} rows={5} required placeholder="Share the key responsibilities and details of the position." className="w-full resize-y rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20" /></Field></div>
           <div className="sm:col-span-2"><Field label="Requirements" hint="Add one requirement per line."><textarea name="requirements" value={form.requirements} onChange={update} rows={3} placeholder={'Active nursing license\nTwo years of relevant experience'} className="w-full resize-y rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20" /></Field></div>
           {error && <p role="alert" className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800 sm:col-span-2"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />{error}</p>}
-          {success && <p role="status" className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 sm:col-span-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />{success}</p>}
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4 sm:col-span-2">
             <p className="text-xs text-slate-500">New and significantly updated jobs are reviewed before candidates can find them.</p>
             <div className="flex gap-2">
@@ -242,7 +264,7 @@ export default function RecruiterJobs() {
             </div>
           </div>
         </form>
-      </section>
+      </section>}
 
       <section className="flex flex-col gap-4">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">

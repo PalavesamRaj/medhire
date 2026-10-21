@@ -1,40 +1,29 @@
-# MedHire — React + Tailwind Build
+# MedHire Frontend Prototype
 
-Recreated from the Figma design system ("MedHire — SaaS Component Library & Guidelines")
-using React 18, Tailwind CSS, react-router-dom, and lucide-react icons.
+This workspace contains the Candidate and Recruiter frontend in this project and the Admin frontend in the sibling `D:\08-10-2026\adminportal2026` project. Use the [frontend prototype guide](artifacts/MEDHIRE_FRONTEND_PROTOTYPE_GUIDE.md) for launch steps, routes, and the complete screen map.
 
-## Run it
+## Candidate and Recruiter app
 
-```bash
+```powershell
+cd D:\08-10-2026\medhire-main
 npm install
-npm run dev       # http://localhost:5173
+npm run dev
 ```
 
-```bash
-npm run build      # production build -> dist/
-npm run preview    # preview the production build
+Open `http://localhost:5173`. For the clickable visual design preview of Candidate, Recruiter, and Admin, open `http://localhost:5173/prototype`; it uses sample data and does not need the API. Candidate and recruiter registration, sign-in, profile onboarding, dashboards, and workspace screens live in the same app. Sign-in and protected workspace flows require the API configured through `VITE_API_BASE_URL` or the development `/api` proxy.
+
+## Admin app
+
+In a second terminal:
+
+```powershell
+cd D:\08-10-2026\adminportal2026
+npm install
+npm run dev -- --port 5174
 ```
 
-## What's included
+Open `http://localhost:5174/login`. Production builds require `VITE_API_BASE_URL` for the Admin API. The Admin app is a separate Vite project.
 
-- **Design tokens** (`tailwind.config.js`) — the exact color ramps from the Figma
-  Color System panel (`brand` = Slate Blue, `accent` = Healthcare Teal, `ink` = Slate Grays).
-- **Reusable UI kit** (`src/components/ui/`) — Button, Badge, Card, form controls
-  (Input/Select/Toggle/Dropzone), StatCard, CandidateTable, Avatar, AlertBox,
-  EmptyState, Accordion, Tabs — matching the "Component Library" page.
-- **Layout** (`src/components/layout/`) — Navbar, Footer, Logo.
-- **Pages** (`src/pages/`):
-  - `Home.jsx` — full landing page (hero, stats, specialties, candidate/recruiter
-    sections, process steps, marketplace preview, featured jobs, pricing,
-    testimonials, FAQ, CTA band).
-  - `About.jsx` — mission, problem/solution, values, security section.
-  - `HowItWorks.jsx` — dual-timeline onboarding flow, verification standards,
-    credential-unlock example.
-  - `Placeholder.jsx` — stub for nav links (Find Jobs / For Recruiters / Pricing)
-    not detailed in the source frames, so the nav doesn't 404.
+## Build
 
-Routing is handled with `react-router-dom`; swap `<BrowserRouter>` for your own
-router or a static export step if deploying elsewhere.
-
-Images are placeholder stock photography from Unsplash — swap in real assets
-before shipping.
+Run `npm run build` in each project. A successful frontend build checks compilation only; it does not verify API availability or complete end-to-end workflows.

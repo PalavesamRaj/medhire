@@ -40,6 +40,7 @@ import FrontendPrototype from './pages/FrontendPrototype'
 import RegisterCandidate from './pages/RegisterCandidate'
 import RegisterRecruiter from './pages/RegisterRecruiter'
 import Login from './pages/Login'
+import AcceptRecruiterInvitation from './pages/AcceptRecruiterInvitation'
 import ForgotPassword from './pages/ForgotPassword'
 import EmailVerification from './pages/EmailVerification'
 import ResetPassword from './pages/ResetPassword'
@@ -131,6 +132,7 @@ export default function App() {
       <Route path="/register/candidate" element={<RegisterCandidate />} />
       <Route path="/register/recruiter" element={<RegisterRecruiter />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/accept-invitation" element={<AcceptRecruiterInvitation />} />
       <Route path="/recruiter/login" element={<Navigate to="/login?role=recruiter" replace />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/verify-email" element={<EmailVerification />} />

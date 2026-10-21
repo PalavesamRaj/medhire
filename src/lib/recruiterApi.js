@@ -42,6 +42,8 @@ export async function request(path, { method = 'GET', body, signal, idempotencyK
   if (!response.ok) {
     const error = new Error(getErrorMessage(payload, 'Unable to complete the recruiter request. Please try again.'))
     error.fieldErrors = payload?.error?.fields || payload?.error?.details?.fields || payload?.fields || payload?.details?.fields || {}
+    error.details = payload?.error?.details || payload?.details
+    error.requestId = payload?.error?.requestId || payload?.requestId
     error.status = response.status
     error.code = payload?.error?.code || payload?.code
     throw error

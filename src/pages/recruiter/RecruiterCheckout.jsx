@@ -62,6 +62,10 @@ export default function RecruiterCheckout() {
         successUrl: `${appBase}/recruiter/payment-success?session_id={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${appBase}/recruiter/payment-failed?session_id={CHECKOUT_SESSION_ID}`,
       }))
+      const sessionStatus = response?.checkoutSession?.status ?? response?.status
+      if (response?.providerConfigured === false || sessionStatus === 'PROVIDER_NOT_CONFIGURED') {
+        throw new Error('Online checkout is not configured yet. No payment was created. Please contact support or try again later.')
+      }
       const rawCheckoutUrl = findCheckoutUrl(response)
       if (typeof rawCheckoutUrl !== 'string' || !rawCheckoutUrl.trim()) throw new Error('The checkout response did not include the documented checkoutUrl. Please contact support or try again later.')
       let checkoutUrl

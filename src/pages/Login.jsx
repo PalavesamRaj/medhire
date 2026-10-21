@@ -5,7 +5,7 @@ import { Field, Input } from '../components/ui/FormControls'
 import { PasswordField } from '../components/ui/PasswordField'
 import Button from '../components/ui/Button'
 import { authApi } from '../lib/authApi'
-import { storeAuthSession } from '../lib/authSession'
+import { mergePendingRecruiterProfile, storeAuthSession } from '../lib/authSession'
 import { candidateProfileApi } from '../lib/candidateProfileApi'
 import { isRecruiterOrganizationApproved } from '../lib/recruiterAuthApi'
 import { recruiterApi } from '../lib/recruiterApi'
@@ -63,7 +63,7 @@ export default function Login() {
     setError('')
     setLoading(true)
     try {
-      const response = await authApi.login({ email: form.email.trim().toLowerCase(), password: form.password, rememberMe: form.remember })
+      let response = await authApi.login({ email: form.email.trim().toLowerCase(), password: form.password, rememberMe: form.remember })
       const role = String(response.user?.role || response.role || '').toLowerCase()
       if (!['candidate', 'recruiter'].includes(role)) {
         throw new Error('The login service returned an incomplete account session. Please try again.')
@@ -77,6 +77,9 @@ export default function Login() {
       }
       if (!response.accessToken) {
         throw new Error('The login service returned an incomplete account session. Please try again.')
+      }
+      if (role === 'recruiter' && response.user) {
+        response = { ...response, user: mergePendingRecruiterProfile(response.user, form.email) }
       }
       storeAuthSession(response, form.remember)
       showToast('Welcome back. You are now logged in.')

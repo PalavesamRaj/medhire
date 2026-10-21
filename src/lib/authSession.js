@@ -1,6 +1,7 @@
 const ACCESS_TOKEN_KEY = 'medhire_access_token'
 const REFRESH_TOKEN_KEY = 'medhire_refresh_token'
 const USER_KEY = 'medhire_auth_user'
+const PENDING_RECRUITER_PROFILE_KEY = 'medhire_pending_recruiter_profile'
 
 export function getAccessToken() {
   try {
@@ -36,6 +37,48 @@ export function getAuthenticatedUser() {
   }
 }
 
+export function storePendingRecruiterProfile(profile) {
+  try {
+    sessionStorage.setItem(PENDING_RECRUITER_PROFILE_KEY, JSON.stringify({
+      email: String(profile.email || '').trim().toLowerCase(),
+      fullName: profile.name?.trim() || '',
+      phone: profile.phone ? `+91${String(profile.phone).replace(/\D/g, '')}` : '',
+      designation: profile.designation?.trim() || '',
+      organizationName: profile.orgName?.trim() || '',
+      organizationWebsite: profile.orgWebsite?.trim() || '',
+      city: profile.city?.trim() || '',
+      state: profile.state?.trim() || '',
+    }))
+  } catch { /* Registration still succeeds when browser storage is unavailable. */ }
+}
+
+export function mergePendingRecruiterProfile(user, loginEmail) {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(PENDING_RECRUITER_PROFILE_KEY) || 'null')
+    sessionStorage.removeItem(PENDING_RECRUITER_PROFILE_KEY)
+    if (!saved || saved.email !== String(loginEmail || user?.email || '').trim().toLowerCase()) return user
+    const organization = user?.organization || {}
+    return {
+      ...saved,
+      ...user,
+      fullName: user?.fullName || user?.full_name || user?.name || saved.fullName,
+      phone: user?.phone || user?.phoneNumber || user?.phone_number || saved.phone,
+      designation: user?.designation || saved.designation,
+      organizationName: user?.organizationName || user?.organization_name || organization.name || saved.organizationName,
+      organizationWebsite: user?.organizationWebsite || user?.organization_website || organization.website || saved.organizationWebsite,
+      city: user?.city || organization.city || saved.city,
+      state: user?.state || organization.state || saved.state,
+      organization: {
+        ...organization,
+        name: organization.name || user?.organizationName || saved.organizationName,
+        website: organization.website || user?.organizationWebsite || saved.organizationWebsite,
+        city: organization.city || user?.city || saved.city,
+        state: organization.state || user?.state || saved.state,
+      },
+    }
+  } catch { return user }
+}
+
 export function storeAuthSession(response, rememberMe) {
   const storage = rememberMe ? localStorage : sessionStorage
   for (const currentStorage of [localStorage, sessionStorage]) {
@@ -56,6 +99,7 @@ export function clearAuthSession() {
   }
   sessionStorage.removeItem('medhire_candidate_identity')
   sessionStorage.removeItem('medhire_candidate_profile_draft')
+  sessionStorage.removeItem(PENDING_RECRUITER_PROFILE_KEY)
 }
 
 export function updateAuthenticatedUser(patch) {

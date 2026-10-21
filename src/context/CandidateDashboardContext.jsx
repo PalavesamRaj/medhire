@@ -67,7 +67,11 @@ export function CandidateDashboardProvider({ children }) {
         savedJobIds: savedRecords.map((item) => typeof item === 'string' ? item : item.jobId || item.job?.id || item.id).filter(Boolean),
         resumes: resumes ? listFrom(resumes, ['resumes', 'items']).map((item) => ({ ...item, id: item.id || item.resumeId, name: item.name || item.fileName, uploaded: item.uploaded || item.uploadedAt, status: RESUME_STATUS[String(item.approvalStatus || item.status || '').toUpperCase()] || 'Pending', rejectionReason: item.rejectionReason ?? null, reviewedAt: item.reviewedAt ?? null, active: item.active === true })) : [],
         activities: dashboard ? dashboard.recentActivity || dashboard.activities || [] : [],
-        privacy: privacy ? normalizePrivacy(privacy) : {},
+        privacy: privacy ? (() => {
+          const values = privacy.privacy || privacy
+          const contactVisible = values.contactVisible ?? values.contact_visible
+          return { maskContact: values.maskContact ?? (contactVisible == null ? undefined : contactVisible === false), searchable: values.searchable ?? values.recruiterDiscoverable ?? values.recruiter_discoverable ?? values.profileVisible ?? values.profile_visible, shareSavedJobs: values.shareSavedJobs, resumeVisible: values.resumeVisible ?? values.resume_visible, openToWork: values.openToWork ?? values.open_to_work, emailNotifications: values.emailNotifications, twoFactor: values.twoFactor }
+        })() : {},
         metrics: { ...(dashboard || {}), ...(dashboard?.metrics || {}), ...(summary || {}), ...(summary?.metrics || {}) },
         summary: summary?.data || summary || {},
         error: failures.length ? 'Some account data could not be loaded. Check the backend connection and refresh.' : '',

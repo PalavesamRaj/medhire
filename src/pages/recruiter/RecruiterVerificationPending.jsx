@@ -99,8 +99,8 @@ export default function RecruiterVerificationPending() {
           <p className="text-xs font-bold uppercase tracking-wide text-teal-600">Account Status</p>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">{rejected ? 'Verification Not Approved' : 'Account Verification Pending'}</h1>
           <p className="text-sm leading-5 text-slate-500">
-            Your recruiter account is being reviewed by the MedHire team. We verify hospital and
-            organization information before enabling candidate access.
+            Your account is awaiting organization verification. Submit your hospital or organization
+            documents below so the MedHire team can review them before enabling candidate access.
           </p>
         </section>
 
