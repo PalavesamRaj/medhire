@@ -58,6 +58,7 @@ import RecruiterFindCandidates from './pages/recruiter/RecruiterFindCandidates'
 import RecruiterCandidateProfile from './pages/recruiter/RecruiterCandidateProfile'
 import RecruiterPurchasedCandidates from './pages/recruiter/RecruiterPurchasedCandidates'
 import RecruiterShortlistedCandidates from './pages/recruiter/RecruiterShortlistedCandidates'
+import RecruiterApplicationsByStatus from './pages/recruiter/RecruiterApplicationsByStatus'
 import RecruiterPlansCredits from './pages/recruiter/RecruiterPlansCredits'
 import RecruiterCheckout from './pages/recruiter/RecruiterCheckout'
 import RecruiterPaymentSuccess from './pages/recruiter/RecruiterPaymentSuccess'
@@ -150,6 +151,9 @@ export default function App() {
         <Route path="find-candidates" element={<RecruiterFindCandidates />} />
         <Route path="purchased-candidates" element={<RecruiterPurchasedCandidates />} />
         <Route path="shortlisted-candidates" element={<RecruiterShortlistedCandidates />} />
+        <Route path="applications/interview" element={<RecruiterApplicationsByStatus status="INTERVIEW" />} />
+        <Route path="applications/hired" element={<RecruiterApplicationsByStatus status="HIRED" />} />
+        <Route path="applications/rejected" element={<RecruiterApplicationsByStatus status="REJECTED" />} />
         <Route path="plans-credits" element={<RecruiterPlansCredits />} />
         <Route path="plans-credits/checkout" element={<RecruiterCheckout />} />
         <Route path="payment-success" element={<RecruiterPaymentSuccess />} />
