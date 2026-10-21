@@ -328,6 +328,15 @@ export default function RecruiterCandidateProfile() {
   const creditBalanceKnown = availableCredits !== null
   const unlockCostKnown = unlockCost !== null
   const canUnlock = creditBalanceKnown && unlockCostKnown && availableCredits >= unlockCost
+  const resumeStatus = firstValue(
+    data?.resumeStatus, data?.resume_status,
+    candidate.resumeStatus, candidate.resume_status,
+    profile.resumeStatus, profile.resume_status,
+    profile.resumes?.find((resume) => resume.active === true)?.approvalStatus,
+    profile.resumes?.find((resume) => resume.active === true)?.status,
+    profile.resumes?.[0]?.approvalStatus, profile.resumes?.[0]?.status,
+  )
+  const resumeApproved = String(resumeStatus || '').trim().toLowerCase() === 'approved'
   const contact = profile.contact || {}
   const hasContactDetails = Boolean(contact.fullName || contact.email || contact.phone || contact.address)
   const experience = Array.isArray(profile.workExperience) ? profile.workExperience : []
@@ -335,6 +344,10 @@ export default function RecruiterCandidateProfile() {
   const skills = Array.isArray(profile.skills) ? profile.skills : (candidate.tags || [])
 
   const unlock = async () => {
+    if (!resumeApproved) {
+      setActionError('The resume must be approved before you can unlock this profile.')
+      return
+    }
     if (!canUnlock) {
       setActionError(creditBalanceKnown && unlockCostKnown ? 'There are not enough credits to unlock this profile.' : 'The credit balance or unlock cost is unavailable. Check Plans & Credits before trying again.')
       return
@@ -400,7 +413,7 @@ export default function RecruiterCandidateProfile() {
 
   return <div className="flex flex-col gap-5">
     {notice && <p role="status" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{notice}</p>}
-    <section className="flex flex-col gap-5 rounded-xl border border-slate-200 bg-white p-5 sm:p-6"><div className="flex flex-col justify-between gap-5 xl:flex-row xl:items-center"><div className="flex min-w-0 items-start gap-4"><div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-slate-800 text-2xl font-bold text-white">{candidate.initials || 'MH'}</div><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h1 className="text-xl font-bold text-slate-900">{unlocked ? (contact.fullName || candidate.name || candidate.title) : (candidate.title || 'Candidate Profile')}</h1>{candidate.credentialsVerified && <Badge tone="teal" className="normal-case tracking-normal">Verified Credentials</Badge>}{candidate.availability && <Badge tone="success" className="normal-case tracking-normal">Available - {candidate.availability}</Badge>}{unlocked && <Badge tone="success" className="normal-case tracking-normal">Unlocked</Badge>}{contacted && <Badge tone="teal" className="normal-case tracking-normal">Contacted</Badge>}</div><p className="mt-1 text-sm text-slate-600">{[candidate.title, candidate.specialty, candidate.location, candidate.experience].filter(Boolean).join(' | ')}</p></div></div><div className="flex flex-wrap items-center gap-3 xl:justify-end"><button type="button" onClick={() => navigate('/recruiter/find-candidates')} className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-xs font-bold text-blue-600 hover:bg-blue-50"><ArrowLeft className="h-3.5 w-3.5" />Back to Search</button>{unlocked && contact.email && <a href={`mailto:${contact.email}`} onClick={() => { markCandidateContacted(candidate.candidateId || candidate.candidate_id || candidate.id || candidateId); setContacted(true) }} className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-xs font-bold text-white"><Send className="h-3.5 w-3.5" />{contacted ? 'Email Candidate Again' : 'Contact Candidate'}</a>}{!unlocked && <button type="button" onClick={() => setUnlockModalOpen(true)} className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-xs font-bold text-white"><UnlockKeyhole className="h-4 w-4" />Unlock Full Profile</button>}</div></div></section>
+    <section className="flex flex-col gap-5 rounded-xl border border-slate-200 bg-white p-5 sm:p-6"><div className="flex flex-col justify-between gap-5 xl:flex-row xl:items-center"><div className="flex min-w-0 items-start gap-4"><div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-slate-800 text-2xl font-bold text-white">{candidate.initials || 'MH'}</div><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h1 className="text-xl font-bold text-slate-900">{unlocked ? (contact.fullName || candidate.name || candidate.title) : (candidate.title || 'Candidate Profile')}</h1>{candidate.credentialsVerified && <Badge tone="teal" className="normal-case tracking-normal">Verified Credentials</Badge>}{candidate.availability && <Badge tone="success" className="normal-case tracking-normal">Available - {candidate.availability}</Badge>}{unlocked && <Badge tone="success" className="normal-case tracking-normal">Unlocked</Badge>}{contacted && <Badge tone="teal" className="normal-case tracking-normal">Contacted</Badge>}</div><p className="mt-1 text-sm text-slate-600">{[candidate.title, candidate.specialty, candidate.location, candidate.experience].filter(Boolean).join(' | ')}</p></div></div><div className="flex flex-wrap items-center gap-3 xl:justify-end"><button type="button" onClick={() => navigate('/recruiter/find-candidates')} className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-xs font-bold text-blue-600 hover:bg-blue-50"><ArrowLeft className="h-3.5 w-3.5" />Back to Search</button>{unlocked && contact.email && <a href={`mailto:${contact.email}`} onClick={() => { markCandidateContacted(candidate.candidateId || candidate.candidate_id || candidate.id || candidateId); setContacted(true) }} className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-xs font-bold text-white"><Send className="h-3.5 w-3.5" />{contacted ? 'Email Candidate Again' : 'Contact Candidate'}</a>}{!unlocked && <button type="button" disabled={!resumeApproved} onClick={() => setUnlockModalOpen(true)} title={!resumeApproved ? 'Resume must be approved to unlock this profile' : undefined} className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"><UnlockKeyhole className="h-4 w-4" />Unlock Full Profile</button>}</div></div></section>
     <ProfileSection title="Job Application Status">
       {applicationsLoading ? <p className="text-sm text-slate-500">Loading this candidate’s applications…</p>
         : applicationsError ? <p className="text-sm text-amber-800">Application statuses could not be loaded. Please reload the profile to try again.</p>
