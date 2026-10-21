@@ -1,5 +1,5 @@
 import React from 'react'
-import { BadgeDollarSign, Bookmark, Building2, CreditCard, LayoutDashboard, Search, Users, X, BriefcaseBusiness, ShieldCheck, CalendarDays, UserCheck, UserX } from 'lucide-react'
+import { BadgeDollarSign, Bookmark, Building2, CreditCard, LayoutDashboard, Search, Users, X, BriefcaseBusiness, ShieldCheck, CalendarDays, UserCheck, UserX, ClipboardList } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 
 export const recruiterNavigation = [
@@ -9,6 +9,7 @@ export const recruiterNavigation = [
   ['Find Candidates', '/recruiter/find-candidates', Search],
   ['Purchased Candidates', '/recruiter/purchased-candidates', Users],
   ['Shortlisted Candidates', '/recruiter/shortlisted-candidates', Bookmark],
+  ['Under Review', '/recruiter/applications/under-review', ClipboardList],
   ['Interviews', '/recruiter/applications/interview', CalendarDays],
   ['Hired', '/recruiter/applications/hired', UserCheck],
   ['Rejected', '/recruiter/applications/rejected', UserX],

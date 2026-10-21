@@ -5,6 +5,7 @@ import { RecruiterApiError, RecruiterEmpty, RecruiterLoading, getListResponse } 
 import { recruiterApi } from '../../lib/recruiterApi'
 
 const VIEWS = [
+  { status: 'UNDER_REVIEW', title: 'Under Review', subtitle: 'Applications being reviewed by your recruiting team.' },
   { status: 'INTERVIEW', title: 'Interview', subtitle: 'Candidates who are currently in the interview stage.' },
   { status: 'HIRED', title: 'Hired', subtitle: 'Candidates hired for one of your job postings.' },
   { status: 'REJECTED', title: 'Rejected', subtitle: 'Applications rejected for one of your job postings.' },

@@ -151,6 +151,7 @@ export default function App() {
         <Route path="find-candidates" element={<RecruiterFindCandidates />} />
         <Route path="purchased-candidates" element={<RecruiterPurchasedCandidates />} />
         <Route path="shortlisted-candidates" element={<RecruiterShortlistedCandidates />} />
+        <Route path="applications/under-review" element={<RecruiterApplicationsByStatus status="UNDER_REVIEW" />} />
         <Route path="applications/interview" element={<RecruiterApplicationsByStatus status="INTERVIEW" />} />
         <Route path="applications/hired" element={<RecruiterApplicationsByStatus status="HIRED" />} />
         <Route path="applications/rejected" element={<RecruiterApplicationsByStatus status="REJECTED" />} />
