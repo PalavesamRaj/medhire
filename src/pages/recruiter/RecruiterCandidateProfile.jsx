@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react'
-import { AlertCircle, ArrowLeft, Bookmark, CheckCircle2, Download, Eye, FileText, LockKeyhole, Mail, MapPin, Phone, Send, UnlockKeyhole } from 'lucide-react'
+import { AlertCircle, ArrowLeft, CheckCircle2, Download, Eye, FileText, LockKeyhole, Mail, MapPin, Phone, Send, UnlockKeyhole } from 'lucide-react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import Badge from '../../components/ui/Badge'
-import { RecruiterApiError, RecruiterEmpty, RecruiterLoading, getErrorText } from '../../components/recruiter/RecruiterApiState'
+import { RecruiterApiError, RecruiterEmpty, RecruiterLoading, getErrorText, getListResponse } from '../../components/recruiter/RecruiterApiState'
 import { recruiterApi } from '../../lib/recruiterApi'
 import { isCandidateContacted, markCandidateContacted } from '../../lib/recruiterCandidateContact'
 
@@ -180,6 +180,27 @@ function getUnlockCost(...responses) {
   return null
 }
 
+function applicationCandidateId(application) {
+  const candidate = application?.candidate ?? application?.applicant ?? application?.candidateProfile ?? application?.candidate_profile ?? {}
+  return firstValue(application?.candidatePublicId, application?.candidate_public_id, application?.candidateId, application?.candidate_id,
+    candidate.publicId, candidate.public_id, candidate.candidateId, candidate.candidate_id, candidate.id)
+}
+
+function applicationStatusLabel(status) {
+  const normalized = String(status || '').toUpperCase().replaceAll(' ', '_')
+  return ({ APPLIED: 'Applied', UNDER_REVIEW: 'Under Review', SHORTLISTED: 'Shortlisted', INTERVIEW: 'Interview', HIRED: 'Hired', REJECTED: 'Rejected' })[normalized] || (status ? String(status).replaceAll('_', ' ') : 'Status unavailable')
+}
+
+function applicationStatusTone(status) {
+  const normalized = String(status || '').toUpperCase().replaceAll(' ', '_')
+  if (normalized === 'HIRED') return 'bg-green-50 text-green-700'
+  if (normalized === 'REJECTED') return 'bg-red-50 text-red-700'
+  if (normalized === 'INTERVIEW') return 'bg-violet-50 text-violet-700'
+  if (normalized === 'SHORTLISTED') return 'bg-blue-50 text-blue-700'
+  if (normalized === 'UNDER_REVIEW') return 'bg-amber-50 text-amber-800'
+  return 'bg-slate-100 text-slate-700'
+}
+
 export default function RecruiterCandidateProfile() {
   const { candidateId } = useParams()
   const location = useLocation()
@@ -194,8 +215,50 @@ export default function RecruiterCandidateProfile() {
   const [reload, setReload] = useState(0)
   const [notice, setNotice] = useState('')
   const [contacted, setContacted] = useState(() => isCandidateContacted(candidateId))
+  const [jobApplications, setJobApplications] = useState([])
+  const [applicationsLoading, setApplicationsLoading] = useState(true)
+  const [applicationsError, setApplicationsError] = useState(false)
 
   useEffect(() => { setContacted(isCandidateContacted(candidateId)) }, [candidateId])
+
+  useEffect(() => {
+    let active = true
+    setApplicationsLoading(true)
+    setApplicationsError(false)
+    setJobApplications([])
+    const targetId = String(candidateId || '').trim().toLowerCase()
+    const loadApplicationStatuses = async () => {
+      try {
+        const jobs = getListResponse(await recruiterApi.getJobs()).items
+        const results = await Promise.allSettled(jobs.map(async (job) => {
+          const jobId = job.id || job.jobId || job.job_id
+          if (!jobId) return []
+          const applications = getListResponse(await recruiterApi.getJobApplications(jobId)).items
+          return applications
+            .filter((application) => String(applicationCandidateId(application) || '').trim().toLowerCase() === targetId)
+            .map((application) => ({
+              id: application.applicationId || application.application_id || application.id,
+              jobId,
+              jobTitle: job.title || job.jobTitle || job.job_title || 'Job posting',
+              status: application.status || application.applicationStatus || application.application_status,
+              appliedAt: application.appliedAt || application.applied_at || application.createdAt || application.created_at,
+            }))
+        }))
+        const failed = results.some((result) => result.status === 'rejected')
+        const matches = results.flatMap((result) => result.status === 'fulfilled' ? result.value : [])
+        if (active) {
+          setJobApplications(matches)
+          setApplicationsError(failed && matches.length === 0)
+        }
+      } catch {
+        if (active) setApplicationsError(true)
+      } finally {
+        if (active) setApplicationsLoading(false)
+      }
+    }
+    loadApplicationStatuses()
+    return () => { active = false }
+  }, [candidateId, reload])
 
   useEffect(() => {
     let active = true
@@ -271,12 +334,6 @@ export default function RecruiterCandidateProfile() {
   const career = Array.isArray(profile.career) ? profile.career : []
   const skills = Array.isArray(profile.skills) ? profile.skills : (candidate.tags || [])
 
-  const addToShortlist = async () => {
-    setBusy(true); setActionError('')
-    try { await recruiterApi.addShortlistedCandidate(candidate.publicId || candidate.id); setData((current) => ({ ...current, candidate: { ...current.candidate, shortlisted: true } })) }
-    catch (requestError) { setActionError(getErrorText(requestError)) }
-    finally { setBusy(false) }
-  }
   const unlock = async () => {
     if (!canUnlock) {
       setActionError(creditBalanceKnown && unlockCostKnown ? 'There are not enough credits to unlock this profile.' : 'The credit balance or unlock cost is unavailable. Check Plans & Credits before trying again.')
@@ -343,7 +400,13 @@ export default function RecruiterCandidateProfile() {
 
   return <div className="flex flex-col gap-5">
     {notice && <p role="status" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{notice}</p>}
-    <section className="flex flex-col gap-5 rounded-xl border border-slate-200 bg-white p-5 sm:p-6"><div className="flex flex-col justify-between gap-5 xl:flex-row xl:items-center"><div className="flex min-w-0 items-start gap-4"><div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-slate-800 text-2xl font-bold text-white">{candidate.initials || 'MH'}</div><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h1 className="text-xl font-bold text-slate-900">{unlocked ? (contact.fullName || candidate.name || candidate.title) : (candidate.title || 'Candidate Profile')}</h1>{candidate.credentialsVerified && <Badge tone="teal" className="normal-case tracking-normal">Verified Credentials</Badge>}{candidate.availability && <Badge tone="success" className="normal-case tracking-normal">Available - {candidate.availability}</Badge>}{unlocked && <Badge tone="success" className="normal-case tracking-normal">Unlocked</Badge>}{contacted && <Badge tone="teal" className="normal-case tracking-normal">Contacted</Badge>}</div><p className="mt-1 text-sm text-slate-600">{[candidate.title, candidate.specialty, candidate.location, candidate.experience].filter(Boolean).join(' | ')}</p></div></div><div className="flex flex-wrap items-center gap-3 xl:justify-end"><button type="button" onClick={() => navigate('/recruiter/find-candidates')} className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-xs font-bold text-blue-600 hover:bg-blue-50"><ArrowLeft className="h-3.5 w-3.5" />Back to Search</button><button type="button" disabled={busy || candidate.shortlisted} onClick={addToShortlist} className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-800 disabled:opacity-50"><Bookmark className="h-3.5 w-3.5" fill={candidate.shortlisted ? 'currentColor' : 'none'} />{candidate.shortlisted ? 'Shortlisted' : 'Add to Shortlist'}</button>{unlocked && contact.email && <a href={`mailto:${contact.email}`} onClick={() => { markCandidateContacted(candidate.candidateId || candidate.candidate_id || candidate.id || candidateId); setContacted(true) }} className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-xs font-bold text-white"><Send className="h-3.5 w-3.5" />{contacted ? 'Email Candidate Again' : 'Contact Candidate'}</a>}{!unlocked && <button type="button" onClick={() => setUnlockModalOpen(true)} className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-xs font-bold text-white"><UnlockKeyhole className="h-4 w-4" />Unlock Full Profile</button>}</div></div></section>
+    <section className="flex flex-col gap-5 rounded-xl border border-slate-200 bg-white p-5 sm:p-6"><div className="flex flex-col justify-between gap-5 xl:flex-row xl:items-center"><div className="flex min-w-0 items-start gap-4"><div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-slate-800 text-2xl font-bold text-white">{candidate.initials || 'MH'}</div><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h1 className="text-xl font-bold text-slate-900">{unlocked ? (contact.fullName || candidate.name || candidate.title) : (candidate.title || 'Candidate Profile')}</h1>{candidate.credentialsVerified && <Badge tone="teal" className="normal-case tracking-normal">Verified Credentials</Badge>}{candidate.availability && <Badge tone="success" className="normal-case tracking-normal">Available - {candidate.availability}</Badge>}{unlocked && <Badge tone="success" className="normal-case tracking-normal">Unlocked</Badge>}{contacted && <Badge tone="teal" className="normal-case tracking-normal">Contacted</Badge>}</div><p className="mt-1 text-sm text-slate-600">{[candidate.title, candidate.specialty, candidate.location, candidate.experience].filter(Boolean).join(' | ')}</p></div></div><div className="flex flex-wrap items-center gap-3 xl:justify-end"><button type="button" onClick={() => navigate('/recruiter/find-candidates')} className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-xs font-bold text-blue-600 hover:bg-blue-50"><ArrowLeft className="h-3.5 w-3.5" />Back to Search</button>{unlocked && contact.email && <a href={`mailto:${contact.email}`} onClick={() => { markCandidateContacted(candidate.candidateId || candidate.candidate_id || candidate.id || candidateId); setContacted(true) }} className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-xs font-bold text-white"><Send className="h-3.5 w-3.5" />{contacted ? 'Email Candidate Again' : 'Contact Candidate'}</a>}{!unlocked && <button type="button" onClick={() => setUnlockModalOpen(true)} className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-xs font-bold text-white"><UnlockKeyhole className="h-4 w-4" />Unlock Full Profile</button>}</div></div></section>
+    <ProfileSection title="Job Application Status">
+      {applicationsLoading ? <p className="text-sm text-slate-500">Loading this candidate’s applications…</p>
+        : applicationsError ? <p className="text-sm text-amber-800">Application statuses could not be loaded. Please reload the profile to try again.</p>
+          : jobApplications.length ? <div className="flex flex-col divide-y divide-slate-100">{jobApplications.map((application, index) => <div key={application.id || `${application.jobId}-${index}`} className="flex flex-col justify-between gap-3 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center"><div><Link to={`/recruiter/jobs/${encodeURIComponent(application.jobId)}/applications`} className="text-sm font-semibold text-blue-700 hover:underline">{application.jobTitle}</Link>{application.appliedAt && <p className="mt-1 text-xs text-slate-500">Applied {new Date(application.appliedAt).toLocaleDateString()}</p>}</div><span className={`w-fit rounded-full px-3 py-1.5 text-xs font-bold ${applicationStatusTone(application.status)}`}>{applicationStatusLabel(application.status)}</span></div>)}</div>
+            : <p className="text-sm text-slate-500">No job application status is available for this candidate.</p>}
+    </ProfileSection>
     {actionError && <p role="alert" className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"><AlertCircle className="h-4 w-4" />{actionError}</p>}
     {unlocked && !hasContactDetails && <p role="status" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">The profile is unlocked, but this detail response did not include contact information. Reload the profile or check the candidate detail API response.</p>}
     <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,7fr)_minmax(320px,3fr)]"><div className="flex min-w-0 flex-col gap-5"><ProfileSection title="Professional Summary">{profile.summary ? <p className="text-sm leading-5 text-slate-700">{profile.summary}</p> : <p className="text-sm text-slate-500">No professional summary is available.</p>}</ProfileSection>
