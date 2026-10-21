@@ -29,8 +29,47 @@ export default function useProfileStep(section, step, validate) {
     updateSection(section, (previous) => ({ ...previous, [name]: value }))
     setErrors((previous) => ({ ...previous, [name]: undefined }))
   }
+  const ensureOptionalStepsResolved = async () => {
+    let response
+    try { response = await candidateProfileApi.getCandidateOnboarding() } catch { return }
+    const onboarding = response?.data?.onboarding || response?.data || response?.onboarding || response || {}
+    const steps = onboarding.steps ?? onboarding.onboarding?.steps
+    if (!steps) return
+    const records = Array.isArray(steps)
+      ? steps.map((item) => [item?.stepKey ?? item?.key ?? item?.step ?? item?.name, item])
+      : Object.entries(steps)
+    const keyAliases = {
+      personalinformation: 'personal', personal: 'personal',
+      professionalinformation: 'professional', professional: 'professional',
+      education: 'education', workexperience: 'experience', experience: 'experience',
+      skills: 'skills', skill: 'skills', certifications: 'certifications', certification: 'certifications',
+      careerpreferences: 'preferences', preferences: 'preferences', preference: 'preferences',
+    }
+    const statusByKey = new Map(records.map(([rawKey, item]) => {
+      const key = keyAliases[String(rawKey ?? '').toLowerCase().replace(/[^a-z]/g, '')]
+      const status = typeof item === 'string' ? item : item?.status ?? item?.stepStatus ?? item?.step_status
+      return [key, String(status || '').toUpperCase()]
+    }).filter(([key]) => key))
+    const requiredKeys = ['personal', 'professional', 'education', 'experience', 'skills', 'certifications', 'preferences']
+    for (const key of requiredKeys) {
+      const status = statusByKey.get(key)
+      if (status !== 'COMPLETED' && status !== 'SKIPPED') await candidateProfileApi.updateCandidateOnboardingStep(key, 'SKIPPED')
+    }
+  }
+  const skipRemainingProfileSteps = async () => {
+    for (const key of ['personal', 'professional', 'education', 'experience', 'skills', 'certifications', 'preferences']) {
+      await candidateProfileApi.updateCandidateOnboardingStep(key, 'SKIPPED')
+    }
+  }
   const finish = async () => {
-    await candidateProfileApi.submitCandidateProfile()
+    await ensureOptionalStepsResolved()
+    try {
+      await candidateProfileApi.submitCandidateProfile()
+    } catch (error) {
+      if (error.status !== 422) throw error
+      await skipRemainingProfileSteps()
+      await candidateProfileApi.submitCandidateProfile()
+    }
     completeProfile()
     navigate(profilePath(9))
   }
