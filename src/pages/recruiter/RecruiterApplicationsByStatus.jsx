@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, MapPin, Users } from 'lucide-react'
 import { RecruiterApiError, RecruiterEmpty, RecruiterLoading, getListResponse } from '../../components/recruiter/RecruiterApiState'
+import RecruiterRejectApplicationDialog from '../../components/recruiter/RecruiterRejectApplicationDialog'
 import { recruiterApi } from '../../lib/recruiterApi'
 
 const VIEWS = [
@@ -53,6 +54,8 @@ export default function RecruiterApplicationsByStatus({ status }) {
   const [actionError, setActionError] = useState('')
   const [statusBusy, setStatusBusy] = useState('')
   const [query, setQuery] = useState('')
+  const [rejectTarget, setRejectTarget] = useState(null)
+  const [rejectReason, setRejectReason] = useState('')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -93,21 +96,27 @@ export default function RecruiterApplicationsByStatus({ status }) {
 
   useEffect(() => { load() }, [load])
 
-  const changeStatus = async (application, nextStatus) => {
+  const changeStatus = async (application, nextStatus, reason = '') => {
     const applicationId = application.applicationId || application.application_id || application.id
-    if (!applicationId || !NEXT_STATUSES[view.status]?.includes(nextStatus)) return
-    const reason = nextStatus === 'REJECTED' ? window.prompt('Please enter a reason for rejecting this application:')?.trim() : ''
-    if (nextStatus === 'REJECTED' && !reason) return
+    if (!applicationId || !NEXT_STATUSES[view.status]?.includes(nextStatus)) return false
     setStatusBusy(applicationId)
     setActionError('')
     try {
       await recruiterApi.updateApplicationStatus(applicationId, nextStatus, reason)
       setRows((current) => current.filter((item) => (item.applicationId || item.application_id || item.id) !== applicationId))
+      return true
     } catch (error) {
       setActionError(error.message || 'Unable to update the application status.')
+      return false
     } finally {
       setStatusBusy('')
     }
+  }
+
+  const confirmRejection = async () => {
+    if (!rejectTarget || !rejectReason.trim()) return
+    const saved = await changeStatus(rejectTarget, 'REJECTED', rejectReason.trim())
+    if (saved) { setRejectTarget(null); setRejectReason('') }
   }
 
   const visibleRows = useMemo(() => {
@@ -152,7 +161,7 @@ export default function RecruiterApplicationsByStatus({ status }) {
           <div className="flex flex-wrap items-center gap-3 lg:justify-end">
             <span className="rounded-full bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700">{view.title}</span>
             {candidate.id && <Link to={`/recruiter/candidates/${encodeURIComponent(candidate.id)}`} state={{ candidate: { ...candidate, publicId: candidate.id } }} className="text-sm font-semibold text-blue-600 hover:text-blue-700">View profile</Link>}
-            {NEXT_STATUSES[view.status]?.length > 0 && <select aria-label={`Move application to another status for ${candidate.name || candidate.id || 'candidate'}`} disabled={statusBusy === applicationId} defaultValue="" onChange={(event) => { const next = event.target.value; event.target.value = ''; if (next) changeStatus(item, next) }} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50">
+            {NEXT_STATUSES[view.status]?.length > 0 && <select aria-label={`Move application to another status for ${candidate.name || candidate.id || 'candidate'}`} disabled={statusBusy === applicationId} defaultValue="" onChange={(event) => { const next = event.target.value; event.target.value = ''; if (next === 'REJECTED') { setActionError(''); setRejectTarget(item); setRejectReason('') } else if (next) changeStatus(item, next) }} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50">
               <option value="" disabled>{statusBusy === applicationId ? 'Saving…' : 'Move to next step'}</option>
               {NEXT_STATUSES[view.status].map((nextStatus) => <option key={nextStatus} value={nextStatus}>{STATUS_LABELS[nextStatus]}</option>)}
             </select>}
@@ -161,5 +170,6 @@ export default function RecruiterApplicationsByStatus({ status }) {
         </article>
       })}
     </div>}
+    <RecruiterRejectApplicationDialog open={Boolean(rejectTarget)} candidateName={rejectTarget ? (rejectTarget.candidatePreview || applicantFrom(rejectTarget)).name : ''} jobTitle={rejectTarget?.jobTitle || ''} reason={rejectReason} onReasonChange={setRejectReason} onCancel={() => { if (!statusBusy) { setRejectTarget(null); setRejectReason('') } }} onConfirm={confirmRejection} busy={Boolean(rejectTarget && statusBusy === (rejectTarget.applicationId || rejectTarget.application_id || rejectTarget.id))} error={actionError} />
   </div>
 }

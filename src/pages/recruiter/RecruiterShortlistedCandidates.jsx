@@ -3,6 +3,7 @@ import { Eye, LockKeyhole, Search, Trash2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import Badge from '../../components/ui/Badge'
 import { RecruiterApiError, RecruiterEmpty, RecruiterLoading, getListResponse } from '../../components/recruiter/RecruiterApiState'
+import RecruiterRejectApplicationDialog from '../../components/recruiter/RecruiterRejectApplicationDialog'
 import { recruiterApi } from '../../lib/recruiterApi'
 
 function normalizeShortlistedCandidate(item = {}) {
@@ -72,6 +73,8 @@ export default function RecruiterShortlistedCandidates() {
   const [removingId, setRemovingId] = useState(null)
   const [statusUpdatingId, setStatusUpdatingId] = useState(null)
   const [reload, setReload] = useState(0)
+  const [rejectTarget, setRejectTarget] = useState(null)
+  const [rejectReason, setRejectReason] = useState('')
 
   useEffect(() => {
     let active = true
@@ -152,20 +155,25 @@ export default function RecruiterShortlistedCandidates() {
     } catch (requestError) { setError(requestError) }
     finally { setRemovingId(null) }
   }
-  const advanceApplication = async (candidate, nextStatus) => {
-    if (!candidate.applicationId || !candidate.fromApplication) return
-    const reason = nextStatus === 'REJECTED' ? window.prompt('Please enter a reason for rejecting this application:')?.trim() : ''
-    if (nextStatus === 'REJECTED' && !reason) return
+  const advanceApplication = async (candidate, nextStatus, reason = '') => {
+    if (!candidate.applicationId || !candidate.fromApplication) return false
     setStatusUpdatingId(candidate.applicationId)
     setError(null)
     try {
       await recruiterApi.updateApplicationStatus(candidate.applicationId, nextStatus, reason)
       setItems((current) => current.filter((item) => item.applicationId !== candidate.applicationId))
+      return true
     } catch (requestError) {
       setError(requestError)
+      return false
     } finally {
       setStatusUpdatingId(null)
     }
+  }
+  const confirmRejection = async () => {
+    if (!rejectTarget || !rejectReason.trim()) return
+    const saved = await advanceApplication(rejectTarget, 'REJECTED', rejectReason.trim())
+    if (saved) { setRejectTarget(null); setRejectReason('') }
   }
   const clearFilters = () => { setQuery(''); setSpecialty(''); setUnlockStatus(''); setLocation(''); setPage(1) }
   const formatDate = (value) => value && !Number.isNaN(new Date(value).getTime()) ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(value)) : '—'
@@ -179,11 +187,12 @@ export default function RecruiterShortlistedCandidates() {
     </div>
     <RecruiterApiError error={error} onRetry={() => setReload((value) => value + 1)} />
     <section className="overflow-hidden rounded-xl border border-slate-200 bg-white"><div className="hidden gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3 text-xs font-bold uppercase text-slate-700 xl:grid xl:grid-cols-[minmax(180px,1fr)_160px_112px_55px_120px_110px_90px_80px]"><span>Candidate</span><span>Role</span><span>Specialty</span><span>Exp</span><span>Location</span><span>Date</span><span>Status</span><span>Actions</span></div>
-      {loading ? <RecruiterLoading label="Loading shortlisted candidates…" /> : pageItems.map((candidate, index) => <ShortlistedCandidateRow key={candidate.applicationId ? `application-${candidate.applicationId}` : candidate.id || index} candidate={candidate} removing={removingId === candidate.id} statusUpdating={statusUpdatingId === candidate.applicationId} onRemove={() => remove(candidate)} onAdvance={(nextStatus) => advanceApplication(candidate, nextStatus)} formatDate={formatDate} />)}
+      {loading ? <RecruiterLoading label="Loading shortlisted candidates…" /> : pageItems.map((candidate, index) => <ShortlistedCandidateRow key={candidate.applicationId ? `application-${candidate.applicationId}` : candidate.id || index} candidate={candidate} removing={removingId === candidate.id} statusUpdating={statusUpdatingId === candidate.applicationId} onRemove={() => remove(candidate)} onAdvance={(nextStatus) => { if (nextStatus === 'REJECTED') { setError(null); setRejectTarget(candidate); setRejectReason('') } else advanceApplication(candidate, nextStatus) }} formatDate={formatDate} />)}
       {!loading && !error && !pageItems.length && <RecruiterEmpty>No shortlisted candidates match your filters.</RecruiterEmpty>}
     </section>
     <div className="flex items-center justify-between gap-3 text-xs text-slate-500"><span>Showing {pageItems.length ? `${(page - 1) * pageSize + 1}-${(page - 1) * pageSize + pageItems.length}` : '0'} of {filteredItems.length}</span><div className="flex items-center gap-2"><button type="button" disabled={page <= 1 || loading} onClick={() => setPage((value) => value - 1)} className="rounded border px-3 py-2 disabled:opacity-40">Prev</button><span>Page {page} of {totalPages}</span><button type="button" disabled={page >= totalPages || loading} onClick={() => setPage((value) => value + 1)} className="rounded border px-3 py-2 disabled:opacity-40">Next</button></div></div>
     {(query || specialty || unlockStatus || location) && <button type="button" onClick={clearFilters} className="self-start text-xs font-semibold text-blue-600">Clear Filters</button>}
+    <RecruiterRejectApplicationDialog open={Boolean(rejectTarget)} candidateName={rejectTarget?.name || ''} jobTitle={rejectTarget?.jobTitle || ''} reason={rejectReason} onReasonChange={setRejectReason} onCancel={() => { if (!statusUpdatingId) { setRejectTarget(null); setRejectReason('') } }} onConfirm={confirmRejection} busy={Boolean(rejectTarget && statusUpdatingId === rejectTarget.applicationId)} error={error?.message || ''} />
   </div>
 }
 
