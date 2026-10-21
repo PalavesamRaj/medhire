@@ -10,6 +10,13 @@ const VIEWS = [
   { status: 'HIRED', title: 'Hired', subtitle: 'Candidates hired for one of your job postings.' },
   { status: 'REJECTED', title: 'Rejected', subtitle: 'Applications rejected for one of your job postings.' },
 ]
+const NEXT_STATUSES = {
+  UNDER_REVIEW: ['SHORTLISTED', 'REJECTED'],
+  INTERVIEW: ['HIRED', 'REJECTED'],
+  HIRED: [],
+  REJECTED: [],
+}
+const STATUS_LABELS = { SHORTLISTED: 'Shortlisted', HIRED: 'Hired', REJECTED: 'Rejected' }
 const first = (...values) => values.find((value) => value !== undefined && value !== null && value !== '')
 const statusKey = (value) => String(value || 'APPLIED').toUpperCase().replaceAll(' ', '_')
 
@@ -43,6 +50,8 @@ export default function RecruiterApplicationsByStatus({ status }) {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(null)
+  const [actionError, setActionError] = useState('')
+  const [statusBusy, setStatusBusy] = useState('')
   const [query, setQuery] = useState('')
 
   const load = useCallback(async () => {
@@ -84,6 +93,23 @@ export default function RecruiterApplicationsByStatus({ status }) {
 
   useEffect(() => { load() }, [load])
 
+  const changeStatus = async (application, nextStatus) => {
+    const applicationId = application.applicationId || application.application_id || application.id
+    if (!applicationId || !NEXT_STATUSES[view.status]?.includes(nextStatus)) return
+    const reason = nextStatus === 'REJECTED' ? window.prompt('Please enter a reason for rejecting this application:')?.trim() : ''
+    if (nextStatus === 'REJECTED' && !reason) return
+    setStatusBusy(applicationId)
+    setActionError('')
+    try {
+      await recruiterApi.updateApplicationStatus(applicationId, nextStatus, reason)
+      setRows((current) => current.filter((item) => (item.applicationId || item.application_id || item.id) !== applicationId))
+    } catch (error) {
+      setActionError(error.message || 'Unable to update the application status.')
+    } finally {
+      setStatusBusy('')
+    }
+  }
+
   const visibleRows = useMemo(() => {
     const needle = query.trim().toLowerCase()
     if (!needle) return rows
@@ -105,6 +131,7 @@ export default function RecruiterApplicationsByStatus({ status }) {
     </nav>
     <label className="block"><span className="sr-only">Search candidates and jobs</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search candidate or job title…" className="h-11 w-full rounded-lg border border-slate-200 bg-white px-4 text-sm outline-none focus:border-blue-400" /></label>
     {!loading && !loadError && <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600"><Users className="h-5 w-5 text-blue-600" /><strong className="text-slate-900">{visibleRows.length}</strong> {view.title.toLowerCase()} {visibleRows.length === 1 ? 'application' : 'applications'}</div>}
+    {actionError && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{actionError}</p>}
     {loadError && <RecruiterApiError error={loadError} onRetry={load} />}
     {loading ? <RecruiterLoading label={`Loading ${view.title.toLowerCase()} applications…`} /> : !loadError && visibleRows.length === 0 ? <RecruiterEmpty><span>{rows.length ? 'No applications match your search.' : `No ${view.title.toLowerCase()} applications found.`}</span></RecruiterEmpty> : !loadError && <div className="grid gap-3">
       {visibleRows.map((item) => {
@@ -125,6 +152,10 @@ export default function RecruiterApplicationsByStatus({ status }) {
           <div className="flex flex-wrap items-center gap-3 lg:justify-end">
             <span className="rounded-full bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700">{view.title}</span>
             {candidate.id && <Link to={`/recruiter/candidates/${encodeURIComponent(candidate.id)}`} state={{ candidate: { ...candidate, publicId: candidate.id } }} className="text-sm font-semibold text-blue-600 hover:text-blue-700">View profile</Link>}
+            {NEXT_STATUSES[view.status]?.length > 0 && <select aria-label={`Move application to another status for ${candidate.name || candidate.id || 'candidate'}`} disabled={statusBusy === applicationId} defaultValue="" onChange={(event) => { const next = event.target.value; event.target.value = ''; if (next) changeStatus(item, next) }} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50">
+              <option value="" disabled>{statusBusy === applicationId ? 'Saving…' : 'Move to next step'}</option>
+              {NEXT_STATUSES[view.status].map((nextStatus) => <option key={nextStatus} value={nextStatus}>{STATUS_LABELS[nextStatus]}</option>)}
+            </select>}
             <Link to={`/recruiter/jobs/${encodeURIComponent(item.jobId)}/applications`} className="inline-flex items-center gap-1 text-sm font-semibold text-slate-700 hover:text-blue-600">Manage job applicants <ArrowRight className="h-4 w-4" /></Link>
           </div>
         </article>
