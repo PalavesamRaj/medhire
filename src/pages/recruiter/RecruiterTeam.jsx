@@ -17,6 +17,8 @@ function initials(name = '') {
   return name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'TM'
 }
 
+const removedStatuses = new Set(['removed', 'revoked', 'deactivated', 'deleted', 'disabled'])
+
 function normalizeTeamResponse(payload) {
   const envelope = payload || {}
   let data = payload
@@ -37,7 +39,7 @@ function normalizeTeamResponse(payload) {
   const seatsTotal = seatsTotalValue == null || seatsTotalValue === '' ? null : Number(seatsTotalValue)
   const seatsAvailable = seatsAvailableValue == null || seatsAvailableValue === '' ? null : Number(seatsAvailableValue)
   return {
-    items: Array.isArray(items) ? items : [],
+    items: Array.isArray(items) ? items.filter((member) => !removedStatuses.has(String(member?.status || '').toLowerCase())) : [],
     hasItems: Array.isArray(items),
     pendingInvitations: Array.isArray(pendingInvitations) ? pendingInvitations : [],
     hasPendingInvitations: Array.isArray(pendingInvitations),
@@ -45,6 +47,33 @@ function normalizeTeamResponse(payload) {
     seatsTotal: Number.isFinite(seatsTotal) ? seatsTotal : null,
     seatsAvailable: Number.isFinite(seatsAvailable) ? seatsAvailable : null,
   }
+}
+
+function normalizeInvitation(payload, fallback) {
+  let data = payload
+  for (let depth = 0; depth < 4 && data && !Array.isArray(data); depth += 1) {
+    if (data.invitation && typeof data.invitation === 'object') data = data.invitation
+    else if (data.pendingInvitation && typeof data.pendingInvitation === 'object') data = data.pendingInvitation
+    else if (data.data && typeof data.data === 'object') data = data.data
+    else if (data.result && typeof data.result === 'object') data = data.result
+    else break
+  }
+  return {
+    ...(data && typeof data === 'object' ? data : {}),
+    invitationId: data?.invitationId || data?.invitation_id || data?.id || fallback.email,
+    fullName: data?.fullName || data?.full_name || fallback.fullName,
+    email: data?.email || fallback.email,
+    status: data?.status || 'INVITED',
+  }
+}
+
+function mergeInvitations(serverInvitations, localInvitations) {
+  const byEmail = new Map()
+  for (const invitation of [...serverInvitations, ...localInvitations]) {
+    const key = String(invitation.email || invitation.invitationId || invitation.invitation_id || '').trim().toLowerCase()
+    if (key) byEmail.set(key, { ...byEmail.get(key), ...invitation })
+  }
+  return [...byEmail.values()]
 }
 
 function StatCard({ label, value, icon: Icon, description }) {
@@ -78,13 +107,18 @@ export default function RecruiterTeam() {
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState('ALL')
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (localInvitations = []) => {
     setLoading(true)
     setError(null)
     try {
       const response = await recruiterApi.getTeam()
       const normalized = normalizeTeamResponse(response)
-      setTeam(normalized)
+      const pendingInvitations = mergeInvitations(normalized.pendingInvitations, localInvitations)
+      setTeam({
+        ...normalized,
+        pendingInvitations,
+        hasPendingInvitations: normalized.hasPendingInvitations || localInvitations.length > 0,
+      })
     } catch (reason) {
       setError(reason)
     } finally {
@@ -120,10 +154,17 @@ export default function RecruiterTeam() {
     setError(null)
     setNotice('')
     try {
-      await recruiterApi.inviteTeamMember({ ...(form.fullName.trim() ? { fullName: form.fullName.trim() } : {}), email: form.email.trim().toLowerCase() })
+      const invitee = { fullName: form.fullName.trim(), email: form.email.trim().toLowerCase() }
+      const response = await recruiterApi.inviteTeamMember({ ...(invitee.fullName ? { fullName: invitee.fullName } : {}), email: invitee.email })
+      const pendingInvitation = normalizeInvitation(response, invitee)
+      setTeam((current) => ({
+        ...current,
+        pendingInvitations: mergeInvitations(current.pendingInvitations, [pendingInvitation]),
+        hasPendingInvitations: true,
+      }))
       setForm({ fullName: '', email: '' })
-      setNotice('Invitation created. The invitee will appear in the team list after accepting the invitation.')
-      await load()
+      setNotice('Invitation sent. It will remain pending until the invitee accepts it.')
+      await load([pendingInvitation])
     } catch (reason) {
       setError(reason)
     } finally {
