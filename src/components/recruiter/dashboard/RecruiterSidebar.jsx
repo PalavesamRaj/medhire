@@ -3,20 +3,26 @@ import { BadgeDollarSign, Bookmark, Building2, CreditCard, LayoutDashboard, Sear
 import { NavLink } from 'react-router-dom'
 
 export const recruiterNavigation = [
-  ['Dashboard', '/recruiter/dashboard', LayoutDashboard],
-  ['Job Postings', '/recruiter/jobs', BriefcaseBusiness],
-  ['Team', '/recruiter/team', Users],
-  ['Find Candidates', '/recruiter/find-candidates', Search],
-  ['Purchased Candidates', '/recruiter/purchased-candidates', Users],
-  ['Shortlisted Candidates', '/recruiter/shortlisted-candidates', Bookmark],
-  ['Under Review', '/recruiter/applications/under-review', ClipboardList],
-  ['Interviews', '/recruiter/applications/interview', CalendarDays],
-  ['Hired', '/recruiter/applications/hired', UserCheck],
-  ['Rejected', '/recruiter/applications/rejected', UserX],
-  ['Plans & Credits', '/recruiter/plans-credits', BadgeDollarSign],
-  ['Payment History', '/recruiter/payment-history', CreditCard],
-  ['Hospital Profile', '/recruiter/hospital-profile', Building2],
-  ['Account Security', '/recruiter/account-security', ShieldCheck],
+  { section: 'Overview', items: [['Dashboard', '/recruiter/dashboard', LayoutDashboard]] },
+  { section: 'Hiring workflow', items: [
+    ['Applied · Job Postings', '/recruiter/jobs', BriefcaseBusiness],
+    ['Under Review', '/recruiter/applications/under-review', ClipboardList],
+    ['Shortlisted Candidates', '/recruiter/shortlisted-candidates', Bookmark],
+    ['Interviews', '/recruiter/applications/interview', CalendarDays],
+    ['Hired', '/recruiter/applications/hired', UserCheck],
+    ['Rejected', '/recruiter/applications/rejected', UserX],
+  ] },
+  { section: 'Recruiting tools', items: [
+    ['Find Candidates', '/recruiter/find-candidates', Search],
+    ['Purchased Candidates', '/recruiter/purchased-candidates', Users],
+  ] },
+  { section: 'Organization', items: [
+    ['Team', '/recruiter/team', Users],
+    ['Plans & Credits', '/recruiter/plans-credits', BadgeDollarSign],
+    ['Payment History', '/recruiter/payment-history', CreditCard],
+    ['Hospital Profile', '/recruiter/hospital-profile', Building2],
+    ['Account Security', '/recruiter/account-security', ShieldCheck],
+  ] },
 ]
 
 export default function RecruiterSidebar({ open, onNavigate }) {
@@ -32,18 +38,19 @@ export default function RecruiterSidebar({ open, onNavigate }) {
         </button>
       </div>
       <nav aria-label="Recruiter navigation" className="grid gap-1">
-        {recruiterNavigation.map(([label, to, Icon]) => (
-          <NavLink
+        {recruiterNavigation.map(({ section, items }) => <div key={section} className="contents">
+          <p className="px-3 pb-1 pt-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 first:pt-1">{section}</p>
+          {items.map(([label, to, Icon]) => <NavLink
             key={label}
             to={to}
             end={label === 'Dashboard'}
             onClick={onNavigate}
             className={({ isActive }) => `flex h-10 items-center gap-2.5 rounded-md px-3 text-xs ${isActive ? 'bg-blue-50 font-bold text-blue-600' : 'font-medium text-slate-500 hover:bg-slate-50'}`}
           >
-            <Icon className="h-4 w-4" />
+            <Icon className="h-4 w-4 shrink-0" />
             {label}
-          </NavLink>
-        ))}
+          </NavLink>)}
+        </div>)}
       </nav>
     </aside>
   )
