@@ -330,10 +330,21 @@ export default function RecruiterCandidateProfile() {
   const canUnlock = creditBalanceKnown && unlockCostKnown && availableCredits >= unlockCost
   const resumeStatus = firstValue(
     data?.resumeStatus, data?.resume_status,
+    data?.resumeApprovalStatus, data?.resume_approval_status,
     candidate.resumeStatus, candidate.resume_status,
+    candidate.resumeApprovalStatus, candidate.resume_approval_status,
     profile.resumeStatus, profile.resume_status,
+    profile.resumeApprovalStatus, profile.resume_approval_status,
+    data?.resume?.approvalStatus, data?.resume?.approval_status, data?.resume?.status,
+    candidate.resume?.approvalStatus, candidate.resume?.approval_status, candidate.resume?.status,
+    profile.resume?.approvalStatus, profile.resume?.approval_status, profile.resume?.status,
+    profile.activeResume?.approvalStatus, profile.activeResume?.approval_status, profile.activeResume?.status,
+    profile.active_resume?.approvalStatus, profile.active_resume?.approval_status, profile.active_resume?.status,
     profile.resumes?.find((resume) => resume.active === true)?.approvalStatus,
+    profile.resumes?.find((resume) => resume.active === true)?.approval_status,
     profile.resumes?.find((resume) => resume.active === true)?.status,
+    profile.resumes?.find((resume) => resume.isActive === true)?.approvalStatus,
+    profile.resumes?.find((resume) => resume.is_active === true)?.approval_status,
     profile.resumes?.[0]?.approvalStatus, profile.resumes?.[0]?.status,
   )
   const resumeApproved = String(resumeStatus || '').trim().toLowerCase() === 'approved'
