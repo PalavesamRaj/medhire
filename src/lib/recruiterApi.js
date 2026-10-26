@@ -112,6 +112,24 @@ function toJobPayload(body = {}) {
   return payload
 }
 
+function toHospitalProfilePayload(body = {}) {
+  const profile = body.profile || body
+  const preferences = body.hiringPreferences || {}
+  return {
+    name: profile.hospitalName ?? profile.name,
+    website: profile.website,
+    phone: profile.hospitalPhone ?? profile.phone,
+    address: profile.address,
+    city: profile.city,
+    state: profile.state,
+    postalCode: profile.postal ?? profile.postalCode,
+    country: profile.country,
+    registrationNumber: profile.registrationNumber,
+    description: profile.description,
+    ...(body.hiringPreferences ? { hiringPreferences: { specialties: preferences.specialties ?? [] } } : {}),
+  }
+}
+
 export const recruiterApi = {
   downloadCandidateResume,
   getDashboard: () => request(RECRUITER_ENDPOINTS.dashboard),
@@ -121,7 +139,7 @@ export const recruiterApi = {
   getJobs: (filters = {}) => requestAllPages(RECRUITER_ENDPOINTS.jobs, filters),
   createJob: (body) => request(RECRUITER_ENDPOINTS.jobs, { method: 'POST', body: toJobPayload(body) }),
   updateJob: (jobId, body) => request(idPath(RECRUITER_ENDPOINTS.jobs, jobId), { method: 'PATCH', body: toJobPayload(body) }),
-  closeJob: (jobId) => request(`${idPath(RECRUITER_ENDPOINTS.jobs, jobId)}/close`, { method: 'POST', body: {} }),
+  closeJob: (jobId, reason = 'Position has been filled.') => request(`${idPath(RECRUITER_ENDPOINTS.jobs, jobId)}/close`, { method: 'POST', body: { reason } }),
   getJobApplications: (jobId, filters = {}) => requestAllPages(`${idPath(RECRUITER_ENDPOINTS.jobs, jobId)}/applications`, filters),
   getApplication: (applicationId) => request(idPath(RECRUITER_ENDPOINTS.applications, applicationId)),
   updateApplicationStatus: (applicationId, status, reason) => {
@@ -130,7 +148,7 @@ export const recruiterApi = {
     if (!action) throw new Error(`Unsupported application status: ${status}`)
     return request(`${idPath(RECRUITER_ENDPOINTS.applications, applicationId)}/${action}`, { method: 'POST', body: reason ? { reason } : {} })
   },
-  resubmitOrganization: (message = '') => request('/recruiter/organization/resubmit', { method: 'POST', body: { message } }),
+  resubmitOrganization: (notes = '') => request('/recruiter/organization/resubmit', { method: 'POST', body: { notes } }),
   searchCandidates: (filters = {}) => request(withQuery(RECRUITER_ENDPOINTS.candidates, filters)),
   getCandidate: (publicId) => request(idPath(RECRUITER_ENDPOINTS.candidates, publicId)),
   unlockCandidate: (candidateId, idempotencyKey) => request(`${idPath(RECRUITER_ENDPOINTS.candidates, candidateId)}/unlock`, { method: 'POST', body: {}, idempotencyKey }),
@@ -148,5 +166,5 @@ export const recruiterApi = {
   uploadOrganizationDocument: (file, documentType) => { const body = new FormData(); body.append('documentType', documentType); body.append('document', file); return request('/recruiter/organization/documents', { method: 'POST', body }) },
   deleteOrganizationDocument: (documentId) => request(`/recruiter/organization/documents/${encodeURIComponent(documentId)}`, { method: 'DELETE' }),
   getHospitalProfile: () => request(RECRUITER_ENDPOINTS.hospitalProfile),
-  updateHospitalProfile: (body) => request(RECRUITER_ENDPOINTS.hospitalProfile, { method: 'PATCH', body }),
+  updateHospitalProfile: (body) => request(RECRUITER_ENDPOINTS.hospitalProfile, { method: 'PATCH', body: toHospitalProfilePayload(body) }),
 }

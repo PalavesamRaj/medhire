@@ -11,13 +11,15 @@ export const PROFILE_ENDPOINTS = {
 }
 const countryCodes = { 'United States': 'US', India: 'IN', Canada: 'CA', 'United Kingdom': 'GB', Australia: 'AU', Other: 'OTHER' }
 export function toPersonalInformationPayload(data = {}) {
-  const { email, ...fields } = data
+  const fields = { ...data }
+  delete fields.email
+  delete fields.gender
+  delete fields.address
   const payload = {
     ...fields,
-    gender: typeof fields.gender === 'string' ? fields.gender.toLowerCase() : fields.gender,
     country: countryCodes[fields.country] || fields.country,
   }
-  for (const field of ['address', 'state', 'zipCode']) if (!String(payload[field] || '').trim()) delete payload[field]
+  for (const field of ['state', 'zipCode']) if (!String(payload[field] || '').trim()) delete payload[field]
   // The verified backend only accepts two-letter country codes; leave an
   // existing country unchanged when the UI's legacy "Other" choice is used.
   if (payload.country === 'OTHER' || payload.country === 'Other') delete payload.country
@@ -72,18 +74,47 @@ export const getCandidateOnboarding = () => request(PROFILE_ENDPOINTS.onboarding
 export const updateCandidateOnboardingStep = (stepKey, status = 'SKIPPED') => request(`${PROFILE_ENDPOINTS.onboardingSteps}/${encodeURIComponent(stepKey)}`, 'PATCH', { status })
 export const savePersonalInformation = (data) => request(PROFILE_ENDPOINTS.personal, 'PUT', toPersonalInformationPayload(data))
 export const saveProfessionalInformation = (data) => request(PROFILE_ENDPOINTS.professional, 'PUT', toProfessionalPayload(data))
-export const saveEducation = (education) => request(PROFILE_ENDPOINTS.education, 'PUT', { education })
-export const saveWorkExperience = (workExperience) => request(PROFILE_ENDPOINTS.workExperience, 'PUT', { workExperience: workExperience.map((item) => ({ ...item, employmentType: employmentTypes[item.employmentType] || item.employmentType })) })
+export const saveEducation = (education) => request(PROFILE_ENDPOINTS.education, 'PUT', {
+  education: education.map((item) => {
+    const payload = { ...item }
+    delete payload.id
+    payload.graduationYear = item.graduationYear === '' || item.graduationYear == null ? undefined : Number(item.graduationYear)
+    return payload
+  }),
+})
+export const saveWorkExperience = (workExperience) => request(PROFILE_ENDPOINTS.workExperience, 'PUT', {
+  workExperience: workExperience.map((entry) => {
+    const item = { ...entry }
+    delete item.id
+    const normalized = {
+      ...item,
+      employmentType: employmentTypes[item.employmentType] || item.employmentType,
+      startMonth: item.startMonth === '' || item.startMonth == null ? undefined : Number(item.startMonth),
+      startYear: item.startYear === '' || item.startYear == null ? undefined : Number(item.startYear),
+    }
+    if (item.currentlyWorking) {
+      delete normalized.endMonth
+      delete normalized.endYear
+    } else {
+      if (item.endMonth === '' || item.endMonth == null) delete normalized.endMonth
+      else normalized.endMonth = Number(item.endMonth)
+      if (item.endYear === '' || item.endYear == null) delete normalized.endYear
+      else normalized.endYear = Number(item.endYear)
+    }
+    return normalized
+  }),
+})
 const skillName = (skill) => {
   if (typeof skill === 'string') return skill.trim()
   if (!skill || typeof skill !== 'object' || Array.isArray(skill)) return ''
   const name = skill.name ?? skill.skillName ?? skill.skill_name ?? skill.label ?? skill.value
   return typeof name === 'string' ? name.trim() : ''
 }
-export const saveSkills = (data = {}) => {
+export const saveSkills = async (data = {}) => {
   const source = Array.isArray(data) ? data : data.skills
   const skills = Array.isArray(source) ? [...new Set(source.map(skillName).filter(Boolean))] : []
-  return request(PROFILE_ENDPOINTS.skills, 'PUT', { skills })
+  const payload = await request(PROFILE_ENDPOINTS.skills, 'PUT', { skills })
+  return Array.isArray(payload) ? payload : payload?.data ?? payload
 }
 export const saveCertifications = (data) => request(PROFILE_ENDPOINTS.certifications, 'PUT', data)
 export const saveCareerPreferences = (data) => {

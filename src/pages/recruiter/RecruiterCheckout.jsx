@@ -39,6 +39,7 @@ export default function RecruiterCheckout() {
   const [searchParams] = useSearchParams()
   const planId = searchParams.get('plan')
   const [plan, setPlan] = useState(null)
+  const [idempotencyKey] = useState(() => globalThis.crypto?.randomUUID?.() || `checkout-${Date.now()}-${Math.random().toString(16).slice(2)}`)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
@@ -56,11 +57,9 @@ export default function RecruiterCheckout() {
   const startCheckout = async () => {
     setSubmitting(true); setError(null)
     try {
-      const appBase = window.location.origin
       const response = unwrapRecruiterResponse(await recruiterApi.createCheckout({
         planId,
-        successUrl: `${appBase}/recruiter/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-        cancelUrl: `${appBase}/recruiter/payment-failed?session_id={CHECKOUT_SESSION_ID}`,
+        idempotencyKey,
       }))
       const sessionStatus = response?.checkoutSession?.status ?? response?.status
       if (response?.providerConfigured === false || sessionStatus === 'PROVIDER_NOT_CONFIGURED') {

@@ -86,5 +86,5 @@ export const saveJob = (id) => request(CANDIDATE_ENDPOINTS.savedJobs, 'POST', { 
 export const removeSavedJob = (id) => request(idPath(CANDIDATE_ENDPOINTS.savedJobs, id), 'DELETE')
 export const getCandidateSummary = () => request(CANDIDATE_ENDPOINTS.summary)
 export const exportMyData = () => request('/candidates/me/data-export')
-export const deleteMyAccount = ({ reason } = {}) => request('/candidates/me/account', 'DELETE', reason ? { reason } : undefined)
+export const deleteMyAccount = () => request('/candidates/me/account', 'DELETE')
 export const candidateDashboardApi = { exportMyData, deleteMyAccount, getDashboard, getMyProfile, updateProfile, getResume, uploadResume, deleteResume, downloadResume, getPrivacySettings, updatePrivacySettings, searchJobs, getJobDetails, applyForJob, getApplications, getSavedJobs, saveJob, removeSavedJob, getCandidateSummary }
