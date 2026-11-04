@@ -165,10 +165,10 @@ The frontend saves each completed step and separately tracks skipped steps. The 
 
 | Method and endpoint | Request from frontend | Expected backend behavior / data |
 |---|---|---|
-| `GET /api/candidates/me/profile` | None | Return the candidate profile and completion state. |
+| `GET /api/candidates/me/profile` | None | Return the candidate profile and completion state. Include the persisted profile image as `data.profile.photoUrl` (or a consistently documented equivalent); return `null` when no image is set. The returned URL must be browser-loadable (for protected storage, use a signed URL or define an authenticated image-fetch flow). |
 | `GET /api/candidates/me/onboarding` | None | Return per-step status/progress. Statuses used by the UI: `NOT_STARTED`, `IN_PROGRESS`, `COMPLETED`, `SKIPPED`. |
 | `PATCH /api/candidates/me/onboarding/steps/{stepKey}` | `{ "status": "SKIPPED" }` (default action) | Persist an allowed status for `resume`, `personal`, `professional`, `education`, `experience`, `skills`, `certifications`, or `preferences`. Do not clear the saved section. |
-| `PUT /api/candidates/me/personal` | `firstName`, `lastName`, `phoneNumber`, `dateOfBirth`, `country`, `city`, `state`, `zipCode`; the frontend omits `gender`, `address`, and read-only `email` to match the backend example. | Persist personal data. Date format is `YYYY-MM-DD`. Frontend maps common country names to `US`, `IN`, `CA`, `GB`, `AU`; unsupported `Other` is omitted. Confirm accepted country codes and null/omission semantics. |
+| `PUT /api/candidates/me/personal` | `firstName`, `lastName`, `phoneNumber`, `dateOfBirth`, `country`, optional `gender`, `address`, `city`, `state`, and `zipCode`; read-only `email` is omitted. | Persist personal data. Date format is `YYYY-MM-DD`. Frontend maps common country names to `US`, `IN`, `CA`, `GB`, `AU`; unsupported `Other` is omitted. |
 | `PUT /api/candidates/me/professional` | `currentJobTitle`, numeric `yearsOfExperience`, `currentEmployer`, `specialty`, `licenseNumber`, `licenseState`, `npiNumber`, `professionalSummary` | Persist professional details. Frontend maps experience-range labels to lower-bound numbers (e.g. `"3–5 years"` to `3`). Confirm numeric units and whether ranges should instead be represented explicitly. |
 | `PUT /api/candidates/me/education` | `{ "education": [{ "degree": "...", "fieldOfStudy": "...", "institutionName": "...", "graduationYear": 2024 }] }`; frontend omits local row IDs. | Backend generates and returns stable IDs for persisted education rows. |
 | `PUT /api/candidates/me/experience` | `{ "workExperience": [{ "jobTitle": "...", "employerName": "...", "employmentType": "FULL_TIME", "location": "...", "startMonth": 1, "startYear": 2022, "currentlyWorking": true, "description": "..." }] }`; frontend omits local row IDs, sends month numbers, and omits end month/year for current positions. | Persist history and define accepted employment enums. |
@@ -176,7 +176,7 @@ The frontend saves each completed step and separately tracks skipped steps. The 
 | `PUT /api/candidates/me/certifications` | `{ "certifications": [{ "id": "...", "certificationName": "...", "issuingOrganization": "...", "credentialId": "...", "issueDate": "YYYY-MM-DD", "expiryDate": "YYYY-MM-DD", "doesNotExpire": false }] }` | Persist certification entries. Define date rules, verification status ownership and optional fields. |
 | `PUT /api/candidates/me/preferences` | See the request/response example and enum discrepancy below. | Save desired roles, specialties, employment, location, work setting, shifts, salary, availability, relocation and remote preference. Return durable step state. |
 | `POST /api/candidates/me/resume` | Multipart `resume` file | Upload candidate-owned resume. Earlier handoff says PDF/DOC/DOCX up to 5 MB; confirm actual limit, MIME/content validation, malware scan and review status. |
-| `POST /api/candidates/me/profile/photo` | Multipart `photo` file | Proposed profile-photo upload route. Confirm accepted MIME types, size limit, private storage and response shape. |
+| `POST /api/candidates/me/profile/photo` | Multipart `photo` file | Proposed profile-photo upload route; the backend contract is unconfirmed. On success, persist the photo and return its URL, for example `{ "success": true, "data": { "photoUrl": "<persisted-photo-url>" } }`. The same URL must be returned by `GET /api/candidates/me/profile`. Confirm accepted MIME types, size limit, storage/access policy, and canonical response field. |
 | `POST /api/candidates/me/profile/complete` | `{}` | Validate required fields and skip policy; return durable completion status. UI policy requires personal, professional title/experience/specialty, education, skills and preferences; resume, work history and certifications can be optional. |
 | `PATCH /api/candidates/me/profile` | Section objects; frontend maps headline to `professional.currentJobTitle`, summary to `professional.professionalSummary`, and location/name to `personal` properties. | Update only supplied editable fields. Preserve auth-owned email and server-owned completion/strength/verification state. |
 
@@ -285,6 +285,8 @@ The following full response remains a recommendation, not an observed backend re
 | `PATCH /api/notifications/{notificationId}/read` | None | Mark only the caller's notification read. |
 | `PATCH /api/notifications/read-all` | None | Mark all caller-owned notifications read. |
 
+**Event creation is a backend responsibility and is not covered by these read/mark-read routes.** On a successful application status transition to `SHORTLISTED` (`POST /api/recruiter/applications/{applicationId}/shortlist`), persist a notification for the affected candidate, with a documented type such as `APPLICATION_STATUS_CHANGED` or `CANDIDATE_SHORTLISTED`, plus a title, message, creation timestamp, unread state, and application/job link data where available. The separate `POST /api/recruiter/shortlisted-candidates` endpoint saves a candidate to the recruiter's private shortlist; do not treat that action as a candidate-facing application status change unless product requirements explicitly say so. Do not notify the recruiter as the recipient of their own action. Use the same transactional event pattern for interview scheduling/rescheduling/cancellation and other candidate-visible status changes; create recruiter notifications for new applications and admin notifications for admin-owned events. All notification list/count/read operations must remain scoped to the authenticated recipient. The frontend can display persisted notifications but cannot create a cross-account notification from the browser.
+
 ## 5. HR / recruiter API contract
 
 Recruiter endpoints are authenticated and must be scoped to the recruiter’s active organization membership. Define verification gating per endpoint; pending organizations must be able to access the verification workflow and upload documents. The candidate identity and contact fields are separate access levels: professional details may be visible while locked, but direct contact and resume downloads must remain protected until the organization unlocks the candidate.
@@ -294,12 +296,49 @@ Recruiter endpoints are authenticated and must be scoped to the recruiter’s ac
 | Method and endpoint | Frontend request | Response / behavior needed; comparison |
 |---|---|---|
 | `GET /api/recruiter/dashboard` | No query/body | Return organization summary, metrics, `recommendedCandidates`, `recentActivity`. Earlier docs describe this DTO as service-defined. Define metric periods and semantics; candidate searches must not count raw GETs/page loads. Empty lists must be `[]`. |
-| `GET /api/recruiter/hospital-profile` | No query/body | Return persisted organization profile, verification status and hiring preferences. The frontend maps nested and flat aliases, but one canonical envelope is needed. |
-| `PATCH /api/recruiter/hospital-profile` | Flat body: `{ "name": "...", "website": "...", "phone": "...", "address": "...", "city": "...", "state": "...", "postalCode": "...", "country": "...", "registrationNumber": "...", "description": "...", "hiringPreferences": { "specialties": [] } }`. Frontend maps UI field names to these backend names and sends confirmed specialties only. | Update only editable fields. Do not accept organization ID, owner or verification decision from client. Backend example only confirms `hiringPreferences.specialties`; location/employment preferences remain read-only until their contract is confirmed. |
+| `GET /api/recruiter/hospital-profile` | No query/body | Return persisted organization profile, verification status and hiring preferences. Confirmed backend response includes `data.verification` with `status`, `verifiedAt`, `licenseStatus`, and `accreditation`. `verifiedAt` may be `null`; license/accreditation reflect the latest non-deleted `BUSINESS_LICENSE`/`ACCREDITATION` document and are `null` when no matching document exists. |
+| `PATCH /api/recruiter/hospital-profile` | Flat body: `{ "name": "...", "phone": "...", "address": "...", "city": "...", "state": "...", "postalCode": "...", "country": "India" }`, with non-empty `website`, `registrationNumber`, `description`, and hiring preference arrays added when supplied. The updated backend accepts the full country name. Frontend maps UI field names to backend names and includes the currently returned specialties, locations, and employment types because sending `hiringPreferences` replaces that object. | Update only editable fields. Do not accept organization ID, owner or verification decision from client. Backend should return field-level validation details under `error.details`; provide a sanitized live response to confirm the deployed error envelope. |
+
 | `POST /api/recruiter/organization/resubmit` | `{ "notes": "..." }` | Resubmit rejected organization for review. |
 | `GET /api/recruiter/team` | No query/body | Existing contract is paginated membership rows only. Frontend needs member rows, persisted pending invitations and seat data. Recommended canonical shape is below; confirm eligibility and pagination. |
 | `POST /api/recruiter/team/invitations` | `{ "email": "...", "fullName": "..." }` (`fullName` optional) | Create and email a persistent invitation. Return stable invitation ID, status and expiry. Confirm duplicate handling, expiry, seat reservation and delivery status. |
 | `DELETE /api/recruiter/team/{userId}` | None | Remove member from authenticated organization; enforce role/owner rules, define last-owner behavior and return status/204. |
+
+Confirmed hospital-profile hiring preference response:
+
+```json
+{
+  "data": {
+    "hiringPreferences": {
+      "specialties": ["<specialty>"],
+      "locations": ["<location>"],
+      "employmentTypes": ["FULL_TIME"]
+    }
+  }
+}
+```
+
+The backend persists this object in `organizations.hiring_preferences`; the GET reads it back. All three fields are always arrays, with missing or malformed stored values normalized to `[]`.
+
+Confirmed sanitized hospital-profile verification response fields:
+
+```json
+{
+  "success": true,
+  "data": {
+    "organizationId": "<organization-uuid>",
+    "verificationStatus": "approved",
+    "verification": {
+      "status": "approved",
+      "verifiedAt": "<timestamp-or-null>",
+      "licenseStatus": "APPROVED",
+      "accreditation": "PENDING_REVIEW"
+    }
+  }
+}
+```
+
+`licenseStatus` and `accreditation` are the latest non-deleted matching document statuses and are `null` when no matching document exists. `verifiedAt` may be `null` if no verification timestamp was recorded.
 
 #### Recommended team response
 

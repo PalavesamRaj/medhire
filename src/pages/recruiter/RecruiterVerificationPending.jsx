@@ -40,7 +40,7 @@ export default function RecruiterVerificationPending() {
   ]
 
   const rejected = String(user?.organizationVerificationStatus || '').toLowerCase() === 'rejected'
-  const [editValues, setEditValues] = useState({ hospitalName: user?.organizationName || user?.organization?.name || '', registrationNumber: user?.registrationNumber || user?.organization?.registrationNumber || '', website: user?.website || user?.organization?.website || '', address: user?.address || user?.organization?.address || '', city: user?.city || user?.organization?.city || '', state: user?.state || user?.organization?.state || '' })
+  const [editValues, setEditValues] = useState({ hospitalName: user?.organizationName || user?.organization?.name || '', website: user?.website || user?.organization?.website || '', address: user?.address || user?.organization?.address || '', city: user?.city || user?.organization?.city || '', state: user?.state || user?.organization?.state || '' })
   const [editing, setEditing] = useState(false)
   const [profileSaving, setProfileSaving] = useState(false)
   const [note, setNote] = useState('')
@@ -67,7 +67,7 @@ export default function RecruiterVerificationPending() {
       const response = await recruiterApi.updateHospitalProfile({ profile: editValues })
       const updated = response?.data?.profile || response?.profile || editValues
       setEditValues({ ...editValues, ...updated })
-      updateAuthenticatedUser({ organizationName: updated.hospitalName || updated.organizationName || editValues.hospitalName, registrationNumber: updated.registrationNumber || editValues.registrationNumber, website: updated.website || editValues.website, address: updated.address || editValues.address, city: updated.city || editValues.city, state: updated.state || editValues.state })
+      updateAuthenticatedUser({ organizationName: updated.hospitalName || updated.organizationName || editValues.hospitalName, website: updated.website || editValues.website, address: updated.address || editValues.address, city: updated.city || editValues.city, state: updated.state || editValues.state })
       setEditing(false)
     } catch (requestError) { setError(requestError.message || 'Unable to update organization details.') }
     finally { setProfileSaving(false) }
@@ -110,7 +110,7 @@ export default function RecruiterVerificationPending() {
           <h2 className="text-sm font-bold text-red-800">Why it was not approved</h2>
           <p className="mt-1 text-sm text-red-700">{user?.rejectionReason || user?.organizationRejectionReason || 'No reason was provided. Please contact support.'}</p>
           <form onSubmit={saveRejectedProfile} className="mt-4 grid gap-3 sm:grid-cols-2">
-            {Object.entries({ hospitalName: 'Organization name', registrationNumber: 'Registration number', website: 'Website', address: 'Address', city: 'City', state: 'State' }).map(([key, label]) => <label key={key} className="text-xs font-semibold text-slate-700">{label}<input value={editValues[key]} disabled={!editing || profileSaving} onChange={(event) => setEditValues((current) => ({ ...current, [key]: event.target.value }))} className="mt-1 h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-sm font-normal" /></label>)}
+            {Object.entries({ hospitalName: 'Organization name', website: 'Website', address: 'Address', city: 'City', state: 'State' }).map(([key, label]) => <label key={key} className="text-xs font-semibold text-slate-700">{label}<input value={editValues[key]} disabled={!editing || profileSaving} onChange={(event) => setEditValues((current) => ({ ...current, [key]: event.target.value }))} className="mt-1 h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-sm font-normal" /></label>)}
             <div className="flex items-center gap-2 sm:col-span-2">{editing ? <><button type="submit" disabled={profileSaving} className="h-9 rounded-lg bg-slate-800 px-3 text-xs font-semibold text-white disabled:opacity-50">{profileSaving ? 'Saving…' : 'Save organization details'}</button><button type="button" disabled={profileSaving} onClick={() => setEditing(false)} className="h-9 rounded-lg border border-slate-300 px-3 text-xs font-semibold">Cancel</button></> : <button type="button" onClick={() => setEditing(true)} className="h-9 rounded-lg border border-red-300 bg-white px-3 text-xs font-semibold text-red-800">Edit organization details</button>}</div>
           </form>
           <label htmlFor="resubmit-note" className="mt-4 block text-sm font-semibold text-slate-900">Note for the reviewer (what you corrected)</label>

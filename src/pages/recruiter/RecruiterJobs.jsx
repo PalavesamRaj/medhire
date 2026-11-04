@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  AlertCircle, BriefcaseBusiness, CalendarDays, CheckCircle2, Clock3, DollarSign,
+  AlertCircle, BriefcaseBusiness, CalendarDays, CheckCircle2, Clock3, IndianRupee,
   MapPin, Pencil, Plus, RefreshCw, Search, Users, X,
 } from 'lucide-react'
 import { Field, Input, Select } from '../../components/ui/FormControls'
 import { RecruiterApiError, RecruiterEmpty, RecruiterLoading } from '../../components/recruiter/RecruiterApiState'
 import { recruiterApi } from '../../lib/recruiterApi'
+import { formatINRRange } from '../../lib/currency'
 
 const statusStyle = {
   PENDING_APPROVAL: ['border-amber-200 bg-amber-50 text-amber-800', 'Pending review'],
@@ -251,7 +252,7 @@ export default function RecruiterJobs() {
           <Field label="Specialty"><Input name="specialty" value={form.specialty} onChange={update} placeholder="e.g. Critical Care" required /></Field>
           <Field label="Location"><Input name="location" value={form.location} onChange={update} placeholder="City, State or Remote" required /></Field>
           <Field label="Employment type"><Select name="employmentType" value={form.employmentType} onChange={update}><option>Full-time</option><option>Part-time</option><option>Contract</option><option>Per Diem</option><option>Temporary</option></Select></Field>
-          <Field label="Salary range" hint="Optional. Include currency and pay period."><Input name="salaryRange" value={form.salaryRange} onChange={update} placeholder="e.g. ₹8–10 lakh / year" /></Field>
+          <Field label="Monthly salary range (INR)" hint="Enter the monthly amount in rupees."><Input name="salaryRange" value={form.salaryRange} onChange={update} placeholder="e.g. ₹8,000 - ₹15,000/month" /></Field>
           <div className="hidden sm:block" aria-hidden="true" />
           <div className="sm:col-span-2"><Field label="Job description" hint="Describe the role, responsibilities, and what makes this opportunity a good fit."><textarea name="description" value={form.description} onChange={update} rows={5} required placeholder="Share the key responsibilities and details of the position." className="w-full resize-y rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20" /></Field></div>
           <div className="sm:col-span-2"><Field label="Requirements" hint="Add one requirement per line."><textarea name="requirements" value={form.requirements} onChange={update} rows={3} placeholder={'Active nursing license\nTwo years of relevant experience'} className="w-full resize-y rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20" /></Field></div>
@@ -326,7 +327,7 @@ export default function RecruiterJobs() {
                     <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 border-y border-slate-100 py-3 text-sm text-slate-600">
                       {location && <span className="inline-flex items-center gap-1.5"><MapPin className="h-4 w-4 text-slate-400" />{location}</span>}
                       {employment && <span className="inline-flex items-center gap-1.5"><BriefcaseBusiness className="h-4 w-4 text-slate-400" />{employment}</span>}
-                      {(job.salaryRange || job.salary) && <span className="inline-flex items-center gap-1.5"><DollarSign className="h-4 w-4 text-slate-400" />{job.salaryRange || job.salary}</span>}
+                      {(job.salaryRange || job.salary) && <span className="inline-flex items-center gap-1.5">{formatINRRange(job.salaryRange || job.salary)}</span>}
                       {postedDate && <span className="inline-flex items-center gap-1.5"><CalendarDays className="h-4 w-4 text-slate-400" />Posted {postedDate}</span>}
                     </div>
 

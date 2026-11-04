@@ -99,11 +99,11 @@ function normalizeDashboard(payload, supplemental = {}) {
       experience: experience == null ? '' : typeof experience === 'number' ? `${experience} year${experience === 1 ? '' : 's'} experience` : String(experience),
       location: cleanText(candidateLocation),
       tags: toList(specialty),
-      openToWork: Boolean(openToWork),
+      openToWork: openToWork === true || String(openToWork).toLowerCase() === 'true',
       unlocked: Boolean(candidate.unlocked ?? candidate.isUnlocked ?? candidate.is_unlocked),
       verifiedCredentials: Boolean(candidate.verifiedCredentials ?? candidate.verified_credentials ?? candidate.credentialsVerified ?? candidate.credentials_verified),
     }
-  })
+  }).filter((candidate) => candidate.openToWork)
   const normalizedActivities = (Array.isArray(activities) ? activities : activities?.items ?? activities?.results ?? []).map((item, index) => {
     const description = typeof item === 'string' ? item : item.description ?? item.message ?? item.text ?? item.title ?? item.action ?? item.event ?? item.activity ?? item.type
     return {

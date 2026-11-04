@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import Badge from '../../components/ui/Badge'
 import { RecruiterApiError, RecruiterEmpty, RecruiterLoading, getErrorText, getListResponse } from '../../components/recruiter/RecruiterApiState'
 import { recruiterApi } from '../../lib/recruiterApi'
+import { formatINRRange } from '../../lib/currency'
 import { isCandidateContacted, markCandidateContacted } from '../../lib/recruiterCandidateContact'
 
 function unwrapResponse(value) {
@@ -33,6 +34,13 @@ function extractCandidate(result) {
   return result?.candidate ?? result?.candidateProfile ?? result?.candidate_profile ?? result?.profile?.candidate ??
     (result?.profile?.id || result?.profile?.candidateId || result?.profile?.title || result?.profile?.specialty ? result.profile : null) ??
     (result?.id || result?.candidateId || result?.candidate_id || result?.title || result?.specialty || result?.currentJobTitle ? result : null)
+}
+
+function candidateLookupIds(routeId, candidate = {}) {
+  return [...new Set([
+    candidate.publicId, candidate.public_id, candidate.candidatePublicId, candidate.candidate_public_id,
+    routeId, candidate.candidateId, candidate.candidate_id, candidate.candidateUuid, candidate.candidate_uuid, candidate.id,
+  ].filter((id) => typeof id === 'string' && id.trim()).map((id) => id.trim()))]
 }
 
 function asList(value) {
@@ -83,7 +91,9 @@ function normalizeCareerPreferences(value) {
   const normalized = rows.map(([label, raw]) => ({ label, value: scalar(raw) })).filter((item) => item.value)
   const salary = normalized.find((item) => item.label === 'Salary Expectation')
   const salaryType = value.salaryType ?? value.salary_type
-  if (salary && salaryType) salary.value = `${salary.value} / ${scalar(salaryType)}`
+  if (salary) {
+    salary.value = formatINRRange(`${salary.value} ${salaryType ? scalar(salaryType) : 'Monthly'}`)
+  }
   return normalized
 }
 
@@ -150,6 +160,19 @@ function normalizeResumes(value) {
   return items.map((item) => typeof item === 'string' ? { fileName: item } : item).filter((item) => item && typeof item === 'object')
 }
 
+function applicationResumeId(application = {}) {
+  const resume = application.resume ?? application.submittedResume ?? application.submitted_resume ?? application.candidateResume ?? application.candidate_resume ?? {}
+  const id = application.resumeId ?? application.resume_id ?? application.submittedResumeId ?? application.submitted_resume_id ?? application.resumeDocumentId ?? application.resume_document_id ?? application.candidateResumeId ?? application.candidate_resume_id ?? resume.resumeId ?? resume.resume_id ?? resume.id
+  return id == null ? '' : String(id)
+}
+
+function applicationResumeRecord(application = {}) {
+  const resume = application.resume ?? application.submittedResume ?? application.submitted_resume ?? application.candidateResume ?? application.candidate_resume ?? application.resumeMetadata ?? application.resume_metadata
+  if (resume && typeof resume === 'object') return resume
+  const id = applicationResumeId(application)
+  return id ? { id, resumeId: id, fileName: application.resumeFileName ?? application.resume_file_name ?? application.resumeName ?? application.resume_name, status: application.resumeStatus ?? application.resume_status } : null
+}
+
 function getAvailableCredits(...responses) {
   for (const response of responses) {
     const root = unwrapResponse(response)
@@ -205,6 +228,12 @@ export default function RecruiterCandidateProfile() {
   const { candidateId } = useParams()
   const location = useLocation()
   const navigate = useNavigate()
+  const applicationQuery = new URLSearchParams(location.search)
+  const scopedJobId = location.state?.application?.jobId || applicationQuery.get('jobId') || ''
+  const scopedApplicationId = location.state?.application?.applicationId || applicationQuery.get('applicationId') || ''
+  const scopedJobTitle = location.state?.application?.jobTitle || applicationQuery.get('jobTitle') || ''
+  const scopedApplicationStatus = location.state?.application?.status || ''
+  const scopedAppliedAt = location.state?.application?.appliedAt || ''
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -226,29 +255,40 @@ export default function RecruiterCandidateProfile() {
     setApplicationsLoading(true)
     setApplicationsError(false)
     setJobApplications([])
-    const targetId = String(candidateId || '').trim().toLowerCase()
     const loadApplicationStatuses = async () => {
+      // Application navigation is job-scoped: show only the application that
+      // led here, rather than merging every role the candidate applied for.
+      if (!scopedJobId) {
+        if (active) setJobApplications([])
+        setApplicationsLoading(false)
+        return
+      }
       try {
-        const jobs = getListResponse(await recruiterApi.getJobs()).items
-        const results = await Promise.allSettled(jobs.map(async (job) => {
-          const jobId = job.id || job.jobId || job.job_id
-          if (!jobId) return []
-          const applications = getListResponse(await recruiterApi.getJobApplications(jobId)).items
-          return applications
-            .filter((application) => String(applicationCandidateId(application) || '').trim().toLowerCase() === targetId)
-            .map((application) => ({
-              id: application.applicationId || application.application_id || application.id,
-              jobId,
-              jobTitle: job.title || job.jobTitle || job.job_title || 'Job posting',
-              status: application.status || application.applicationStatus || application.application_status,
-              appliedAt: application.appliedAt || application.applied_at || application.createdAt || application.created_at,
-            }))
-        }))
-        const failed = results.some((result) => result.status === 'rejected')
-        const matches = results.flatMap((result) => result.status === 'fulfilled' ? result.value : [])
+        const applications = getListResponse(await recruiterApi.getJobApplications(scopedJobId)).items
+        let matches = applications
+          .filter((application) => scopedApplicationId
+            ? String(application.applicationId || application.application_id || application.id) === String(scopedApplicationId)
+            : String(applicationCandidateId(application) || '').trim().toLowerCase() === String(candidateId || '').trim().toLowerCase())
+          .map((application) => ({
+            ...application,
+            id: application.applicationId || application.application_id || application.id || scopedApplicationId,
+            jobId: scopedJobId,
+            jobTitle: scopedJobTitle || application.jobTitle || application.job_title || 'Job posting',
+            status: application.status || application.applicationStatus || application.application_status || scopedApplicationStatus,
+            appliedAt: application.appliedAt || application.applied_at || application.createdAt || application.created_at || scopedAppliedAt,
+          }))
+        if (scopedApplicationId && matches.length) {
+          try {
+            const details = unwrapResponse(await recruiterApi.getApplication(scopedApplicationId))
+            const detailedApplication = details?.application ?? details
+            if (detailedApplication && typeof detailedApplication === 'object') matches = [{ ...matches[0], ...detailedApplication }]
+          } catch {
+            // The application list may already include the submitted resume metadata.
+          }
+        }
         if (active) {
-          setJobApplications(matches)
-          setApplicationsError(failed && matches.length === 0)
+          setJobApplications(matches.slice(0, 1))
+          setApplicationsError(false)
         }
       } catch {
         if (active) setApplicationsError(true)
@@ -258,12 +298,50 @@ export default function RecruiterCandidateProfile() {
     }
     loadApplicationStatuses()
     return () => { active = false }
-  }, [candidateId, reload])
+  }, [candidateId, reload, scopedJobId, scopedApplicationId, scopedJobTitle, scopedApplicationStatus, scopedAppliedAt])
 
   useEffect(() => {
     let active = true
     setLoading(true); setError(null)
-    Promise.allSettled([recruiterApi.getCandidate(candidateId), recruiterApi.getCreditBalance()]).then(([profileResponse, creditsResponse]) => {
+    const loadCandidate = async () => {
+      let lastError = null
+      for (const id of candidateLookupIds(candidateId, location.state?.candidate)) {
+        try {
+          const value = await recruiterApi.getCandidate(id)
+          if (extractCandidate(unwrapResponse(value))) return { status: 'fulfilled', value }
+        } catch (requestError) {
+          lastError = requestError
+        }
+      }
+      // Application and unlock records can use different candidate identifiers.
+      // Resolve an already purchased candidate through the recruiter's own
+      // purchased list before concluding that the profile is unavailable.
+      try {
+        const purchased = getListResponse(await recruiterApi.getPurchasedCandidates()).items
+        const target = String(candidateId || '').trim().toLowerCase()
+        const match = purchased.find((item) => {
+          const record = item?.candidate ?? item?.profile ?? item?.candidateProfile ?? item?.candidate_profile ?? item
+          return [item?.candidateId, item?.candidate_id, item?.candidateUuid, item?.candidate_uuid, item?.publicId, item?.public_id, item?.id,
+            record?.candidateId, record?.candidate_id, record?.candidateUuid, record?.candidate_uuid, record?.publicId, record?.public_id, record?.id]
+            .some((id) => id != null && String(id).trim().toLowerCase() === target)
+        })
+        if (match) {
+          const record = match.candidate ?? match.profile ?? match.candidateProfile ?? match.candidate_profile ?? match
+          for (const id of candidateLookupIds(candidateId, record)) {
+            try {
+              const value = await recruiterApi.getCandidate(id)
+              if (extractCandidate(unwrapResponse(value))) return { status: 'fulfilled', value }
+            } catch (requestError) { lastError = requestError }
+          }
+          if (extractCandidate(record)) return { status: 'fulfilled', value: { success: true, data: { ...match, candidate: record, unlocked: true, access: { unlocked: true } } } }
+        }
+      } catch (requestError) { lastError ||= requestError }
+      return lastError ? { status: 'rejected', reason: lastError } : { status: 'fulfilled', value: null }
+    }
+    Promise.all([loadCandidate(), recruiterApi.getCreditBalance().then(
+      (value) => ({ status: 'fulfilled', value }),
+      (reason) => ({ status: 'rejected', reason }),
+    )]).then(([profileResponse, creditsResponse]) => {
       if (!active) return
       const payload = profileResponse.status === 'fulfilled' ? profileResponse.value : null
       const creditsPayload = creditsResponse.status === 'fulfilled' ? creditsResponse.value : null
@@ -276,7 +354,12 @@ export default function RecruiterCandidateProfile() {
         const summary = {
           ...candidate,
           id: candidate.id ?? candidate.candidateId ?? candidate.candidate_id ?? candidate.publicId ?? candidate.public_id,
-          publicId: candidate.publicId ?? candidate.public_id ?? candidate.candidateId ?? candidate.candidate_id ?? candidate.id,
+          publicId: candidate.publicId ?? candidate.public_id ?? candidate.candidatePublicId ?? candidate.candidate_public_id ??
+            location.state?.candidate?.publicId ?? location.state?.candidate?.public_id ??
+            candidate.candidateId ?? candidate.candidate_id ?? candidate.id,
+          candidateUuid: candidate.candidateUuid ?? candidate.candidate_uuid ??
+            location.state?.candidate?.candidateUuid ?? location.state?.candidate?.candidate_uuid ??
+            location.state?.candidate?.candidateId ?? location.state?.candidate?.candidate_id,
           title: firstValue(candidate.title, candidate.jobTitle, candidate.job_title, candidate.currentJobTitle, candidate.current_job_title, candidate.roleTitle, candidate.role_title, candidate.profession, candidate.designation, candidate.professionalInformation?.currentJobTitle, candidate.professional_information?.current_job_title, location.state?.candidate?.title) || '',
           specialty: firstValue(candidate.specialty, candidate.specialtyName, candidate.specialty_name, location.state?.candidate?.specialty) || '',
           location: typeof candidate.location === 'object' ? [candidate.location.city, candidate.location.state].filter(Boolean).join(', ') : firstValue(candidate.location, candidate.city, location.state?.candidate?.location) || '',
@@ -287,7 +370,7 @@ export default function RecruiterCandidateProfile() {
           credentialsVerified: candidate.credentialsVerified === true || candidate.credentials_verified === true || candidate.verifiedCredentials === true || candidate.verified_credentials === true,
         }
         const access = result.access ?? result.accessDetails ?? result.access_details ?? {}
-        const unlockCost = getUnlockCost(result)
+        const unlockCost = getUnlockCost(result, creditsPayload)
         const creditBalance = getAvailableCredits(result, creditsPayload)
         const profile = normalizeCandidateProfile(result, summary, location.state?.candidate || {})
         setData({ ...result, candidate: summary, profile, access: { ...access, ...(unlockCost !== null ? { unlockCost } : {}) }, creditBalance: creditBalance ?? result.creditBalance ?? result.credit_balance ?? null })
@@ -328,26 +411,15 @@ export default function RecruiterCandidateProfile() {
   const creditBalanceKnown = availableCredits !== null
   const unlockCostKnown = unlockCost !== null
   const canUnlock = creditBalanceKnown && unlockCostKnown && availableCredits >= unlockCost
-  const resumeStatus = firstValue(
-    data?.resumeStatus, data?.resume_status,
-    data?.resumeApprovalStatus, data?.resume_approval_status,
-    candidate.resumeStatus, candidate.resume_status,
-    candidate.resumeApprovalStatus, candidate.resume_approval_status,
-    profile.resumeStatus, profile.resume_status,
-    profile.resumeApprovalStatus, profile.resume_approval_status,
-    data?.resume?.approvalStatus, data?.resume?.approval_status, data?.resume?.status,
-    candidate.resume?.approvalStatus, candidate.resume?.approval_status, candidate.resume?.status,
-    profile.resume?.approvalStatus, profile.resume?.approval_status, profile.resume?.status,
-    profile.activeResume?.approvalStatus, profile.activeResume?.approval_status, profile.activeResume?.status,
-    profile.active_resume?.approvalStatus, profile.active_resume?.approval_status, profile.active_resume?.status,
-    profile.resumes?.find((resume) => resume.active === true)?.approvalStatus,
-    profile.resumes?.find((resume) => resume.active === true)?.approval_status,
-    profile.resumes?.find((resume) => resume.active === true)?.status,
-    profile.resumes?.find((resume) => resume.isActive === true)?.approvalStatus,
-    profile.resumes?.find((resume) => resume.is_active === true)?.approval_status,
-    profile.resumes?.[0]?.approvalStatus, profile.resumes?.[0]?.status,
-  )
-  const resumeApproved = String(resumeStatus || '').trim().toLowerCase() === 'approved'
+  const selectedApplication = jobApplications[0]
+  const selectedResumeId = applicationResumeId(selectedApplication || {})
+  const embeddedApplicationResume = selectedApplication ? applicationResumeRecord(selectedApplication) : null
+  const selectedResume = selectedResumeId
+    ? profile.resumes?.find((resume) => String(resume.resumeId ?? resume.resume_id ?? resume.id ?? '') === selectedResumeId) || embeddedApplicationResume
+    : embeddedApplicationResume || (profile.resumes?.length === 1 ? profile.resumes[0] : null)
+  const resumesToShow = scopedJobId
+    ? selectedResume ? [selectedResume] : []
+    : [profile.resumes?.find((resume) => resume.active === true || resume.isActive === true || resume.is_active === true) || profile.resumes?.[0]].filter(Boolean)
   const contact = profile.contact || {}
   const hasContactDetails = Boolean(contact.fullName || contact.email || contact.phone || contact.address)
   const experience = Array.isArray(profile.workExperience) ? profile.workExperience : []
@@ -355,10 +427,6 @@ export default function RecruiterCandidateProfile() {
   const skills = Array.isArray(profile.skills) ? profile.skills : (candidate.tags || [])
 
   const unlock = async () => {
-    if (!resumeApproved) {
-      setActionError('The resume must be approved before you can unlock this profile.')
-      return
-    }
     if (!canUnlock) {
       setActionError(creditBalanceKnown && unlockCostKnown ? 'There are not enough credits to unlock this profile.' : 'The credit balance or unlock cost is unavailable. Check Plans & Credits before trying again.')
       return
@@ -377,25 +445,23 @@ export default function RecruiterCandidateProfile() {
       const refreshed = profileResult.status === 'fulfilled' ? unwrapResponse(profileResult.value) : null
       const refreshedCandidate = extractCandidate(refreshed)
       const refreshedBalance = creditsResult.status === 'fulfilled' ? getAvailableCredits(creditsResult.value) : null
-
-      if (refreshedCandidate && isProfileUnlocked(refreshed, refreshedCandidate)) {
-        const unlockedCandidate = { ...refreshedCandidate, unlocked: true }
-        const unlockedProfile = normalizeCandidateProfile(refreshed, unlockedCandidate, location.state?.candidate || {})
-        const unlockedSectionsMissing = !unlockedProfile.summary && !unlockedProfile.workExperience.length && !unlockedProfile.skills.length && !unlockedProfile.career.length
-        setData((current) => ({
-          ...refreshed,
-          candidate: { ...current.candidate, ...unlockedCandidate },
-          profile: unlockedProfile,
-          access: { ...(refreshed.access ?? refreshed.accessDetails ?? refreshed.access_details ?? {}), unlocked: true },
-          creditBalance: creditsResult.status === 'fulfilled' ? refreshedBalance : null,
-        }))
-        setNotice(unlockedSectionsMissing ? 'The profile was unlocked, but the refreshed detail response did not include professional profile details.' : '')
-      } else {
-        setData((current) => ({ ...current, creditBalance: creditsResult.status === 'fulfilled' ? refreshedBalance : current.creditBalance }))
-        setNotice(refreshedCandidate
-          ? 'The unlock request succeeded, but the refreshed detail response did not confirm unlocked: true. Contact details and resumes remain hidden.'
-          : 'The unlock request succeeded, but the refreshed detail response could not be loaded. Contact details and resumes remain hidden; use Reload to try again.')
-      }
+      const unlockedCandidate = { ...(refreshedCandidate || {}), unlocked: true }
+      const unlockedProfile = refreshedCandidate
+        ? normalizeCandidateProfile(refreshed, unlockedCandidate, location.state?.candidate || {})
+        : null
+      const unlockedSectionsMissing = unlockedProfile && !unlockedProfile.summary && !unlockedProfile.workExperience.length && !unlockedProfile.skills.length && !unlockedProfile.career.length
+      setData((current) => ({
+        ...(refreshed || current),
+        candidate: { ...current.candidate, ...unlockedCandidate },
+        profile: unlockedProfile || current.profile,
+        access: { ...(refreshed?.access ?? refreshed?.accessDetails ?? refreshed?.access_details ?? current.access ?? {}), unlocked: true },
+        creditBalance: creditsResult.status === 'fulfilled' ? refreshedBalance : current.creditBalance,
+      }))
+      setNotice(!refreshedCandidate
+        ? 'The profile was unlocked, but private profile details could not be refreshed. Reload the page to fetch them.'
+        : unlockedSectionsMissing
+          ? 'The profile was unlocked, but the refreshed detail response did not include all professional profile details.'
+          : '')
       setUnlockModalOpen(false)
     } catch (requestError) {
       if (String(requestError.code || '').toUpperCase() === 'INSUFFICIENT_CREDITS') {
@@ -411,7 +477,7 @@ export default function RecruiterCandidateProfile() {
     if (!resumeId) { setActionError('A secure resume download is not available for this candidate.'); return }
     setResumeBusy(true); setActionError('')
     try {
-      const blob = await recruiterApi.downloadCandidateResume(candidate.candidateId || candidate.id, resumeId)
+      const blob = await recruiterApi.downloadCandidateResume(candidate.candidateUuid || candidate.candidate_uuid || candidate.candidateId || candidate.candidate_id || candidate.id, resumeId)
       const url = URL.createObjectURL(blob)
       const anchor = document.createElement('a')
       anchor.href = url
@@ -424,7 +490,8 @@ export default function RecruiterCandidateProfile() {
 
   return <div className="flex flex-col gap-5">
     {notice && <p role="status" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{notice}</p>}
-    <section className="flex flex-col gap-5 rounded-xl border border-slate-200 bg-white p-5 sm:p-6"><div className="flex flex-col justify-between gap-5 xl:flex-row xl:items-center"><div className="flex min-w-0 items-start gap-4"><div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-slate-800 text-2xl font-bold text-white">{candidate.initials || 'MH'}</div><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h1 className="text-xl font-bold text-slate-900">{unlocked ? (contact.fullName || candidate.name || candidate.title) : (candidate.title || 'Candidate Profile')}</h1>{candidate.credentialsVerified && <Badge tone="teal" className="normal-case tracking-normal">Verified Credentials</Badge>}{candidate.availability && <Badge tone="success" className="normal-case tracking-normal">Available - {candidate.availability}</Badge>}{unlocked && <Badge tone="success" className="normal-case tracking-normal">Unlocked</Badge>}{contacted && <Badge tone="teal" className="normal-case tracking-normal">Contacted</Badge>}</div><p className="mt-1 text-sm text-slate-600">{[candidate.title, candidate.specialty, candidate.location, candidate.experience].filter(Boolean).join(' | ')}</p></div></div><div className="flex flex-wrap items-center gap-3 xl:justify-end"><button type="button" onClick={() => navigate('/recruiter/find-candidates')} className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-xs font-bold text-blue-600 hover:bg-blue-50"><ArrowLeft className="h-3.5 w-3.5" />Back to Search</button>{unlocked && contact.email && <a href={`mailto:${contact.email}`} onClick={() => { markCandidateContacted(candidate.candidateId || candidate.candidate_id || candidate.id || candidateId); setContacted(true) }} className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-xs font-bold text-white"><Send className="h-3.5 w-3.5" />{contacted ? 'Email Candidate Again' : 'Contact Candidate'}</a>}{!unlocked && <button type="button" disabled={!resumeApproved} onClick={() => setUnlockModalOpen(true)} title={!resumeApproved ? 'Resume must be approved to unlock this profile' : undefined} className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"><UnlockKeyhole className="h-4 w-4" />Unlock Full Profile</button>}</div></div></section>
+    {scopedJobId && <p className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">Application view: {scopedJobTitle || 'selected job posting'}. Status below is for this application only.</p>}
+    <section className="flex flex-col gap-5 rounded-xl border border-slate-200 bg-white p-5 sm:p-6"><div className="flex flex-col justify-between gap-5 xl:flex-row xl:items-center"><div className="flex min-w-0 items-start gap-4"><div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-slate-800 text-2xl font-bold text-white">{candidate.initials || 'MH'}</div><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h1 className="text-xl font-bold text-slate-900">{unlocked ? (contact.fullName || candidate.name || candidate.title) : (candidate.title || 'Candidate Profile')}</h1>{candidate.credentialsVerified && <Badge tone="teal" className="normal-case tracking-normal">Verified Credentials</Badge>}{candidate.availability && <Badge tone="success" className="normal-case tracking-normal">Available - {candidate.availability}</Badge>}{unlocked && <Badge tone="success" className="normal-case tracking-normal">Unlocked</Badge>}{contacted && <Badge tone="teal" className="normal-case tracking-normal">Contacted</Badge>}</div><p className="mt-1 text-sm text-slate-600">{[candidate.title, candidate.specialty, candidate.location, candidate.experience].filter(Boolean).join(' | ')}</p></div></div><div className="flex flex-wrap items-center gap-3 xl:justify-end"><button type="button" onClick={() => navigate('/recruiter/find-candidates')} className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-xs font-bold text-blue-600 hover:bg-blue-50"><ArrowLeft className="h-3.5 w-3.5" />Back to Search</button>{unlocked && <Link to="/recruiter/purchased-candidates" className="inline-flex items-center gap-2 rounded-md border border-slate-200 px-4 py-2 text-xs font-bold text-blue-600 hover:bg-blue-50">Purchased Candidates</Link>}{unlocked && contact.email && <a href={`mailto:${contact.email}`} onClick={() => { markCandidateContacted(candidate.candidateId || candidate.candidate_id || candidate.id || candidateId); setContacted(true) }} className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-xs font-bold text-white"><Send className="h-3.5 w-3.5" />{contacted ? 'Email Candidate Again' : 'Contact Candidate'}</a>}{!unlocked && <button type="button" disabled={!canUnlock} onClick={() => setUnlockModalOpen(true)} title={!canUnlock ? 'Available credits or unlock cost could not be loaded' : undefined} className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"><UnlockKeyhole className="h-4 w-4" />Unlock Full Profile</button>}</div></div></section>
     <ProfileSection title="Job Application Status">
       {applicationsLoading ? <p className="text-sm text-slate-500">Loading this candidate’s applications…</p>
         : applicationsError ? <p className="text-sm text-amber-800">Application statuses could not be loaded. Please reload the profile to try again.</p>
@@ -434,7 +501,8 @@ export default function RecruiterCandidateProfile() {
     {actionError && <p role="alert" className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"><AlertCircle className="h-4 w-4" />{actionError}</p>}
     {unlocked && !hasContactDetails && <p role="status" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">The profile is unlocked, but this detail response did not include contact information. Reload the profile or check the candidate detail API response.</p>}
     <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,7fr)_minmax(320px,3fr)]"><div className="flex min-w-0 flex-col gap-5"><ProfileSection title="Professional Summary">{profile.summary ? <p className="text-sm leading-5 text-slate-700">{profile.summary}</p> : <p className="text-sm text-slate-500">No professional summary is available.</p>}</ProfileSection>
-      {unlocked && Array.isArray(profile.resumes) && profile.resumes.length > 0 && <ProfileSection title="Resume & Documents"><div className="flex flex-col gap-3">{profile.resumes.map((resume, index) => <div key={resume.resumeId || resume.id || `${resume.fileName || resume.name || 'resume'}-${index}`} className="flex flex-col justify-between gap-3 rounded-lg border border-slate-200 p-3 sm:flex-row sm:items-center"><div className="flex items-center gap-3"><FileText className="h-6 w-6 text-slate-600" /><div><p className="text-sm font-semibold text-slate-900">{resume.fileName || resume.name || 'Resume'}</p><p className="text-xs text-slate-500">{resume.meta || resume.fileType || ''}</p></div></div><button type="button" disabled={resumeBusy || !(resume.resumeId || resume.id)} onClick={() => downloadResume(resume)} className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-xs font-bold text-white disabled:opacity-50"><Download className="h-3.5 w-3.5" />{resumeBusy ? 'Downloading...' : 'Download Resume'}</button></div>)}</div></ProfileSection>}
+    {unlocked && resumesToShow.length > 0 && <ProfileSection title={scopedJobId ? 'Resume Submitted for This Job' : 'Current Resume'}><div className="flex flex-col gap-3">{resumesToShow.map((resume, index) => <div key={resume.resumeId || resume.id || `${resume.fileName || resume.name || 'resume'}-${index}`} className="flex flex-col justify-between gap-3 rounded-lg border border-slate-200 p-3 sm:flex-row sm:items-center"><div className="flex items-center gap-3"><FileText className="h-6 w-6 text-slate-600" /><div><p className="text-sm font-semibold text-slate-900">{resume.fileName || resume.name || 'Resume'}</p><p className="text-xs text-slate-500">{resume.meta || resume.fileType || ''}</p></div></div><button type="button" disabled={resumeBusy || !(resume.resumeId || resume.resume_id || resume.id)} onClick={() => downloadResume(resume)} className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-xs font-bold text-white disabled:opacity-50"><Download className="h-3.5 w-3.5" />{resumeBusy ? 'Downloading...' : 'Download Resume'}</button></div>)}</div></ProfileSection>}
+      {unlocked && scopedJobId && !resumesToShow.length && <ProfileSection title="Resume Submitted for This Job"><p className="text-sm text-amber-800">The application response did not include the submitted resume ID. Ask the backend to return the application’s resumeId and resume metadata so the correct file can be shown.</p></ProfileSection>}
       <ProfileSection title="Work Experience">{experience.length > 0 ? <div className="flex flex-col gap-4">{experience.map((item, index) => <React.Fragment key={item.id || `${item.title}-${index}`}><div className="flex flex-col gap-1.5"><div className="flex flex-col justify-between gap-1 sm:flex-row"><h3 className="text-sm font-bold text-slate-900">{item.title || item.role || 'Role unavailable'}</h3><span className="text-xs text-slate-500">{item.dates || item.period}</span></div><p className="text-xs font-medium text-slate-600">{item.company}{item.employmentType ? ` · ${item.employmentType}` : ''}{item.location ? ` | ${item.location}` : ''}</p>{item.description && <p className="text-xs leading-5 text-slate-600">{item.description}</p>}</div>{index < experience.length - 1 && <div className="border-t border-slate-100" />}</React.Fragment>)}</div> : <p className="text-sm text-slate-500">No work experience is available.</p>}</ProfileSection>
       <ProfileSection title="Skills">{skills.length ? <div className="flex flex-wrap gap-2">{skills.map((skill) => <span key={skill} className="rounded-md bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700">{skill}</span>)}</div> : <p className="text-sm text-slate-500">No skills are available.</p>}</ProfileSection></div>
       <div className="flex flex-col gap-5"><section className={`rounded-xl border border-slate-200 p-5 ${unlocked ? 'bg-green-50' : 'bg-slate-50'}`}><h2 className="text-xl font-semibold text-slate-900">Contact Information</h2>{!unlocked && <div className="mt-3 flex items-center gap-2 text-xs text-slate-500"><LockKeyhole className="h-4 w-4" />Email, phone, and address are masked until profile unlock</div>}<div className={`mt-4 flex flex-col gap-2.5 ${unlocked ? '' : 'opacity-75'}`}><ContactRow label="Full Name" value={unlocked ? (contact.fullName || '-') : (contact.maskedFullName || maskedCandidateName(candidate))} icon={Eye} /><ContactRow label="Email" value={unlocked ? (contact.email || '-') : (contact.maskedEmail || maskContactValue('', 'email'))} icon={Mail} /><ContactRow label="Phone" value={unlocked ? (contact.phone || '-') : (contact.maskedPhone || maskContactValue('', 'phone'))} icon={Phone} /><ContactRow label="Address" value={unlocked ? (contact.address || '-') : (contact.maskedAddress || maskContactValue('', 'address'))} icon={MapPin} /></div></section><ProfileSection title="Career Preferences">{career.length ? <dl className="flex flex-col gap-3">{career.map((item) => <div key={item.label} className="flex items-start justify-between gap-4 text-xs"><dt className="text-slate-500">{item.label}</dt><dd className="text-right font-semibold text-slate-800">{item.value}</dd></div>)}</dl> : <p className="text-sm text-slate-500">No preferences are available.</p>}</ProfileSection></div></div>

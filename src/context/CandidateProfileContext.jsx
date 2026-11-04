@@ -1,10 +1,20 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { loadProfileDraft, saveProfileDraft } from '../lib/candidateProfileDraft'
-import { getAccessToken } from '../lib/authSession'
-import { candidateProfileApi } from '../lib/candidateProfileApi'
+import { getAccessToken, getAuthenticatedUser } from '../lib/authSession'
+import { candidateProfileApi, getCandidatePhotoUrl, getCandidateResumeRecord } from '../lib/candidateProfileApi'
+import { candidateDashboardApi } from '../lib/candidateDashboardApi'
+import { toMonthlySalaryAmount } from '../lib/currency'
 
 const CandidateProfileContext = createContext(null)
-const unwrap = (response) => response?.data?.profile || response?.data?.candidate || response?.data || response?.profile || response?.candidate || response || {}
+const unwrap = (response) => {
+  let value = response
+  for (let depth = 0; depth < 6 && value && typeof value === 'object' && !Array.isArray(value); depth += 1) {
+    const nested = value.data ?? value.profile ?? value.candidateProfile ?? value.candidate_profile ?? value.candidate ?? value.result
+    if (!nested || typeof nested !== 'object' || Array.isArray(nested)) break
+    value = nested
+  }
+  return value || {}
+}
 const countryNames = { US: 'United States', IN: 'India', CA: 'Canada', GB: 'United Kingdom', AU: 'Australia', OTHER: 'Other' }
 const genderNames = { female: 'Female', male: 'Male', 'non-binary': 'Non-binary', non_binary: 'Non-binary', 'non binary': 'Non-binary', 'prefer not to say': 'Prefer not to say', 'self-describe': 'Self-describe', self_describe: 'Self-describe' }
 const employmentLabels = { FULL_TIME: 'Full Time', PART_TIME: 'Part Time', CONTRACT: 'Contract', TEMPORARY: 'Temporary', PER_DIEM: 'Per Diem', INTERNSHIP: 'Internship' }
@@ -31,6 +41,13 @@ const withAliases = (value = {}, aliases = {}) => {
   }
   return result
 }
+const mergeCachedFields = (cached = {}, remote = {}) => {
+  const merged = { ...cached, ...remote }
+  for (const [key, value] of Object.entries(remote)) {
+    if ((value === '' || value == null) && cached[key] !== undefined) merged[key] = cached[key]
+  }
+  return merged
+}
 const normalizeRows = (rows, aliases) => rows.map((row) => withAliases(row, aliases))
 const normalizeSkills = (skills) => (Array.isArray(skills) ? skills : []).map((skill) => {
   if (typeof skill === 'string') return skill.trim()
@@ -41,23 +58,35 @@ const normalizeSkills = (skills) => (Array.isArray(skills) ? skills : []).map((s
 function normalizeProfile(response) {
   const raw = unwrap(response)
   const draft = loadProfileDraft()
-  const personalData = raw.personalInformation || raw.personal || raw.personal_info || {}
-  const professionalData = raw.professionalInformation || raw.professional || raw.professional_info || {}
-  const personal = { ...draft.personalInformation, ...withAliases(personalData, {
+  const authUser = getAuthenticatedUser() || {}
+  // Some API versions return section objects; others return the same fields at
+  // the profile root. Normalize both so the dashboard and editor read one shape.
+  const personalData = { ...raw, ...(raw.personalInformation || raw.personal_information || raw.personalInfo || raw.personal_info || raw.personal || {}) }
+  const professionalData = { ...raw, ...(raw.professionalInformation || raw.professional_information || raw.professionalInfo || raw.professional_info || raw.professional || {}) }
+  const personalAliases = withAliases(personalData, {
     firstName: ['first_name'], lastName: ['last_name'], phoneNumber: ['phone_number', 'phone'],
     dateOfBirth: ['date_of_birth', 'dob'], country: ['country_code'], city: ['city_name'], state: ['state_name'], zipCode: ['zip_code', 'postalCode', 'postal_code'],
-  }) }
-  const professional = { ...draft.professionalInformation, ...withAliases(professionalData, {
-    currentJobTitle: ['current_job_title'], yearsOfExperience: ['years_of_experience'], currentEmployer: ['current_employer'],
-    professionalSummary: ['professional_summary'], licenseNumber: ['license_number'], licenseState: ['license_state'], npiNumber: ['npi_number'],
-  }) }
+  })
+  const fullName = personalData.fullName || personalData.full_name || personalData.name || authUser.fullName || authUser.full_name || authUser.name
+  if (!personalAliases.firstName && fullName) personalAliases.firstName = String(fullName).trim().split(/\s+/)[0] || ''
+  if (!personalAliases.lastName && fullName) personalAliases.lastName = String(fullName).trim().split(/\s+/).slice(1).join(' ')
+  if (!personalAliases.city && typeof personalAliases.location === 'string') {
+    const [city, ...stateParts] = personalAliases.location.split(',')
+    personalAliases.city = city.trim()
+    if (!personalAliases.state && stateParts.length) personalAliases.state = stateParts.join(',').trim()
+  }
+  const personal = mergeCachedFields(draft.personalInformation, personalAliases)
+  const professional = mergeCachedFields(draft.professionalInformation, withAliases(professionalData, {
+    currentJobTitle: ['current_job_title', 'headline', 'jobTitle', 'job_title', 'title'], yearsOfExperience: ['years_of_experience'], currentEmployer: ['current_employer'],
+    professionalSummary: ['professional_summary', 'summary'], licenseNumber: ['license_number'], licenseState: ['license_state'], npiNumber: ['npi_number'],
+  }))
   const dateOfBirth = personal.dateOfBirth
-  const education = normalizeRows(preferProfileRows(raw.education, draft.education), { fieldOfStudy: ['field_of_study'], institutionName: ['institution_name'], graduationYear: ['graduation_year'] })
-  const workExperience = normalizeRows(preferProfileRows(raw.workExperience || raw.experience, draft.workExperience), {
+  const education = normalizeRows(preferProfileRows(raw.education || raw.educationHistory || raw.education_history, draft.education), { fieldOfStudy: ['field_of_study'], institutionName: ['institution_name'], graduationYear: ['graduation_year'] })
+  const workExperience = normalizeRows(preferProfileRows(raw.workExperience || raw.work_experience || raw.experience, draft.workExperience), {
     jobTitle: ['job_title'], employerName: ['employer_name'], employmentType: ['employment_type'], startMonth: ['start_month'], startYear: ['start_year'],
     endMonth: ['end_month'], endYear: ['end_year'], currentlyWorking: ['currently_working'],
   }).map((item) => ({ ...item, employmentType: employmentLabels[item.employmentType] || item.employmentType }))
-  const certifications = normalizeRows(preferProfileRows(raw.certifications, draft.certifications), {
+  const certifications = normalizeRows(preferProfileRows(raw.certifications || raw.certificationHistory || raw.certification_history, draft.certifications), {
     certificationName: ['certification_name'], issuingOrganization: ['issuing_organization'], credentialId: ['credential_id'],
     issueDate: ['issue_date'], expiryDate: ['expiry_date'], doesNotExpire: ['does_not_expire'],
   })
@@ -66,6 +95,9 @@ function normalizeProfile(response) {
     ...raw,
     personalInformation: {
       ...personal,
+      firstName: personal.firstName || authUser.firstName || authUser.first_name || authUser.fullName?.split?.(/\s+/)[0] || raw.fullName?.split?.(/\s+/)[0] || '',
+      lastName: personal.lastName || authUser.lastName || authUser.last_name || authUser.fullName?.split?.(/\s+/).slice(1).join(' ') || raw.fullName?.split?.(/\s+/).slice(1).join(' ') || '',
+      phoneNumber: personal.phoneNumber || authUser.phoneNumber || authUser.phone_number || authUser.phone || '',
       country: countryNames[personal.country] || personal.country || '',
       gender: typeof personal.gender === 'string' ? genderNames[personal.gender.toLowerCase()] || personal.gender : personal.gender,
       dateOfBirth: typeof dateOfBirth === 'string' && /^\d{4}-\d{2}-\d{2}/.test(dateOfBirth) ? dateOfBirth.slice(0, 10) : dateOfBirth,
@@ -90,25 +122,30 @@ function normalizeProfile(response) {
     skills: normalizeSkills(preferProfileRows(Array.isArray(raw.skills) ? raw.skills : raw.skills?.skills, draft.skills)),
     certifications,
     careerPreferences: (() => {
-      const preferenceData = raw.careerPreferences || raw.preferences || {}
-      const preferences = { ...draft.careerPreferences, ...withAliases(preferenceData, {
+      const preferenceData = raw.careerPreferences || raw.career_preferences || raw.preferences || raw.jobPreferences || raw.job_preferences || {}
+      const normalizedPreferences = withAliases(preferenceData, {
         desiredJobTitle: ['desired_job_title'], preferredSpecialties: ['preferred_specialties'], employmentTypes: ['employment_types'],
         preferredLocations: ['preferred_locations'], workSetting: ['work_setting'], shiftPreference: ['shift_preference'], expectedSalary: ['expected_salary'],
         salaryType: ['salary_type'], availableFrom: ['available_from'], willingToRelocate: ['willing_to_relocate'], remotePreference: ['remote_preference'],
-      }) }
+      })
+      const preferences = mergeCachedFields(draft.careerPreferences, normalizedPreferences)
+      for (const key of ['preferredSpecialties', 'employmentTypes', 'preferredLocations']) {
+        if (Array.isArray(normalizedPreferences[key]) && normalizedPreferences[key].length === 0 && draft.careerPreferences[key]?.length) preferences[key] = draft.careerPreferences[key]
+      }
       return {
         ...preferences,
+        expectedSalary: preferences.expectedSalary == null || preferences.expectedSalary === '' ? preferences.expectedSalary : toMonthlySalaryAmount(preferences.expectedSalary, preferences.salaryType),
         employmentTypes: (Array.isArray(preferences.employmentTypes) ? preferences.employmentTypes : []).map((type) => employmentLabels[type] || type),
         workSetting: preferenceValue('workSetting', preferences.workSetting),
         shiftPreference: preferenceValue('shiftPreference', preferences.shiftPreference),
-        salaryType: preferenceValue('salaryType', preferences.salaryType),
+        salaryType: preferences.expectedSalary != null && preferences.expectedSalary !== '' ? 'Monthly' : preferenceValue('salaryType', preferences.salaryType),
         remotePreference: preferenceValue('remotePreference', preferences.remotePreference),
         availableFrom: dateInputValue(preferences.availableFrom),
       }
     })(),
     resume: null,
-    resumeMetadata: raw.resume || raw.resumeMetadata || null,
-    photoUrl: raw.photoUrl || raw.profilePhotoUrl || raw.profilePhoto?.url || raw.avatarUrl || '',
+    resumeMetadata: getCandidateResumeRecord(raw.resume || raw.resumeMetadata || raw.resume_metadata || raw.resumes) || null,
+    photoUrl: getCandidatePhotoUrl(raw),
   }
 }
 export function CandidateProfileProvider({ children }) {
@@ -116,29 +153,41 @@ export function CandidateProfileProvider({ children }) {
   const [submitted, setSubmitted] = useState(false)
   const [storageError, setStorageError] = useState('')
   const [loading, setLoading] = useState(Boolean(getAccessToken()))
+  const [resumeLoading, setResumeLoading] = useState(Boolean(getAccessToken()))
   const [profileError, setProfileError] = useState('')
   const [candidate] = useState(() => {
     try { return JSON.parse(sessionStorage.getItem('medhire_candidate_identity') || 'null') } catch { return null }
   })
   useEffect(() => {
     let active = true
-    if (!getAccessToken()) { setLoading(false); return () => { active = false } }
-    Promise.allSettled([candidateProfileApi.getCandidateProfile(), candidateProfileApi.getCandidateOnboarding()]).then(([profileResult, onboardingResult]) => {
+    if (!getAccessToken()) { setLoading(false); setResumeLoading(false); return () => { active = false } }
+    candidateProfileApi.getCandidateProfile().then((response) => {
       if (!active) return
-      if (profileResult.status === 'fulfilled') setProfile(normalizeProfile(profileResult.value))
-      else setProfileError(profileResult.reason?.message || 'Could not load your saved profile.')
-      if (onboardingResult.status === 'fulfilled') {
-        const progress = unwrap(onboardingResult.value)
-        setProfile((previous) => ({ ...previous, onboarding: progress }))
-        setSubmitted(progress.profileCompleted === true || progress.status === 'COMPLETED')
+      const normalized = normalizeProfile(response)
+      if (candidate?.email && !normalized.personalInformation.email) {
+        normalized.personalInformation = { ...normalized.personalInformation, email: candidate.email }
       }
-      setLoading(false)
-    })
+      setProfile((previous) => ({ ...normalized, resumeMetadata: normalized.resumeMetadata || previous.resumeMetadata }))
+    }).catch((error) => {
+      if (active) setProfileError(error?.message || 'Could not load your saved profile.')
+    }).finally(() => { if (active) setLoading(false) })
+    candidateDashboardApi.getResume().then((response) => {
+      if (!active) return
+      const savedResume = getCandidateResumeRecord(response)
+      if (savedResume) setProfile((previous) => ({ ...previous, resumeMetadata: savedResume }))
+    }).catch(() => { /* The profile response or saved draft can still provide resume metadata. */ })
+      .finally(() => { if (active) setResumeLoading(false) })
+    candidateProfileApi.getCandidateOnboarding().then((response) => {
+      if (!active) return
+      const progress = unwrap(response)
+      setProfile((previous) => ({ ...previous, onboarding: progress }))
+      setSubmitted(progress.profileCompleted === true || progress.status === 'COMPLETED')
+    }).catch(() => { /* Profile loading does not depend on onboarding progress. */ })
     return () => { active = false }
   }, [])
   useEffect(() => {
     const ok = saveProfileDraft(profile)
-    setStorageError(ok ? '' : 'Browser storage is unavailable. Keep this tab open to retain your changes.')
+    setStorageError(ok ? '' : 'Your browser could not save a local profile backup. Please keep the API connection available and save again.')
   }, [profile, submitted])
   const updateSection = useCallback((section, value) => {
     setSubmitted(false)
@@ -157,7 +206,7 @@ export function CandidateProfileProvider({ children }) {
     }[section]
     if (save) await save(data)
   }, [])
-  return <CandidateProfileContext.Provider value={{ profile, updateSection, saveSection, submitted, setSubmitted, completeProfile, candidate, storageError, loading, profileError }}>{children}</CandidateProfileContext.Provider>
+  return <CandidateProfileContext.Provider value={{ profile, updateSection, saveSection, submitted, setSubmitted, completeProfile, candidate, storageError, loading, resumeLoading, profileError }}>{children}</CandidateProfileContext.Provider>
 }
 export function useCandidateProfile() {
   const context = useContext(CandidateProfileContext)

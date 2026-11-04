@@ -91,14 +91,16 @@ export function storeAuthSession(response, rememberMe) {
   if (response.user) storage.setItem(USER_KEY, JSON.stringify(response.user))
 }
 
-export function clearAuthSession() {
+export function clearAuthSession({ preserveCandidateDraft = false } = {}) {
   for (const storage of [localStorage, sessionStorage]) {
     storage.removeItem(ACCESS_TOKEN_KEY)
     storage.removeItem(REFRESH_TOKEN_KEY)
     storage.removeItem(USER_KEY)
   }
-  sessionStorage.removeItem('medhire_candidate_identity')
-  sessionStorage.removeItem('medhire_candidate_profile_draft')
+  if (!preserveCandidateDraft) {
+    sessionStorage.removeItem('medhire_candidate_identity')
+    sessionStorage.removeItem('medhire_candidate_profile_draft')
+  }
   sessionStorage.removeItem(PENDING_RECRUITER_PROFILE_KEY)
 }
 

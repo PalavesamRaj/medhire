@@ -72,9 +72,8 @@ export const updatePrivacySettings = (data) => request(CANDIDATE_ENDPOINTS.priva
 export const searchJobs = (filters = {}) => {
   const { hospital, type, ...supported } = filters
   const query = { ...supported }
-  // The deployed API supports q/location/specialty/employmentType/workSetting.
-  // Hospital and type are UI names; map them to the supported search fields.
-  if (hospital) query.q = [query.q, hospital].filter(Boolean).join(' ')
+  // The documented job-list API does not expose an organization filter. Keep
+  // hospital matching client-side instead of sending it as a title query.
   if (type && type !== 'All') query.employmentType = String(type).replaceAll(' ', '_').toUpperCase()
   return requestAllPages(CANDIDATE_ENDPOINTS.jobs, query)
 }

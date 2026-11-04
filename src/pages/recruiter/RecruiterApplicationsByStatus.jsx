@@ -26,8 +26,14 @@ function applicantFrom(item) {
   const candidate = item.candidate ?? item.applicant ?? item.candidateProfile ?? item.candidate_profile ?? {}
   const unlocked = item.unlocked === true || item.isUnlocked === true || item.is_unlocked === true || candidate.unlocked === true || candidate.isUnlocked === true || candidate.is_unlocked === true
   const location = first(item.location, candidate.location, [candidate.city, candidate.state].filter(Boolean).join(', '))
+  const publicId = first(item.candidatePublicId, item.candidate_public_id, item.publicId, item.public_id,
+    candidate.candidatePublicId, candidate.candidate_public_id, candidate.publicId, candidate.public_id)
+  const candidateUuid = first(item.candidateUuid, item.candidate_uuid, item.candidateId, item.candidate_id,
+    candidate.candidateUuid, candidate.candidate_uuid, candidate.candidateId, candidate.candidate_id, candidate.id)
   return {
-    id: first(item.candidatePublicId, item.candidate_public_id, item.candidateId, item.candidate_id, candidate.publicId, candidate.public_id, candidate.candidateId, candidate.candidate_id, candidate.id),
+    id: publicId || candidateUuid,
+    publicId,
+    candidateUuid,
     name: unlocked ? first(item.name, item.fullName, item.full_name, candidate.name, candidate.fullName, candidate.full_name, candidate.displayName, candidate.display_name) : first(item.maskedName, item.masked_name, candidate.maskedName, candidate.masked_name, candidate.maskedFullName, candidate.masked_full_name),
     initials: first(item.initials, candidate.initials, 'C'),
     title: first(item.title, item.jobTitle, item.job_title, candidate.title, candidate.jobTitle, candidate.job_title, candidate.currentJobTitle, candidate.current_job_title, candidate.profession),
@@ -151,7 +157,7 @@ export default function RecruiterApplicationsByStatus({ status }) {
     {loadError && <RecruiterApiError error={loadError} onRetry={load} />}
     <section className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
       {loading ? <RecruiterLoading label={`Loading ${view.title.toLowerCase()} applications…`} /> : !loadError && pageRows.length === 0 ? <div className="p-5"><RecruiterEmpty>{rows.length ? 'No applications match your filters.' : `No ${view.title.toLowerCase()} applications found.`}</RecruiterEmpty></div> : !loadError && <table className="w-full min-w-[1200px] table-fixed border-collapse text-left">
-        <colgroup><col style={{ width: '18%' }} /><col style={{ width: '17%' }} /><col style={{ width: '12%' }} /><col style={{ width: '6%' }} /><col style={{ width: '14%' }} /><col style={{ width: '10%' }} /><col style={{ width: '10%' }} /><col style={{ width: '13%' }} /></colgroup>
+        <colgroup><col style={{ width: '18%' }} /><col style={{ width: '16%' }} /><col style={{ width: '11%' }} /><col style={{ width: '6%' }} /><col style={{ width: '13%' }} /><col style={{ width: '9%' }} /><col style={{ width: '11%' }} /><col style={{ width: '16%' }} /></colgroup>
         <thead><tr className="border-b border-slate-200 bg-slate-50 text-xs font-bold uppercase text-slate-700"><th scope="col" className="px-4 py-3">Candidate</th><th scope="col" className="px-4 py-3">Role</th><th scope="col" className="px-4 py-3">Specialty</th><th scope="col" className="px-4 py-3">Exp</th><th scope="col" className="px-4 py-3">Location</th><th scope="col" className="px-4 py-3">Date</th><th scope="col" className="px-4 py-3">Status</th><th scope="col" className="px-4 py-3">Actions</th></tr></thead>
         <tbody>
         {pageRows.map((item, index) => {
@@ -167,8 +173,8 @@ export default function RecruiterApplicationsByStatus({ status }) {
             <td className="break-words px-4 py-4 text-sm text-slate-600">{candidate.specialty || '—'}</td><td className="px-4 py-4 text-sm text-slate-600">{candidate.experience ?? '—'}</td>
             <td className="px-4 py-4"><span className="flex items-center gap-1 text-sm text-slate-600"><MapPin className="h-3.5 w-3.5 shrink-0 text-slate-400" />{candidate.location || item.jobLocation || '—'}</span></td>
             <td className="px-4 py-4 text-xs text-slate-500">{formatDate(appliedAt)}</td><td className="px-4 py-4"><Badge tone={statusTone} className="normal-case tracking-normal">{view.title}</Badge></td>
-            <td className="px-4 py-4"><div className="flex flex-wrap items-center gap-2">{candidate.id ? <Link to={`/recruiter/candidates/${encodeURIComponent(candidate.id)}`} state={{ candidate: { ...candidate, publicId: candidate.id } }} aria-label={`View ${candidateLabel}`} className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-blue-600"><Eye className="h-3.5 w-3.5" /></Link> : <span className="text-xs text-slate-400">No profile</span>}
-              {nextStatuses.length > 0 && <select aria-label={`Move ${candidateLabel} to next step`} disabled={statusBusy === applicationId} defaultValue="" onChange={(event) => { const next = event.target.value; event.target.value = ''; if (next === 'REJECTED') { setActionError(''); setRejectTarget(item); setRejectReason('') } else if (next) changeStatus(item, next) }} className="h-8 max-w-36 rounded-md border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-700 disabled:opacity-50"><option value="" disabled>{statusBusy === applicationId ? 'Saving…' : 'Next step'}</option>{nextStatuses.map((nextStatus) => <option key={nextStatus} value={nextStatus}>{STATUS_LABELS[nextStatus] || nextStatus}</option>)}</select>}
+            <td className="px-4 py-4"><div className="flex flex-nowrap items-center gap-2 whitespace-nowrap">{candidate.id ? <Link to={`/recruiter/candidates/${encodeURIComponent(candidate.id)}?jobId=${encodeURIComponent(item.jobId)}&applicationId=${encodeURIComponent(applicationId)}&jobTitle=${encodeURIComponent(item.jobTitle || '')}`} state={{ candidate, application: { jobId: item.jobId, applicationId, jobTitle: item.jobTitle, status: item.status, appliedAt } }} aria-label={`View ${candidateLabel}`} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-200 text-blue-600"><Eye className="h-3.5 w-3.5" /></Link> : <span className="text-xs text-slate-400">No profile</span>}
+              {nextStatuses.length > 0 && <select aria-label={`Move ${candidateLabel} to next step`} disabled={statusBusy === applicationId} defaultValue="" onChange={(event) => { const next = event.target.value; event.target.value = ''; if (next === 'REJECTED') { setActionError(''); setRejectTarget(item); setRejectReason('') } else if (next) changeStatus(item, next) }} className="h-8 w-28 max-w-28 shrink-0 rounded-md border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-700 disabled:opacity-50"><option value="" disabled>{statusBusy === applicationId ? 'Saving…' : 'Next step'}</option>{nextStatuses.map((nextStatus) => <option key={nextStatus} value={nextStatus}>{STATUS_LABELS[nextStatus] || nextStatus}</option>)}</select>}
             </div></td>
           </tr>
         })}

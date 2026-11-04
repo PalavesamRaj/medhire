@@ -36,8 +36,8 @@ In the response column, a concrete JSON shown by the supplied document is identi
 | `PATCH /api/notifications/read-all` | No body; bearer token. | HTTP `200`; body **UNCONFIRMED**. |
 | `GET /api/recruiter/dashboard` | No query/body; bearer token. | HTTP `200`; body **UNCONFIRMED**. |
 | `GET /api/recruiter/plans` | No query/body; bearer token. | HTTP `200`; body **UNCONFIRMED**. |
-| `GET /api/recruiter/hospital-profile` | No query/body; bearer token. | HTTP `200`; body **UNCONFIRMED**. |
-| `PATCH /api/recruiter/hospital-profile` | Sends flat JSON keys `name`, `website`, `phone`, `address`, `city`, `state`, `postalCode`, `country`, `registrationNumber`, optional `description`, and `hiringPreferences: { specialties: [] }`; bearer token. | HTTP `200`; body **UNCONFIRMED**. Aligned to documented backend names. Location and employment hiring preferences are not sent because the backend example does not confirm them. |
+| `GET /api/recruiter/hospital-profile` | No query/body; bearer token. | HTTP `200`; confirmed response includes `data.hiringPreferences` with `specialties`, `locations`, and `employmentTypes` arrays (defaults each missing/malformed value to `[]`) and `data.verification` fields. |
+| `PATCH /api/recruiter/hospital-profile` | Sends flat profile keys; blank optional `website`, `registrationNumber`, and `description` are omitted. Includes `hiringPreferences` arrays `specialties`, `locations`, and `employmentTypes`; bearer token. | HTTP `200`; body **UNCONFIRMED**. Field-level validation errors under `error.details` are displayed. PATCH persists `hiringPreferences` in `organizations.hiring_preferences`; GET reads back that value. |
 | `GET /api/recruiter/organization/documents` | No query/body; bearer token. | HTTP `200`; body **UNCONFIRMED**. |
 | `POST /api/recruiter/organization/documents` | `multipart/form-data` fields `documentType` and `document`; browser-generated boundary; bearer token. | HTTP `201`; body **UNCONFIRMED**. The frontend sends the file field named `document`. |
 | `DELETE /api/recruiter/organization/documents/{documentId}` | No body; bearer token. | HTTP `200`; body **UNCONFIRMED**. |
@@ -76,7 +76,7 @@ In the response column, a concrete JSON shown by the supplied document is identi
 
 ## Recruiter mismatches resolved in frontend
 
-1. **Hospital profile request:** `recruiterApi.js` now flattens the UI model and maps `hospitalName`→`name`, `hospitalPhone`→`phone`, and `postal`→`postalCode`. It sends only confirmed `hiringPreferences.specialties`; locations and employment types display read-only until backend confirms their write support.
+1. **Hospital profile request:** `recruiterApi.js` flattens the UI model and maps `hospitalName`→`name`, `hospitalPhone`→`phone`, and `postal`→`postalCode`; country is sent as the full country name per the updated backend contract. When `hiringPreferences` is sent, the payload includes all currently returned arrays (`specialties`, `locations`, `employmentTypes`) because the backend replaces that object. The profile page only lets the recruiter edit specialties.
 2. **Organization resubmission:** sends `{ "notes": "..." }`.
 3. **Close job:** sends `{ "reason": "Position has been filled." }` by default.
 4. **Checkout:** sends `{ "planId": "...", "idempotencyKey": "<uuid>" }` in JSON; callback URLs and the idempotency header were removed from this UI call.
@@ -88,7 +88,7 @@ In the response column, a concrete JSON shown by the supplied document is identi
 | Spreadsheet row | Current frontend behavior |
 |---|---|
 | Auth change email | Already sends only `{ "newEmail": "..." }`; no change needed. |
-| Personal information | Omits `gender`, `address`, and auth-owned `email`; sends fields in the documented backend example. |
+| Personal information | Sends supported `gender` and `address` fields and omits auth-owned `email`; country names are mapped to backend country codes. |
 | Education | Omits frontend-only row `id`; sends numeric `graduationYear`. |
 | Work experience | Omits local row `id`; serializes month/year fields as numbers and omits end date fields for current roles. |
 | Skills response | Adapter accepts a bare array response as the canonical skill list. |

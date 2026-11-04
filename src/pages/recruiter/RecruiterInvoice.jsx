@@ -3,6 +3,7 @@ import { ArrowLeft, Download, Printer } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 import { RecruiterApiError, RecruiterLoading } from '../../components/recruiter/RecruiterApiState'
 import { recruiterApi } from '../../lib/recruiterApi'
+import { formatINR } from '../../lib/currency'
 
 export default function RecruiterInvoice() {
   const { transactionId } = useParams()
@@ -22,7 +23,7 @@ export default function RecruiterInvoice() {
   if (error) return <div className="mx-auto flex max-w-xl flex-col gap-4"><RecruiterApiError error={error} onRetry={() => setReload((value) => value + 1)} /><Link to="/recruiter/payment-history" className="inline-flex items-center gap-2 text-sm font-semibold text-blue-600"><ArrowLeft className="h-4 w-4" />Back to Payment History</Link></div>
   if (!invoice) return <div className="mx-auto max-w-xl rounded-xl border border-slate-200 bg-white p-8 text-center"><h1 className="text-xl font-bold text-slate-900">Invoice unavailable</h1><p className="mt-2 text-sm text-slate-500">No invoice is available for this transaction.</p><Link to="/recruiter/payment-history" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-blue-600"><ArrowLeft className="h-4 w-4" />Back to Payment History</Link></div>
 
-  const amount = (value) => { try { return new Intl.NumberFormat(undefined, { style: 'currency', currency: invoice.currency }).format(Number(value)) } catch { return `${value ?? '—'} ${invoice.currency || ''}` } }
+  const amount = (value) => formatINR(value)
   const billedTo = invoice.billedTo || {}
   const billedFrom = invoice.billedFrom || {}
   return <div className="mx-auto flex max-w-[800px] flex-col gap-4"><div className="flex flex-wrap items-center justify-between gap-3 print:hidden"><Link to="/recruiter/payment-history" className="inline-flex items-center gap-2 text-sm font-semibold text-blue-600"><ArrowLeft className="h-4 w-4" />Payment History</Link><span className="text-xs text-slate-500">Invoice {invoice.invoiceNumber || ''}</span></div>

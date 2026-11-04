@@ -13,7 +13,7 @@ import { Link } from 'react-router-dom'
 
 export default function EditProfile() {
   const { profile, loading: profileLoading, updateSection } = useCandidateProfile()
-  const { candidate, dispatch } = useCandidateDashboard()
+  const { candidate, dispatch, resumes } = useCandidateDashboard()
   const [form, setForm] = useState(() => Object.fromEntries(['firstName', 'lastName', 'headline', 'location', 'summary'].map((key) => [key, candidate[key]])))
   const [errors, setErrors] = useState({})
   const [error, setError] = useState('')
@@ -25,8 +25,8 @@ export default function EditProfile() {
     setForm(Object.fromEntries(['firstName', 'lastName', 'headline', 'location', 'summary'].map((key) => [key, candidate[key] || ''])))
   }, [profileLoading, candidate.firstName, candidate.lastName, candidate.headline, candidate.location, candidate.summary])
   const update = (name, value) => { setForm((previous) => ({ ...previous, [name]: value })); setErrors((previous) => ({ ...previous, [name]: undefined })) }
-  const completion = getCandidateProfileCompletion(profile)
-  const sections = completion.sections
+  const completion = getCandidateProfileCompletion(profile, { hasSavedResume: Boolean(resumes?.length) })
+  const { sections } = completion
   const submit = async (event) => {
     event.preventDefault()
     const nextErrors = validateEditProfile(form)

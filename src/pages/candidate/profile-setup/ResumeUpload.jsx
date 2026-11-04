@@ -6,10 +6,10 @@ import { useCandidateProfile } from '../../../context/CandidateProfileContext'
 import { useToast } from '../../../components/ui/ToastProvider'
 import { validateResume } from '../../../lib/candidateProfileValidation'
 import { profilePath, profileSteps, PROFILE_SETUP_STEPS } from '../../../lib/candidateProfileOptions'
-import { candidateProfileApi } from '../../../lib/candidateProfileApi'
+import { candidateProfileApi, getCandidateResumeRecord } from '../../../lib/candidateProfileApi'
 
 export default function ResumeUpload() {
-  const { profile, updateSection } = useCandidateProfile()
+  const { profile, updateSection, resumeLoading } = useCandidateProfile()
   const [fileError, setFileError] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -40,7 +40,7 @@ export default function ResumeUpload() {
       setBusy(true)
       try {
         const response = await candidateProfileApi.uploadResume(resume)
-        updateSection('resumeMetadata', response?.data || response)
+        updateSection('resumeMetadata', getCandidateResumeRecord(response) || { fileName: resume.name, name: resume.name, status: 'Uploaded' })
         toast('Your resume was uploaded successfully.')
         navigate(returnTo || profilePath(2), { replace: Boolean(returnTo) })
       } catch (requestError) { setError(requestError.message) }
@@ -48,17 +48,18 @@ export default function ResumeUpload() {
       return
     }
     if (profile.resumeMetadata) { navigate(returnTo || profilePath(2), { replace: Boolean(returnTo) }); return }
-    try { await candidateProfileApi.updateCandidateOnboardingStep('resume', 'SKIPPED') } catch { /* Resume and skip tracking are optional. */ }
-    navigate(returnTo || profilePath(2), { replace: Boolean(returnTo) })
+    setFileError('Upload a resume before continuing.')
+    input.current?.focus()
   }
   return <CandidateProfileLayout step={1} onSubmit={submit} busy={busy} error={error}>
-    <div onDragOver={(event) => { event.preventDefault(); if (!busy) setDragging(true) }} onDragLeave={() => setDragging(false)} onDrop={(event) => { event.preventDefault(); setDragging(false); select(event.dataTransfer.files) }} className={`rounded-lg border-2 border-dashed ${dragging ? 'border-brand-600 bg-brand-100' : 'border-brand-500/50 bg-ink-50'} ${busy ? 'opacity-60' : ''}`}>
+    {resumeLoading && !profile.resume && !profile.resumeMetadata && <p role="status" className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-700">Checking for your saved resume…</p>}
+    {!resumeLoading && (!profile.resumeMetadata || profile.resume) && <div onDragOver={(event) => { event.preventDefault(); if (!busy) setDragging(true) }} onDragLeave={() => setDragging(false)} onDrop={(event) => { event.preventDefault(); setDragging(false); select(event.dataTransfer.files) }} className={`rounded-lg border-2 border-dashed ${dragging ? 'border-brand-600 bg-brand-100' : 'border-brand-500/50 bg-ink-50'} ${busy ? 'opacity-60' : ''}`}>
       <button type="button" disabled={busy} onClick={() => input.current?.click()} aria-describedby="resume-hint resume-error" className="flex w-full flex-col items-center justify-center gap-3 px-5 py-12 text-center focus-visible:outline-brand-600"><span className="rounded-full bg-brand-50 p-3 text-brand-600"><UploadCloud size={25} /></span><span className="text-sm font-semibold text-ink-900">Drag &amp; drop your resume here or click to browse</span><span id="resume-hint" className="text-xs text-ink-400">Accepted formats: PDF, DOC, DOCX · Max 5 MB</span></button>
       <input ref={input} type="file" aria-label="Choose resume" className="sr-only" tabIndex={-1} accept=".pdf,.doc,.docx" disabled={busy} onChange={(event) => { select(event.target.files); event.target.value = '' }} />
-    </div>
+    </div>}
     <p id="resume-error" role={fileError ? 'alert' : undefined} className="text-xs text-red-600">{fileError}</p>
     {profile.resume && <div className="flex min-w-0 items-center gap-3 rounded-lg border border-ink-200 p-3"><FileText className="shrink-0 text-green-600" size={24} /><div className="min-w-0 flex-1"><p className="break-all text-sm font-semibold text-ink-900">{profile.resume.name}</p><p className="mt-1 text-xs text-ink-400">{(profile.resume.size / 1024 / 1024).toFixed(2)} MB · Ready to upload</p></div><CheckCircle2 size={18} className="shrink-0 text-green-600" /><button type="button" aria-label="Remove resume" disabled={busy} className="rounded p-1 text-ink-600 hover:bg-ink-50" onClick={() => { updateSection('resume', null); setFileError('') }}><X size={18} /></button></div>}
-    {!profile.resume && profile.resumeMetadata && <p className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800">Resume on file: {profile.resumeMetadata.fileName || profile.resumeMetadata.name || 'Uploaded resume'} · {profile.resumeMetadata.approvalStatus || profile.resumeMetadata.status || 'Uploaded'}</p>}
-    <p className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-700"><Info size={16} className="mt-0.5 shrink-0" />Your resume can be added now or later during onboarding. It is not required to continue.</p>
+    {!profile.resume && profile.resumeMetadata && <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800"><p className="flex items-center gap-2 font-semibold"><FileText size={18} />{profile.resumeMetadata.fileName || profile.resumeMetadata.name || 'Uploaded resume'}</p><p className="mt-1">{profile.resumeMetadata.approvalStatus || profile.resumeMetadata.status || 'Uploaded'}{profile.resumeMetadata.uploadedAt ? ` · ${new Date(profile.resumeMetadata.uploadedAt).toLocaleDateString()}` : ''}</p><Link to="/candidate/resume-management" className="mt-2 inline-block font-semibold text-brand-700 hover:underline">Manage or upload an updated resume →</Link></div>}
+    <p className="flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs leading-5 text-blue-700"><Info size={16} className="mt-0.5 shrink-0" />A resume is required to continue and to apply for jobs.</p>
   </CandidateProfileLayout>
 }

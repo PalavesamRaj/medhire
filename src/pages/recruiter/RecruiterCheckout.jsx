@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { ArrowLeft, LockKeyhole, ShieldCheck } from 'lucide-react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { RecruiterApiError, RecruiterLoading } from '../../components/recruiter/RecruiterApiState'
 import { recruiterApi } from '../../lib/recruiterApi'
 import { normalizeRecruiterPlans, unwrapRecruiterResponse } from '../../lib/recruiterPlanUtils'
+import { formatINR } from '../../lib/currency'
 
 const CHECKOUT_URL_KEYS = new Set([
   'checkouturl', 'checkoutpageurl', 'hostedcheckouturl', 'checkoutsessionurl',
@@ -83,9 +84,6 @@ export default function RecruiterCheckout() {
   </div>
 }
 
-function formatPrice(amount, currency) {
-  if (amount === undefined || amount === null || !currency) return 'Price unavailable'
-  try { return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(Number(amount)) } catch { return `${amount} ${currency}` }
-}
+function formatPrice(amount) { return formatINR(amount) }
 
 function SummaryRow({ label, value }) { return <div className="flex justify-between gap-4 text-sm"><dt className="text-slate-500">{label}</dt><dd className="text-right font-bold text-slate-900">{value}</dd></div> }

@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { ArrowRight, BriefcaseMedical, MapPin, Search, ShieldCheck } from 'lucide-react'
 import { searchPublicJobs } from '../lib/publicApi'
 import Button from '../components/ui/Button'
+import { formatINRRange } from '../lib/currency'
 
 const PAGE_SIZE = 50
 
@@ -16,15 +17,13 @@ function getJobRows(payload) {
 }
 
 function formatSalary(job) {
-  if (job.salaryRange || job.salary_range) return job.salaryRange || job.salary_range
+  if (job.salaryRange || job.salary_range) return formatINRRange(job.salaryRange || job.salary_range)
   const min = job.salaryMin ?? job.salary_min
   const max = job.salaryMax ?? job.salary_max
   if (min == null && max == null) return 'Salary not disclosed'
-  const currency = job.currency || 'USD'
-  const amount = (value) => new Intl.NumberFormat(undefined, { style: 'currency', currency, maximumFractionDigits: 0 }).format(value)
-  if (min == null) return `Up to ${amount(max)}`
-  if (max == null) return `From ${amount(min)}`
-  return `${amount(min)} – ${amount(max)}`
+  if (min == null) return `Up to ${formatINRRange(max)}`
+  if (max == null) return `From ${formatINRRange(min)}`
+  return formatINRRange(`${min} - ${max}`)
 }
 
 function normalizePublicJob(job) {
@@ -44,9 +43,12 @@ function normalizePublicJob(job) {
 
 export default function FindJobs() {
   const [params, setParams] = useSearchParams()
-  const [query, setQuery] = useState(params.get('q') || '')
-  const [location, setLocation] = useState(params.get('location') || '')
-  const [specialty, setSpecialty] = useState(params.get('specialty') || '')
+  const queryParam = params.get('q') || ''
+  const locationParam = params.get('location') || ''
+  const specialtyParam = params.get('specialty') || ''
+  const [query, setQuery] = useState(queryParam)
+  const [location, setLocation] = useState(locationParam)
+  const [specialty, setSpecialty] = useState(specialtyParam)
   const [jobs, setJobs] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -54,6 +56,32 @@ export default function FindJobs() {
   const [pagination, setPagination] = useState({ page: 1, pageSize: PAGE_SIZE, total: 0, totalPages: 1 })
   const specialties = [...new Set([...known, ...(specialty ? [specialty] : [])])].sort()
   const results = jobs
+
+  // Keep the search fields in sync with browser navigation and shared links.
+  useEffect(() => {
+    setQuery(queryParam)
+    setLocation(locationParam)
+    setSpecialty(specialtyParam)
+  }, [queryParam, locationParam, specialtyParam])
+
+  // Update the URL and results while the user types, with a short debounce to
+  // avoid sending one request for every keystroke.
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const nextQuery = query.trim()
+      const nextLocation = location.trim()
+      if (nextQuery === queryParam && nextLocation === locationParam && specialty === specialtyParam) return
+      setParams((current) => {
+        const next = new URLSearchParams(current)
+        if (nextQuery) next.set('q', nextQuery); else next.delete('q')
+        if (nextLocation) next.set('location', nextLocation); else next.delete('location')
+        if (specialty) next.set('specialty', specialty); else next.delete('specialty')
+        next.delete('page')
+        return next
+      }, { replace: true })
+    }, 300)
+    return () => window.clearTimeout(timer)
+  }, [query, location, specialty, queryParam, locationParam, specialtyParam, setParams])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -79,7 +107,7 @@ export default function FindJobs() {
     if (query.trim()) next.set('q', query.trim())
     if (location.trim()) next.set('location', location.trim())
     if (specialty) next.set('specialty', specialty)
-    setParams(next)
+    setParams(next, { replace: true })
   }
 
   function clearFilters() {

@@ -1,5 +1,6 @@
 import { getAccessToken } from './authSession'
 import { authedFetch } from './http'
+import { toMonthlySalaryAmount } from './currency'
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
 
@@ -23,6 +24,33 @@ function getErrorMessage(payload, fallback) {
   return fallback
 }
 
+function getFieldErrors(payload) {
+  const source = payload?.error?.fields
+    || payload?.error?.fieldErrors
+    || payload?.error?.details?.fields
+    || payload?.error?.details?.errors
+    || payload?.error?.details?.validationErrors
+    || (payload?.error?.details && typeof payload.error.details === 'object' && !Array.isArray(payload.error.details) ? payload.error.details : undefined)
+    || payload?.error?.errors
+    || payload?.error?.validationErrors
+    || payload?.fields
+    || payload?.fieldErrors
+    || payload?.details?.fields
+    || payload?.details?.errors
+    || payload?.details?.validationErrors
+    || (payload?.details && typeof payload.details === 'object' && !Array.isArray(payload.details) ? payload.details : undefined)
+    || payload?.errors
+    || payload?.validationErrors
+    || (Array.isArray(payload?.error?.details) ? payload.error.details : undefined)
+    || (Array.isArray(payload?.details) ? payload.details : undefined)
+  if (Array.isArray(source)) return Object.fromEntries(source.map((item) => {
+    const field = item?.field || item?.path || item?.property
+    const message = item?.message || item?.reason || item?.error
+    return field && message ? [Array.isArray(field) ? field.join('.') : String(field), message] : null
+  }).filter(Boolean))
+  return source && typeof source === 'object' ? source : {}
+}
+
 export async function request(path, { method = 'GET', body, signal, idempotencyKey } = {}) {
   const token = getAccessToken()
   const response = await authedFetch(`${API_BASE_URL}${path}`, {
@@ -41,7 +69,7 @@ export async function request(path, { method = 'GET', body, signal, idempotencyK
   const payload = await response.json().catch(() => ({}))
   if (!response.ok) {
     const error = new Error(getErrorMessage(payload, 'Unable to complete the recruiter request. Please try again.'))
-    error.fieldErrors = payload?.error?.fields || payload?.error?.details?.fields || payload?.fields || payload?.details?.fields || {}
+    error.fieldErrors = getFieldErrors(payload)
     error.details = payload?.error?.details || payload?.details
     error.requestId = payload?.error?.requestId || payload?.requestId
     error.status = response.status
@@ -100,12 +128,16 @@ const employmentTypeValue = (value) => ({ 'FULL-TIME': 'FULL_TIME', 'FULL TIME':
 function toJobPayload(body = {}) {
   const { salaryRange, requirements, ...fields } = body
   const salary = String(salaryRange || '')
-  const values = salary.match(/\d+(?:,\d{3})*(?:\.\d+)?/g)?.map((part) => Number(part.replaceAll(',', ''))) || []
-  const multiplier = /\blakh\b/i.test(salary) ? 100000 : /\bk\b/i.test(salary) ? 1000 : 1
+  const unitMultiplier = /\b(?:lakh|lakhs|lac|lacs|lpa)\b/i.test(salary) ? 100000 : /\b(?:k|thousand)\b/i.test(salary) ? 1000 : 1
+  const period = /\b(?:per\s*year|yearly|annual|annually|\/\s*year|\/\s*yr|lpa)\b/i.test(salary) ? 'ANNUAL'
+    : /\b(?:per\s*week|weekly|\/\s*week|\/\s*wk)\b/i.test(salary) ? 'WEEKLY'
+      : /\b(?:per\s*day|daily|\/\s*day)\b/i.test(salary) ? 'DAILY'
+        : /\b(?:per\s*hour|hourly|\/\s*hour|\/\s*hr)\b/i.test(salary) ? 'HOURLY' : 'MONTHLY'
+  const values = salary.match(/\d[\d,]*(?:\.\d+)?/g)?.map((part) => toMonthlySalaryAmount(Number(part.replaceAll(',', '')) * unitMultiplier, period)) || []
   const payload = { ...fields, employmentType: employmentTypeValue(fields.employmentType), workSetting: fields.workSetting || 'ONSITE' }
   if (values.length) {
-    payload.salaryMin = values[0] * multiplier
-    if (values.length > 1) payload.salaryMax = values[1] * multiplier
+    payload.salaryMin = values[0]
+    if (values.length > 1) payload.salaryMax = values[1]
   }
   const requirementLines = Array.isArray(requirements) ? requirements.filter(Boolean) : []
   if (requirementLines.length) payload.description = `${fields.description || ''}\n\nRequirements:\n${requirementLines.map((item) => `- ${item}`).join('\n')}`
@@ -115,19 +147,36 @@ function toJobPayload(body = {}) {
 function toHospitalProfilePayload(body = {}) {
   const profile = body.profile || body
   const preferences = body.hiringPreferences || {}
-  return {
+  const country = String(profile.country ?? '').trim()
+  const payload = {
     name: profile.hospitalName ?? profile.name,
-    website: profile.website,
     phone: profile.hospitalPhone ?? profile.phone,
     address: profile.address,
     city: profile.city,
     state: profile.state,
     postalCode: profile.postal ?? profile.postalCode,
-    country: profile.country,
+    country,
+  }
+  // Omit optional blank strings instead of submitting values that commonly
+  // fail backend format validation. Non-empty values retain the documented
+  // flat contract and field names.
+  for (const [key, value] of Object.entries({
+    website: profile.website,
     registrationNumber: profile.registrationNumber,
     description: profile.description,
-    ...(body.hiringPreferences ? { hiringPreferences: { specialties: preferences.specialties ?? [] } } : {}),
+  })) {
+    if (typeof value === 'string' && value.trim()) payload[key] = value.trim()
+    else if (value !== undefined && value !== null && typeof value !== 'string') payload[key] = value
   }
+  if (body.hiringPreferences) {
+    const toStringList = (values) => Array.isArray(values) ? values.filter((value) => typeof value === 'string' && value.trim()).map((value) => value.trim()) : []
+    payload.hiringPreferences = {
+      specialties: toStringList(preferences.specialties),
+      locations: toStringList(preferences.locations),
+      employmentTypes: toStringList(preferences.employmentTypes),
+    }
+  }
+  return payload
 }
 
 export const recruiterApi = {

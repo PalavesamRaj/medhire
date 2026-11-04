@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Bell } from 'lucide-react'
 import { notificationsApi } from '../../lib/notificationsApi'
 
 export default function NotificationBell() {
   const navigate = useNavigate()
+  const { pathname } = useLocation()
   const box = useRef(null)
   const [open, setOpen] = useState(false)
   const [items, setItems] = useState([])
@@ -12,12 +13,23 @@ export default function NotificationBell() {
   const [error, setError] = useState('')
 
   const notificationPath = (item) => {
+    const type = String(item.type || '').toUpperCase()
+    if (pathname.startsWith('/recruiter/') && /^INTERVIEW_(SCHEDULED|RESCHEDULED|CANCELLED|STATUS_CHANGED)$/.test(type)) return '/recruiter/applications/interview'
+    if (/^(CANDIDATE_)?SHORTLISTED$|^APPLICATION_SHORTLISTED$/.test(type)) {
+      return pathname.startsWith('/candidate/') ? '/candidate/applications' : '/recruiter/shortlisted-candidates'
+    }
     const paths = {
       RESUME_APPROVED: '/candidate/resume-management', RESUME_REJECTED: '/candidate/resume-management',
       APPLICATION_STATUS_CHANGED: '/candidate/applications', ORGANIZATION_APPROVED: '/recruiter/dashboard',
       ORGANIZATION_REJECTED: '/recruiter/verification-pending', JOB_APPROVED: '/recruiter/jobs',
       JOB_REJECTED: '/recruiter/jobs', JOB_CLOSED: '/recruiter/jobs',
       NEW_APPLICATION: item.jobId ? `/recruiter/jobs/${encodeURIComponent(item.jobId)}/applications` : '/recruiter/jobs',
+      NEW_JOB_POSTED: '/candidate/jobs', JOB_POSTED: '/candidate/jobs',
+      RECOMMENDED_JOB: item.jobId ? `/candidate/jobs/${encodeURIComponent(item.jobId)}` : '/candidate/jobs',
+      RECOMMENDED_JOBS: '/candidate/jobs', NEW_RECOMMENDED_JOB: item.jobId ? `/candidate/jobs/${encodeURIComponent(item.jobId)}` : '/candidate/jobs',
+      INTERVIEW_SCHEDULED: '/candidate/applications', INTERVIEW_RESCHEDULED: '/candidate/applications',
+      INTERVIEW_CANCELLED: '/candidate/applications', INTERVIEW_STATUS_CHANGED: '/candidate/applications',
+      CANDIDATE_OPEN_TO_WORK: '/recruiter/dashboard',
       PLAN_PURCHASED: '/recruiter/payment-history',
     }
     const mapped = paths[String(item.type || '').toUpperCase()]
@@ -53,7 +65,7 @@ export default function NotificationBell() {
 
   const openItem = async (item) => {
     setOpen(false)
-    if (!item.read) {
+    if (!item.read && !item.readAt) {
       setItems((current) => current.map((entry) => (entry.id === item.id ? { ...entry, read: true } : entry)))
       setUnread((count) => Math.max(0, count - 1))
       notificationsApi.markRead(item.id).catch(() => load())
@@ -73,7 +85,7 @@ export default function NotificationBell() {
   }
 
   return <div className="relative" ref={box}>
-    <button type="button" aria-label={`Notifications${unread ? `, ${unread} unread` : ''}`} aria-expanded={open} onClick={() => setOpen((value) => !value)} className="relative flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-900 hover:bg-slate-100">
+    <button type="button" aria-label={`Notifications${unread ? `, ${unread} unread` : ''}`} aria-expanded={open} onClick={() => { const next = !open; setOpen(next); if (next) load() }} className="relative flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-900 hover:bg-slate-100">
       <Bell className="h-5 w-5" />
       {unread > 0 && <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">{unread > 9 ? '9+' : unread}</span>}
     </button>
@@ -87,7 +99,7 @@ export default function NotificationBell() {
       <ul className="mt-3 max-h-80 space-y-1 overflow-y-auto">
         {items.map((item) => <li key={item.id}>
           <button type="button" onClick={() => openItem(item)} className={`w-full rounded-lg px-3 py-2 text-left hover:bg-slate-50 ${item.read ? '' : 'bg-blue-50'}`}>
-            <span className="block text-sm font-semibold text-slate-900">{item.title}</span>
+            <span className="block text-sm font-semibold text-slate-900">{item.title || item.subject || 'Notification'}</span>
             {item.message && <span className="mt-0.5 block text-xs text-slate-600">{item.message}</span>}
             {item.createdAt && <span className="mt-1 block text-[11px] text-slate-400">{new Date(item.createdAt).toLocaleString()}</span>}
           </button>

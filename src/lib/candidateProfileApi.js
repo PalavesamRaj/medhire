@@ -1,5 +1,6 @@
 import { getAccessToken } from './authSession.js'
 import { authedFetch } from './http'
+import { toMonthlySalaryAmount } from './currency'
 
 export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
 export const PROFILE_ENDPOINTS = {
@@ -9,12 +10,72 @@ export const PROFILE_ENDPOINTS = {
   certifications: '/candidates/me/certifications', preferences: '/candidates/me/preferences',
   profile: '/candidates/me/profile', photo: '/candidates/me/profile/photo', submit: '/candidates/me/profile/complete',
 }
+const PHOTO_URL_FIELDS = ['photoUrl', 'photo_url', 'profilePhotoUrl', 'profile_photo_url', 'profileImageUrl', 'profile_image_url', 'avatarUrl', 'avatar_url', 'imageUrl', 'image_url']
+const PHOTO_OBJECT_FIELDS = ['profilePhoto', 'profile_photo', 'profileImage', 'profile_image', 'photo', 'avatar', 'image', 'picture']
+export function getCandidatePhotoUrl(response) {
+  let value = response
+  for (let depth = 0; depth < 6 && value && typeof value === 'object'; depth += 1) {
+    const directUrl = PHOTO_URL_FIELDS.map((key) => value[key]).find((entry) => typeof entry === 'string' && entry.trim())
+    if (directUrl) return directUrl.trim()
+    for (const key of PHOTO_OBJECT_FIELDS) {
+      const photo = value[key]
+      if (typeof photo === 'string' && photo.trim()) return photo.trim()
+      if (photo && typeof photo === 'object') {
+        const nestedUrl = ['url', 'photoUrl', 'photo_url', 'imageUrl', 'image_url', 'downloadUrl', 'download_url', 'publicUrl', 'public_url', 'path'].map((field) => photo[field]).find((entry) => typeof entry === 'string' && entry.trim())
+        if (nestedUrl) return nestedUrl.trim()
+      }
+    }
+    if (typeof value.url === 'string' && value.url.trim()) return value.url.trim()
+    value = value.data ?? value.profile ?? value.candidate ?? value.result
+  }
+  return ''
+}
+export function getCandidateResumeRecord(response) {
+  let value = response
+  for (let depth = 0; depth < 7 && value && typeof value === 'object'; depth += 1) {
+    if (Array.isArray(value)) {
+      value = [...value].sort((left, right) => Number(right?.active === true) - Number(left?.active === true))[0]
+      continue
+    }
+    const rows = value.resumes ?? value.items ?? value.results
+    if (Array.isArray(rows)) {
+      value = [...rows].sort((left, right) => Number(right?.active === true) - Number(left?.active === true))[0]
+      continue
+    }
+    const nested = value.data ?? value.resume ?? value.resumeMetadata ?? value.resume_metadata ?? value.activeResume ?? value.active_resume
+    if (!nested || typeof nested !== 'object') break
+    value = nested
+  }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const fileName = value.fileName ?? value.filename ?? value.originalFileName ?? value.original_filename ?? value.name
+  const id = value.id ?? value.resumeId ?? value.resume_id ?? value.documentId ?? value.document_id
+  if (!fileName && !id) return null
+  return {
+    ...value,
+    ...(id ? { id, resumeId: value.resumeId ?? value.resume_id ?? id } : {}),
+    ...(fileName ? { fileName, name: value.name ?? fileName } : {}),
+    status: value.status ?? value.approvalStatus ?? value.approval_status ?? 'Uploaded',
+  }
+}
+export async function fetchCandidatePhoto(photoUrl) {
+  if (!photoUrl) throw new Error('No profile photo URL is available.')
+  const parsedUrl = new URL(photoUrl, window.location.origin)
+  const url = parsedUrl.toString()
+  const token = getAccessToken()
+  const response = await authedFetch(url, {
+    headers: { Accept: 'image/*', ...(token && parsedUrl.origin === window.location.origin ? { Authorization: `Bearer ${token}` } : {}) },
+  })
+  if (!response.ok) throw new Error(`Photo request failed (${response.status}).`)
+  const blob = await response.blob()
+  if (!blob.size || (blob.type && !blob.type.startsWith('image/') && blob.type !== 'application/octet-stream')) {
+    throw new Error('The photo URL did not return an image.')
+  }
+  return URL.createObjectURL(blob)
+}
 const countryCodes = { 'United States': 'US', India: 'IN', Canada: 'CA', 'United Kingdom': 'GB', Australia: 'AU', Other: 'OTHER' }
 export function toPersonalInformationPayload(data = {}) {
   const fields = { ...data }
   delete fields.email
-  delete fields.gender
-  delete fields.address
   const payload = {
     ...fields,
     country: countryCodes[fields.country] || fields.country,
@@ -123,10 +184,10 @@ export const saveCareerPreferences = (data) => {
     employmentTypes: toEmploymentValues(data.employmentTypes),
     workSetting: data.workSetting ? [toPreferenceEnum('workSetting', data.workSetting)] : [],
     shiftPreference: data.shiftPreference ? [toPreferenceEnum('shiftPreference', data.shiftPreference)] : [],
-    salaryType: data.salaryType ? toPreferenceEnum('salaryType', data.salaryType) : undefined,
+    salaryType: data.expectedSalary !== '' && data.expectedSalary != null ? 'MONTHLY' : undefined,
     remotePreference: data.remotePreference ? toPreferenceEnum('remotePreference', data.remotePreference) : undefined,
     availableFrom: typeof data.availableFrom === 'string' ? data.availableFrom.slice(0, 10) || undefined : data.availableFrom,
-    expectedSalary: data.expectedSalary === '' || data.expectedSalary == null ? undefined : Number(data.expectedSalary),
+    expectedSalary: data.expectedSalary === '' || data.expectedSalary == null ? undefined : toMonthlySalaryAmount(data.expectedSalary, data.salaryType || 'MONTHLY'),
   }
   return request(PROFILE_ENDPOINTS.preferences, 'PUT', payload)
 }

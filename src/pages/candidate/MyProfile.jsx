@@ -1,16 +1,20 @@
-import React, { useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useCandidateDashboard } from '../../context/CandidateDashboardContext'
 import ProfileSection from '../../components/candidate/dashboard/ProfileSection'
 import StatusBadge from '../../components/candidate/dashboard/StatusBadge'
 import { useToast } from '../../components/ui/ToastProvider'
-import { candidateProfileApi } from '../../lib/candidateProfileApi'
+import { candidateProfileApi, fetchCandidatePhoto, getCandidatePhotoUrl } from '../../lib/candidateProfileApi'
 
 export default function MyProfile() {
   const { candidate, privacy, resumes, dispatch } = useCandidateDashboard()
   const photoInput = useRef(null)
   const [photoBusy, setPhotoBusy] = useState(false)
   const [photoError, setPhotoError] = useState('')
+  const [photoLoadFailed, setPhotoLoadFailed] = useState(false)
+  const [photoFallbackUrl, setPhotoFallbackUrl] = useState('')
+  const photoFallbackAttempted = useRef('')
+  useEffect(() => () => { if (photoFallbackUrl) URL.revokeObjectURL(photoFallbackUrl) }, [photoFallbackUrl])
   const toast = useToast()
   const professional = candidate.professionalInformation
   const details = [['Years of Experience', professional.yearsOfExperience], ['Current Role', professional.currentJobTitle], ['Employer', professional.currentEmployer], ['Department', professional.specialty], ['License', [professional.licenseNumber, professional.licenseState].filter(Boolean).join(' · ')]]
@@ -18,18 +22,40 @@ export default function MyProfile() {
     if (!file) return
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 2 * 1024 * 1024) { setPhotoError('Choose a JPG, PNG, or WebP image up to 2 MB.'); return }
     setPhotoBusy(true); setPhotoError('')
+    setPhotoLoadFailed(false)
+    photoFallbackAttempted.current = ''
+    setPhotoFallbackUrl('')
     try {
       const response = await candidateProfileApi.uploadProfilePhoto(file)
-      const data = response?.data?.profile || response?.data || response || {}
-      const photo = typeof data === 'string' ? data : data.photoUrl || data.profilePhotoUrl || data.avatarUrl || (typeof data.profilePhoto === 'string' ? data.profilePhoto : data.profilePhoto?.url) || data.url
-      if (!photo) throw new Error('The profile service did not return the new photo URL.')
+      // The profile GET is the persisted source of truth and may return a
+      // canonical URL even when the upload response only reports success.
+      let savedProfile = null
+      try { savedProfile = await candidateProfileApi.getCandidateProfile() } catch { /* fall back to the upload response */ }
+      const photo = getCandidatePhotoUrl(savedProfile) || getCandidatePhotoUrl(response)
+      if (!photo) throw new Error('Upload succeeded, but GET /api/candidates/me/profile did not return a photo URL. Ask the backend to include data.profile.photoUrl.')
       dispatch({ type: 'edit', data: { photo } })
       toast('Profile photo updated.')
     } catch (error) { setPhotoError(error.message || 'Unable to upload your profile photo.') }
     finally { setPhotoBusy(false) }
   }
+  const handlePhotoError = async () => {
+    if (!candidate.photo || photoFallbackUrl || photoFallbackAttempted.current === candidate.photo) {
+      setPhotoLoadFailed(true)
+      setPhotoError('The profile photo could not be loaded. Ask the backend for a browser-accessible or signed photoUrl, or an authenticated image URL.')
+      return
+    }
+    photoFallbackAttempted.current = candidate.photo
+    try {
+      const objectUrl = await fetchCandidatePhoto(candidate.photo)
+      if (candidate.photo === photoFallbackAttempted.current) setPhotoFallbackUrl(objectUrl)
+      else URL.revokeObjectURL(objectUrl)
+    } catch {
+      setPhotoLoadFailed(true)
+      setPhotoError('The profile photo URL could not be fetched. Ask the backend for a browser-accessible or signed photoUrl, or an authenticated image URL.')
+    }
+  }
   return <>
-    <header className="flex flex-wrap items-center gap-4"><div className="flex flex-col items-center gap-2"><button type="button" onClick={() => photoInput.current?.click()} disabled={photoBusy} aria-label={candidate.photo ? 'Change profile photo' : 'Upload profile photo'} className="relative h-16 w-16 overflow-hidden rounded-full bg-ink-100 text-xs text-brand-600 hover:ring-2 hover:ring-brand-600">{candidate.photo ? <img src={candidate.photo} alt="Profile" className="h-full w-full object-cover" /> : 'Add photo'}</button><input ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" aria-label="Choose profile photo" onChange={(event) => { uploadPhoto(event.target.files?.[0]); event.target.value = '' }} /><button type="button" disabled={photoBusy} onClick={() => photoInput.current?.click()} className="med-caption text-brand-600 hover:underline disabled:text-ink-400">{photoBusy ? 'Uploading…' : candidate.photo ? 'Change photo' : 'Upload photo'}</button></div><div className="min-w-0 flex-1"><h1 className="med-display-sm">{candidate.firstName} {candidate.lastName}</h1><p className="med-body mt-1 text-ink-600">{candidate.headline || 'Professional title not provided'}</p><p className="med-caption mt-1 text-ink-400">{candidate.location || 'Location not provided'}</p></div><div className="flex flex-wrap items-center gap-3">{privacy.openToWork && <StatusBadge status="Open to Work" />}{resumes.some((resume) => resume.active && resume.status === 'Approved') && <StatusBadge status="Resume Approved" />}<Link to="/candidate/edit-profile" className="med-action">Edit Profile</Link></div></header>
+    <header className="flex flex-wrap items-center gap-4"><div className="flex flex-col items-center gap-2"><button type="button" onClick={() => photoInput.current?.click()} disabled={photoBusy} aria-label={candidate.photo ? 'Change profile photo' : 'Upload profile photo'} className="relative h-16 w-16 overflow-hidden rounded-full bg-ink-100 text-xs text-brand-600 hover:ring-2 hover:ring-brand-600">{candidate.photo && !photoLoadFailed ? <img src={photoFallbackUrl || candidate.photo} alt="Profile" onError={handlePhotoError} className="h-full w-full object-cover" /> : 'Add photo'}</button><input ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" aria-label="Choose profile photo" onChange={(event) => { uploadPhoto(event.target.files?.[0]); event.target.value = '' }} /><button type="button" disabled={photoBusy} onClick={() => photoInput.current?.click()} className="med-caption text-brand-600 hover:underline disabled:text-ink-400">{photoBusy ? 'Uploading…' : candidate.photo ? 'Change photo' : 'Upload photo'}</button></div><div className="min-w-0 flex-1"><h1 className="med-display-sm">{candidate.firstName} {candidate.lastName}</h1><p className="med-body mt-1 text-ink-600">{candidate.headline || 'Professional title not provided'}</p><p className="med-caption mt-1 text-ink-400">{candidate.location || 'Location not provided'}</p></div><div className="flex flex-wrap items-center gap-3">{privacy.openToWork && <StatusBadge status="Open to Work" />}{resumes.some((resume) => resume.active && resume.status === 'Approved') && <StatusBadge status="Resume Approved" />}<Link to="/candidate/edit-profile" className="med-action">Edit Profile</Link></div></header>
     {photoError && <p role="alert" className="med-body text-red-600">{photoError}</p>}
     <div className="space-y-4 rounded-xl border border-ink-200 p-3 sm:p-5">
       <ProfileSection title="About"><p className="med-body text-ink-600">{candidate.summary || 'Add a summary to introduce your experience and approach to care.'}</p></ProfileSection>

@@ -7,7 +7,7 @@ export const specialtyOptions = ['Nursing', 'Critical Care', 'Emergency Medicine
 export const employmentTypeOptions = ['Full Time', 'Part Time', 'Contract', 'Temporary', 'Per Diem']
 export const workSettingOptions = ['On-site', 'Hybrid', 'Remote']
 export const shiftOptions = ['Day', 'Night', 'Rotating', 'Flexible']
-export const salaryTypeOptions = ['Annual', 'Monthly', 'Hourly']
+export const salaryTypeOptions = ['Monthly']
 export const remoteOptions = ['On-site', 'Hybrid', 'Remote', 'No preference']
 export const skillCategories = {
   'Clinical Skills': ['Patient Care', 'Critical Care', 'ICU', 'Emergency Care', 'Medication Administration', 'CPR', 'BLS', 'ACLS'],

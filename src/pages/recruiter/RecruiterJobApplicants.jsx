@@ -23,12 +23,18 @@ const first = (...values) => values.find((value) => value !== undefined && value
 
 function getApplicant(item) {
   const candidate = item.candidate ?? item.applicant ?? item.candidateProfile ?? item.candidate_profile ?? {}
+  const publicId = first(item.candidatePublicId, item.candidate_public_id, item.publicId, item.public_id,
+    candidate.candidatePublicId, candidate.candidate_public_id, candidate.publicId, candidate.public_id)
+  const candidateUuid = first(item.candidateUuid, item.candidate_uuid, item.candidateId, item.candidate_id,
+    candidate.candidateUuid, candidate.candidate_uuid, candidate.candidateId, candidate.candidate_id, candidate.id)
   const candidateId = first(item.candidatePublicId, item.candidate_public_id, item.publicId, item.public_id, item.candidateId, item.candidate_id,
     candidate.publicId, candidate.public_id, candidate.candidateId, candidate.candidate_id, candidate.id)
   const isUnlocked = item.unlocked === true || item.isUnlocked === true || item.is_unlocked === true || candidate.unlocked === true || candidate.isUnlocked === true || candidate.is_unlocked === true
   const location = first(item.location, candidate.location, [candidate.city, candidate.state].filter(Boolean).join(', '))
   return {
-    id: candidateId,
+    id: publicId || candidateId,
+    publicId,
+    candidateUuid,
     unlocked: isUnlocked,
     initials: first(item.initials, candidate.initials),
     name: isUnlocked ? first(item.name, item.fullName, item.full_name, candidate.name, candidate.fullName, candidate.full_name, candidate.displayName, candidate.display_name) : first(item.maskedName, item.masked_name, candidate.maskedName, candidate.masked_name, candidate.maskedFullName, candidate.masked_full_name),
@@ -161,7 +167,7 @@ export default function RecruiterJobApplicants() {
             </div>
             <div className="flex flex-wrap items-center gap-3 lg:justify-end">
               <span className={`rounded-full px-3 py-2 text-sm font-semibold ${STATUS_STYLES[status] || STATUS_STYLES.APPLIED}`}>{statusLabel(status)}</span>
-              {applicant.id && <Link to={`/recruiter/candidates/${encodeURIComponent(applicant.id)}`} state={{ candidate: { ...applicant, publicId: applicant.id } }} className="text-sm font-semibold text-blue-600 hover:text-blue-700">View profile</Link>}
+              {applicant.id && <Link to={`/recruiter/candidates/${encodeURIComponent(applicant.id)}?jobId=${encodeURIComponent(jobId)}&applicationId=${encodeURIComponent(applicationId)}&jobTitle=${encodeURIComponent(job?.title || '')}`} state={{ candidate: applicant, application: { jobId, applicationId, jobTitle: job?.title || '', status: applicationStatus(item), appliedAt } }} className="text-sm font-semibold text-blue-600 hover:text-blue-700">View profile</Link>}
               {nextStatuses.length > 0 && <select aria-label={`Update application status for ${applicant.name || applicant.id || 'applicant'}`} disabled={statusBusy === applicationId} defaultValue="" onChange={(event) => { const next = event.target.value; event.target.value = ''; if (next === 'REJECTED') { setRejectTarget(item); setRejectReason('') } else if (next) changeStatus(item, next) }} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50">
                 <option value="" disabled>Update status</option>
                 {nextStatuses.map((nextStatus) => <option key={nextStatus} value={nextStatus}>{statusBusy === applicationId ? 'Saving…' : `Move to ${statusLabel(nextStatus)}`}</option>)}

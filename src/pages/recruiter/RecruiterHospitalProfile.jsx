@@ -6,9 +6,9 @@ import { getAuthenticatedUser } from '../../lib/authSession'
 import OrganizationDocuments from '../../components/recruiter/OrganizationDocuments'
 
 const fieldGroups = [
-  ['Organization Information', [['hospitalName', 'Hospital Name', true], ['registrationNumber', 'Registration Number', false], ['website', 'Website', false], ['hospitalPhone', 'Contact Number', true], ['address', 'Address', true], ['city', 'City', true], ['state', 'State', true], ['postal', 'ZIP / Postal Code', true], ['country', 'Country', true]]],
+  ['Hospital Details', [['hospitalName', 'Hospital Name', true], ['website', 'Website', false], ['hospitalPhone', 'Contact Number', true], ['address', 'Address', true], ['city', 'City', true], ['state', 'State', true], ['postal', 'ZIP / Postal Code', true], ['country', 'Country', true]]],
 ]
-const blankProfile = { hospitalName: '', organizationType: '', registrationNumber: '', website: '', description: '', contactEmail: '', hospitalPhone: '', address: '', city: '', state: '', postal: '', country: '', recruiterName: '', designation: '', businessEmail: '', recruiterPhone: '' }
+const blankProfile = { hospitalName: '', registrationNumber: '', website: '', hospitalPhone: '', address: '', city: '', state: '', postal: '', country: '' }
 
 function unwrapResponse(payload) {
   let value = payload
@@ -29,7 +29,6 @@ function normalizeProfile(payload = {}, authenticatedUser = {}) {
   const user = root.user ?? root.recruiter ?? authenticatedUser ?? {}
   const profile = root.profile ?? root.hospitalProfile ?? root.hospital_profile ?? root.organizationProfile ?? root.organization_profile ?? root
   const organization = profile.organization ?? profile.hospital ?? profile.organizationDetails ?? profile.organization_details ?? user.organization ?? user.hospital ?? profile
-  const recruiter = profile.recruiter ?? profile.recruiterContact ?? profile.recruiter_contact ?? root.recruiter ?? root.recruiterContact ?? root.recruiter_contact ?? user
   const contact = organization.contact ?? organization.contacts ?? organization.contactInfo ?? organization.contact_info ?? profile.contact ?? profile.contacts ?? {}
   const addressValue = firstValue(organization.address, profile.address, contact.address)
   const addressObject = typeof addressValue === 'object' && addressValue ? addressValue : {}
@@ -40,19 +39,12 @@ function normalizeProfile(payload = {}, authenticatedUser = {}) {
   const state = firstValue(organization.state, organization.stateName, organization.state_name, profile.state, profile.stateName, profile.state_name, addressObject.state, addressObject.stateName, addressObject.state_name, addressObject.region)
   return {
     hospitalName: firstValue(organization.hospitalName, organization.hospital_name, organization.organizationName, organization.organization_name, organization.name, profile.hospitalName, profile.hospital_name, profile.organizationName, profile.organization_name, profile.name, root.hospitalName, root.hospital_name, root.organizationName, root.organization_name, root.name, user.organizationName, user.organization_name, user.hospitalName, user.organization?.name, user.organization?.organizationName) || '',
-    organizationType: firstValue(organization.organizationType, organization.organization_type, organization.type, profile.organizationType, profile.organization_type) || '',
     registrationNumber: firstValue(organization.registrationNumber, organization.registration_number, organization.registrationNo, organization.registration_no, organization.registrationId, organization.registration_id, profile.registrationNumber, profile.registration_number, root.registrationNumber, root.registration_number, user.registrationNumber, user.registration_number, user.organization?.registrationNumber) || '',
     website: firstValue(organization.website, organization.websiteUrl, organization.website_url, profile.website, profile.websiteUrl, profile.website_url, root.website, root.organizationWebsite, root.organization_website, user.organizationWebsite, user.organization_website, user.orgWebsite, user.org_website, user.website, user.organization?.website) || '',
-    description: firstValue(organization.description, profile.description, root.description) || '',
-    contactEmail: firstValue(organization.contactEmail, organization.contact_email, contact.email, profile.contactEmail, profile.contact_email, root.contactEmail, root.contact_email, root.businessEmail, root.email, recruiter.businessEmail, recruiter.business_email, recruiter.email, user.businessEmail, user.business_email, user.email) || '',
-    hospitalPhone: firstValue(organization.hospitalPhone, organization.hospital_phone, organization.contactNumber, organization.contact_number, organization.phone, organization.phoneNumber, organization.phone_number, contact.phone, profile.hospitalPhone, profile.hospital_phone, profile.contactNumber, profile.contact_number, profile.phone, root.hospitalPhone, root.hospital_phone, root.contactNumber, root.contact_number, root.phone, recruiter.phone, recruiter.phoneNumber, recruiter.phone_number, user.phone, user.phoneNumber, user.phone_number) || '',
+    hospitalPhone: firstValue(organization.hospitalPhone, organization.hospital_phone, organization.contactNumber, organization.contact_number, organization.phone, organization.phoneNumber, organization.phone_number, contact.phone, profile.hospitalPhone, profile.hospital_phone, profile.contactNumber, profile.contact_number, profile.phone, root.hospitalPhone, root.hospital_phone, root.contactNumber, root.contact_number, root.phone, user.phone, user.phoneNumber, user.phone_number) || '',
     address: address || firstValue(root.address, user.address, user.organization?.address) || '', city: city || firstValue(root.city, user.city, user.organization?.city) || '', state: state || firstValue(root.state, user.state, user.organization?.state) || '',
     postal: firstValue(organization.postal, organization.postalCode, organization.postal_code, organization.zipCode, organization.zip_code, profile.postal, profile.postalCode, profile.postal_code, root.postal, root.postalCode, root.postal_code, addressObject.postalCode, addressObject.postal_code, addressObject.zip) || '',
     country: firstValue(organization.country, organization.countryCode, organization.country_code, profile.country, profile.countryCode, profile.country_code, root.country, root.countryCode, root.country_code, addressObject.country, addressObject.countryCode, addressObject.country_code) || '',
-    recruiterName: firstValue(recruiter.recruiterName, recruiter.recruiter_name, recruiter.name, recruiter.fullName, recruiter.full_name, profile.recruiterName, profile.recruiter_name, root.recruiterName, root.recruiter_name, root.fullName, root.full_name, root.name, user.fullName, user.full_name, user.name) || '',
-    designation: firstValue(recruiter.designation, recruiter.title, recruiter.role, profile.designation, root.designation, user.designation, user.jobTitle, user.job_title) || '',
-    businessEmail: firstValue(recruiter.businessEmail, recruiter.business_email, recruiter.email, profile.businessEmail, profile.business_email, root.email, user.email) || '',
-    recruiterPhone: firstValue(recruiter.recruiterPhone, recruiter.recruiter_phone, recruiter.phone, recruiter.phoneNumber, recruiter.phone_number, profile.recruiterPhone, profile.recruiter_phone, user.phone, user.phoneNumber, user.phone_number) || '',
   }
 }
 
@@ -101,6 +93,7 @@ export default function RecruiterHospitalProfile() {
   const [draft, setDraft] = useState(blankProfile)
   const [verification, setVerification] = useState(null)
   const [preferences, setPreferences] = useState({ specialties: [], locations: [], employmentTypes: [] })
+  const [draftPreferences, setDraftPreferences] = useState({ specialties: [], locations: [], employmentTypes: [] })
   const [editing, setEditing] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -118,15 +111,21 @@ export default function RecruiterHospitalProfile() {
       const data = unwrapResponse(payload)
       const nextProfile = normalizeProfile(data, getAuthenticatedUser())
       setProfile(nextProfile); setDraft(nextProfile); setVerification(normalizeVerification(getVerificationPayload(data)))
-      setPreferences(normalizePreferences(data))
+      const nextPreferences = normalizePreferences(data)
+      setPreferences(nextPreferences)
+      setDraftPreferences(nextPreferences)
       setNotice(Object.values(nextProfile).some(Boolean) ? '' : 'No organization profile details were returned. You can add them using Edit Profile.')
     }).catch((requestError) => { if (active) setError(requestError) }).finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [reload])
 
-  const startEditing = () => { setDraft(profile); setFieldErrors({}); setEditing(true); setSaved(false) }
-  const cancelEditing = () => { setDraft(profile); setFieldErrors({}); setEditing(false) }
+  const startEditing = () => { setDraft(profile); setDraftPreferences(preferences); setFieldErrors({}); setEditing(true); setSaved(false) }
+  const cancelEditing = () => { setDraft(profile); setDraftPreferences(preferences); setFieldErrors({}); setEditing(false) }
   const update = (key, value) => { setDraft((current) => ({ ...current, [key]: value })); setFieldErrors((current) => ({ ...current, [key]: '' })) }
+  const updatePreference = (key, value) => setDraftPreferences((current) => ({
+    ...current,
+    [key]: value.split(',').map((item) => item.trim()).filter(Boolean),
+  }))
   const saveEditing = async (event) => {
     event.preventDefault()
     const errors = {}
@@ -148,9 +147,9 @@ export default function RecruiterHospitalProfile() {
           country: draft.country.trim(),
         },
         hiringPreferences: {
-          specialties: preferences.specialties,
-          locations: preferences.locations,
-          employmentTypes: preferences.employmentTypes,
+          specialties: draftPreferences.specialties,
+          locations: draftPreferences.locations,
+          employmentTypes: draftPreferences.employmentTypes,
         },
       }
       if (body.profile.website) body.profile.website = /^https?:\/\//i.test(body.profile.website) ? body.profile.website : `https://${body.profile.website}`
@@ -164,8 +163,6 @@ export default function RecruiterHospitalProfile() {
       const updatedPreferences = normalizePreferences(data)
       const expected = {
         hospitalName: body.profile.hospitalName,
-        registrationNumber: body.profile.registrationNumber,
-        website: body.profile.website,
         hospitalPhone: body.profile.hospitalPhone,
         address: body.profile.address,
         city: body.profile.city,
@@ -173,13 +170,19 @@ export default function RecruiterHospitalProfile() {
         postal: body.profile.postal,
         country: body.profile.country,
       }
+      if (body.profile.registrationNumber) expected.registrationNumber = body.profile.registrationNumber
+      if (body.profile.website) expected.website = body.profile.website
+      const sameList = (left, right) => JSON.stringify(left) === JSON.stringify(right)
       const differs = Object.keys(expected).some((key) => String(updated[key] || '').trim() !== String(expected[key] || '').trim())
-        || JSON.stringify(updatedPreferences) !== JSON.stringify(body.hiringPreferences)
+        || !sameList(updatedPreferences.specialties, body.hiringPreferences.specialties)
+        || !sameList(updatedPreferences.locations, body.hiringPreferences.locations)
+        || !sameList(updatedPreferences.employmentTypes, body.hiringPreferences.employmentTypes)
 
       setProfile(updated)
       setDraft(updated)
       setVerification(normalizeVerification(getVerificationPayload(data)))
       setPreferences(updatedPreferences)
+      setDraftPreferences(updatedPreferences)
       setEditing(false)
       setSaved(!differs)
       setNotice(differs
@@ -200,14 +203,14 @@ export default function RecruiterHospitalProfile() {
     {saved && <p role="status" className="rounded-lg border border-emerald-100 bg-green-50 p-3 text-sm text-green-700">Hospital profile updated.</p>}
     <form onSubmit={saveEditing} className="flex flex-col gap-5">
       <section className="flex flex-col justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:p-6">
-        <div className="flex min-w-0 items-center gap-4"><div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500"><Building2 className="h-8 w-8" /></div><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h2 className="text-lg font-bold text-slate-900 sm:text-xl">{values.hospitalName || 'Organization'}</h2><span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-bold ${/approved|verified/i.test(status) ? 'border-emerald-100 bg-green-50 text-green-700' : 'border-slate-200 bg-slate-50 text-slate-600'}`}><CheckCircle2 className="h-3 w-3" />{status}</span></div><p className="mt-1.5 flex flex-wrap items-center gap-x-1 text-sm text-slate-500"><MapPin className="h-3.5 w-3.5" />{[values.city, values.state].filter(Boolean).join(', ') || 'Location unavailable'}{values.organizationType && <><span className="mx-2 text-slate-300">•</span>{values.organizationType}</>}</p></div></div>
+        <div className="flex min-w-0 items-center gap-4"><div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500"><Building2 className="h-8 w-8" /></div><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h2 className="text-lg font-bold text-slate-900 sm:text-xl">{values.hospitalName || 'Hospital'}</h2><span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-bold ${/approved|verified/i.test(status) ? 'border-emerald-100 bg-green-50 text-green-700' : 'border-slate-200 bg-slate-50 text-slate-600'}`}><CheckCircle2 className="h-3 w-3" />{status}</span></div><p className="mt-1.5 flex flex-wrap items-center gap-x-1 text-sm text-slate-500"><MapPin className="h-3.5 w-3.5" />{[values.city, values.state].filter(Boolean).join(', ') || 'Location unavailable'}</p></div></div>
         {!editing && <button type="button" onClick={startEditing} className="inline-flex h-10 shrink-0 items-center gap-2 rounded-lg border border-slate-200 px-4 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"><Pencil className="h-3.5 w-3.5" />Edit Profile</button>}
       </section>
       <OrganizationDocuments editable={false} />
       <div className="grid gap-5">
-        {fieldGroups.map(([title, fields]) => <section key={title} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"><h2 className="text-lg font-bold text-slate-900">{title}</h2><div className="mt-5 grid gap-x-8 gap-y-5 sm:grid-cols-2">{fields.map(([key, label, required]) => <label key={key} className="min-w-0"><span className="text-xs font-semibold uppercase text-slate-500">{label}</span>{editing ? <><input value={values[key]} required={required} onChange={(event) => update(key, event.target.value)} aria-invalid={Boolean(fieldErrors[key])} className={`mt-1 h-10 w-full rounded-lg border px-3 text-sm outline-none focus:border-blue-500 ${fieldErrors[key] ? 'border-red-400' : 'border-slate-200'}`} />{fieldErrors[key] && <span className="mt-1 block text-xs text-red-600">{fieldErrors[key]}</span>}</> : <span className="mt-1 block break-words text-sm text-slate-700">{key === 'website' && values[key] ? <a className="text-blue-600 underline" href={/^https?:\/\//i.test(values[key]) ? values[key] : `https://${values[key]}`} target="_blank" rel="noreferrer">{values[key]}</a> : values[key] || '—'}</span>}</label>)}{[['recruiterName', 'Recruiter Name'], ['designation', 'Designation'], ['organizationType', 'Organization Type'], ['contactEmail', 'Official Work Email']].map(([key, label]) => <div key={key} className="min-w-0"><p className="text-xs font-semibold uppercase text-slate-500">{label}</p><p className="mt-1 break-words text-sm text-slate-700">{values[key] || '—'}</p></div>)}</div></section>)}
+        {fieldGroups.map(([title, fields]) => <section key={title} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"><h2 className="text-lg font-bold text-slate-900">{title}</h2><div className="mt-5 grid gap-x-8 gap-y-5 sm:grid-cols-2">{fields.map(([key, label, required]) => <label key={key} className="min-w-0"><span className="text-xs font-semibold uppercase text-slate-500">{label}</span>{editing ? <><input value={values[key]} required={required} onChange={(event) => update(key, event.target.value)} aria-invalid={Boolean(fieldErrors[key])} className={`mt-1 h-10 w-full rounded-lg border px-3 text-sm outline-none focus:border-blue-500 ${fieldErrors[key] ? 'border-red-400' : 'border-slate-200'}`} />{fieldErrors[key] && <span className="mt-1 block text-xs text-red-600">{fieldErrors[key]}</span>}</> : <span className="mt-1 block break-words text-sm text-slate-700">{key === 'website' && values[key] ? <a className="text-blue-600 underline" href={/^https?:\/\//i.test(values[key]) ? values[key] : `https://${values[key]}`} target="_blank" rel="noreferrer">{values[key]}</a> : values[key] || '—'}</span>}</label>)}</div></section>)}
         <section className="rounded-2xl border border-teal-100 bg-teal-50/70 p-5 sm:p-6"><h2 className="flex items-center gap-2 text-lg font-bold text-teal-700"><ShieldCheck className="h-5 w-5" />Verification Status</h2><div className="mt-5 grid gap-5 sm:grid-cols-2 xl:grid-cols-4"><StatusField label="Verification Status" value={status} /><StatusField label="Verified Date" value={verification?.verifiedAt ? new Date(verification.verifiedAt).toLocaleDateString() : '—'} /><StatusField label="Organization License" value={verification?.licenseStatus || '—'} /><StatusField label="Accreditation" value={verification?.accreditation || '—'} /></div><p className="mt-5 border-t border-teal-100 pt-4 text-xs text-slate-500">Verification status is managed by MedHire. Contact support for updates.</p></section>
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"><h2 className="text-lg font-bold text-slate-900">Hiring Preferences</h2><div className="mt-5 flex flex-col gap-5">{[['Common Specialties', 'specialties', 'bg-blue-50 text-blue-600'], ['Preferred Locations', 'locations', 'bg-slate-100 text-slate-700'], ['Employment Types', 'employmentTypes', 'bg-teal-50 text-teal-700']].map(([label, key, chipClass]) => <label key={key} className="block"><span className="text-xs font-semibold uppercase text-slate-500">{label}</span>{editing && key === 'specialties' ? <input value={(preferences[key] || []).join(', ')} onChange={(event) => setPreferences((current) => ({ ...current, [key]: event.target.value.split(',').map((item) => item.trim()).filter(Boolean) }))} className="mt-2 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm" placeholder="Separate values with commas" /> : <span className="mt-2 flex flex-wrap gap-2">{preferences[key]?.length ? preferences[key].map((item) => <span key={item} className={`rounded-full px-2.5 py-1 text-xs font-medium ${chipClass}`}>{item}</span>) : <span className="text-sm text-slate-700">—</span>}</span>}</label>)}</div>{editing && <p className="mt-3 text-xs text-slate-500">Only specialties are currently supported by the organization profile update API.</p>}</section>
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"><h2 className="text-lg font-bold text-slate-900">Hiring Preferences</h2><div className="mt-5 flex flex-col gap-5">{[['Common Specialties', 'specialties', 'bg-blue-50 text-blue-600', 'e.g. Nursing, ICU'], ['Preferred Locations', 'locations', 'bg-slate-100 text-slate-700', 'e.g. Chennai, Coimbatore'], ['Employment Types', 'employmentTypes', 'bg-teal-50 text-teal-700', 'e.g. FULL_TIME, PART_TIME']].map(([label, key, chipClass, placeholder]) => <label key={key} className="block"><span className="text-xs font-semibold uppercase text-slate-500">{label}</span>{editing ? <input value={(draftPreferences[key] || []).join(', ')} onChange={(event) => updatePreference(key, event.target.value)} className="mt-2 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm" placeholder={placeholder} aria-label={label} /> : <span className="mt-2 flex flex-wrap gap-2">{preferences[key]?.length ? preferences[key].map((item) => <span key={item} className={`rounded-full px-2.5 py-1 text-xs font-medium ${chipClass}`}>{item}</span>) : <span className="text-sm text-slate-700">—</span>}</span>}</label>)}</div>{editing && <p className="mt-3 text-xs text-slate-500">Separate multiple values with commas. All three preference lists are saved together.</p>}</section>
       </div>
       {editing && <div className="flex flex-col gap-3 pb-4 sm:flex-row"><button type="submit" disabled={saving} className="h-11 rounded-lg bg-blue-600 px-6 text-sm font-semibold text-white disabled:opacity-50">{saving ? 'Saving…' : 'Save Changes'}</button><button type="button" disabled={saving} onClick={cancelEditing} className="h-11 rounded-lg border border-slate-200 px-6 text-sm font-semibold text-slate-700">Cancel</button></div>}
     </form>

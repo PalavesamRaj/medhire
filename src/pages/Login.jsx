@@ -87,8 +87,8 @@ export default function Login() {
         try {
           const identity = JSON.parse(sessionStorage.getItem('medhire_candidate_identity') || 'null')
           const email = response.user?.email || form.email.trim()
-          if (identity?.email !== email) sessionStorage.removeItem('medhire_candidate_profile_draft')
-          sessionStorage.setItem('medhire_candidate_identity', JSON.stringify({ email }))
+          if (String(identity?.email || '').trim().toLowerCase() !== String(email || '').trim().toLowerCase()) sessionStorage.removeItem('medhire_candidate_profile_draft')
+          sessionStorage.setItem('medhire_candidate_identity', JSON.stringify({ email: String(email || '').trim().toLowerCase() }))
         } catch { /* Profile editing remains available when storage is disabled. */ }
         let onboarding = response.onboarding || {}
         // Some login responses omit onboarding progress. Read the saved progress

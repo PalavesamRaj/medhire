@@ -29,7 +29,7 @@ export function refreshSession() {
 
 export function endSessionAndRedirect() {
   const role = String(getAuthenticatedUser()?.role || '').toLowerCase()
-  clearAuthSession()
+  clearAuthSession({ preserveCandidateDraft: role === 'candidate' })
   window.location.assign(`/login?role=${role === 'recruiter' ? 'recruiter' : 'candidate'}&expired=1`)
 }
 
@@ -50,6 +50,7 @@ export async function authedFetch(url, init = {}) {
 // Server-side logout (revokes the refresh token), then clear the browser session.
 export async function logout() {
   const token = getAccessToken()
+  const preserveCandidateDraft = String(getAuthenticatedUser()?.role || '').toLowerCase() === 'candidate'
   try {
     await fetch(`${API_BASE_URL}/auth/logout`, {
       method: 'POST',
@@ -58,5 +59,5 @@ export async function logout() {
       body: JSON.stringify({ refreshToken: getRefreshToken() || undefined }),
     })
   } catch { /* offline: still sign out locally */ }
-  clearAuthSession()
+  clearAuthSession({ preserveCandidateDraft })
 }

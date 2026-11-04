@@ -12,13 +12,13 @@ export function hasMoreThanOneYearExperience(value) {
 
 const isComplete = (validator, value) => Object.keys(validator(value || (Array.isArray(value) ? [] : {}), true)).length === 0
 
-export function getCandidateProfileCompletion(profile = {}) {
+export function getCandidateProfileCompletion(profile = {}, { hasSavedResume = false } = {}) {
   const professional = profile.professionalInformation || {}
   const experienced = hasMoreThanOneYearExperience(professional.yearsOfExperience)
   const workExperience = profile.workExperience || []
   const certifications = profile.certifications || []
   const sections = [
-    { key: 'resume', label: 'Resume Upload', path: '/candidate/profile/resume', optional: true, complete: Boolean(profile.resumeMetadata || profile.resume) },
+    { key: 'resume', label: 'Resume Upload', path: '/candidate/profile/resume', complete: Boolean(profile.resumeMetadata || profile.resume || hasSavedResume) },
     { key: 'personalInformation', label: 'Personal Information', path: '/candidate/profile/personal', complete: isComplete(validatePersonalInformation, profile.personalInformation) },
     { key: 'professionalInformation', label: 'Professional Information', path: '/candidate/profile/professional', complete: isComplete(validateProfessionalInformation, professional) },
     { key: 'education', label: 'Education', path: '/candidate/profile/education', complete: isComplete(validateEducation, profile.education || []) },

@@ -3,6 +3,7 @@ import { CalendarDays, ChevronDown, CreditCard } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { RecruiterApiError, RecruiterEmpty, RecruiterLoading, getListResponse } from '../../components/recruiter/RecruiterApiState'
 import { recruiterApi } from '../../lib/recruiterApi'
+import { formatINR } from '../../lib/currency'
 
 const statusStyles = { Successful: 'border-emerald-100 bg-green-50 text-green-600', Failed: 'border-red-100 bg-red-50 text-red-500', Pending: 'border-amber-100 bg-amber-50 text-amber-600' }
 
@@ -32,7 +33,7 @@ export default function RecruiterPaymentHistory() {
   }, [status, range, page, reload])
 
   const formatDate = (value) => value ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(value)) : '—'
-  const formatAmount = (amount, currency) => { try { return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(Number(amount)) } catch { return `${amount ?? '—'} ${currency || ''}` } }
+  const formatAmount = (amount) => formatINR(amount)
 
   return <div className="flex flex-col gap-5"><header><p className="text-xs font-bold uppercase tracking-wide text-teal-600">Payment History</p><h1 className="mt-1 text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">Payment History</h1><p className="mt-1 text-sm text-slate-500">View transactions recorded for your organization.</p></header>
     <div className="flex flex-col gap-3 sm:flex-row"><label className="relative w-full sm:w-auto"><span className="sr-only">Filter by date range</span><CalendarDays className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-700" /><select value={range} onChange={(event) => { setRange(event.target.value); setPage(1) }} className="h-10 w-full appearance-none rounded-md border border-slate-200 bg-white py-2 pl-10 pr-9 text-xs font-bold text-slate-700 sm:w-auto"><option value="">All time</option><option>Last 30 days</option><option>Last 90 days</option><option>This year</option></select><ChevronDown className="pointer-events-none absolute right-3 top-3 h-3.5 w-3.5 text-slate-500" /></label>

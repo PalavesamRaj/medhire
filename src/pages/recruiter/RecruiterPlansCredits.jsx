@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { RecruiterApiError, RecruiterEmpty, RecruiterLoading } from '../../components/recruiter/RecruiterApiState'
 import { recruiterApi } from '../../lib/recruiterApi'
 import { normalizeRecruiterCredits, normalizeRecruiterPlans } from '../../lib/recruiterPlanUtils'
+import { formatINR } from '../../lib/currency'
 
 export default function RecruiterPlansCredits() {
   const [plans, setPlans] = useState([])
@@ -31,10 +32,7 @@ export default function RecruiterPlansCredits() {
     return () => { active = false }
   }, [reload])
 
-  const formatPrice = (price, currency) => {
-    if (price === undefined || price === null || !currency) return 'Price unavailable'
-    try { return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(Number(price)) } catch { return `${price} ${currency}` }
-  }
+  const formatPrice = (price) => formatINR(price)
 
   return <div className="flex flex-col gap-6">
     <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-center"><section><p className="text-xs font-bold uppercase tracking-wide text-teal-600">Plans &amp; Credits</p><h1 className="mt-1 text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">Choose the Right Hiring Plan</h1><p className="mt-1 text-sm text-slate-500">Select a plan that fits your recruitment needs.</p></section><section aria-label="Available credit balance" className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"><p className="text-xs font-bold uppercase text-slate-400">Available Balance</p><p className="text-base font-extrabold text-slate-900">{credits?.available ?? 'Balance unavailable'} Credits</p></section></div>

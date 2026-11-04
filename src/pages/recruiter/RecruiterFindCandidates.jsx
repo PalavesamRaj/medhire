@@ -212,7 +212,7 @@ export default function RecruiterFindCandidates() {
       (!experienceMin || candidate.experienceYears >= experienceMin) &&
       (!selectedFilters.licenseState || candidate.licenseState.toLowerCase().includes(selectedFilters.licenseState.trim().toLowerCase())) &&
       (!selectedFilters.employmentPreference || candidate.employmentPreference.toLowerCase().includes(selectedFilters.employmentPreference.trim().toLowerCase())) &&
-      (!selectedFilters.availability || candidate.availability.toLowerCase().includes(selectedFilters.availability.trim().toLowerCase()))
+      (!selectedFilters.availability || candidate.availability.toLowerCase().includes(selectedFilters.availability.trim().toLowerCase())) && candidate.openToWork
   })
   const pageSize = 20
   const totalPages = Math.max(1, Math.ceil(filteredResults.length / pageSize))
