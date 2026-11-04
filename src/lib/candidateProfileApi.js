@@ -109,7 +109,7 @@ async function request(path, method = 'GET', data) {
   const timeout = setTimeout(() => controller.abort(), 30000)
   try {
     const response = await authedFetch(`${API_BASE_URL}${path}`, {
-      method, signal: controller.signal,
+      method, signal: controller.signal, ...(method === 'GET' ? { cache: 'no-store' } : {}),
       headers: { ...(multipart ? {} : { 'Content-Type': 'application/json' }), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       body: data === undefined ? undefined : multipart ? data : JSON.stringify(data),
     })

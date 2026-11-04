@@ -10,6 +10,34 @@ function accountDraftKey() {
   } catch { return PROFILE_DRAFT_KEY }
 }
 
+const editProfileOverridesKey = () => `${accountDraftKey()}:edit-profile-overrides`
+
+export function loadEditProfileOverrides() {
+  try {
+    return JSON.parse(localStorage.getItem(editProfileOverridesKey()) || sessionStorage.getItem(editProfileOverridesKey()) || 'null') || {}
+  } catch { return {} }
+}
+
+export function saveEditProfileOverrides(values = {}) {
+  try {
+    const safeValues = Object.fromEntries(['firstName', 'lastName', 'headline', 'location', 'summary']
+      .filter((field) => values[field] !== undefined)
+      .map((field) => [field, String(values[field] ?? '')]))
+    localStorage.setItem(editProfileOverridesKey(), JSON.stringify(safeValues))
+    sessionStorage.removeItem(editProfileOverridesKey())
+    return true
+  } catch { return false }
+}
+
+export function clearEditProfileOverrides(fields = []) {
+  try {
+    const current = loadEditProfileOverrides()
+    for (const field of fields) delete current[field]
+    localStorage.setItem(editProfileOverridesKey(), JSON.stringify(current))
+    sessionStorage.removeItem(editProfileOverridesKey())
+  } catch { /* The saved override remains a safe fallback if storage is unavailable. */ }
+}
+
 export function loadProfileDraft() {
   const profile = emptyProfile()
   try {

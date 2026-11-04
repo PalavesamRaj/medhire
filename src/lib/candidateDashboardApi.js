@@ -47,11 +47,14 @@ async function requestAllPages(path, filters = {}) {
 }
 export const getDashboard = () => request(CANDIDATE_ENDPOINTS.dashboard)
 export const getMyProfile = () => request(CANDIDATE_ENDPOINTS.profile)
-export const updateProfile = ({ firstName, lastName, headline, location, summary, ...sections } = {}) => request(CANDIDATE_ENDPOINTS.profile, 'PATCH', {
+export const updateProfile = ({ firstName, lastName, headline, location, summary, ...sections } = {}) => {
+  const [city = '', ...stateParts] = String(location ?? '').split(',')
+  return request(CANDIDATE_ENDPOINTS.profile, 'PATCH', {
   ...sections,
-  ...(firstName !== undefined || lastName !== undefined || location !== undefined ? { personal: { ...(firstName !== undefined ? { firstName } : {}), ...(lastName !== undefined ? { lastName } : {}), ...(location !== undefined ? { city: location } : {}) } } : {}),
+  ...(firstName !== undefined || lastName !== undefined || location !== undefined ? { personal: { ...(firstName !== undefined ? { firstName } : {}), ...(lastName !== undefined ? { lastName } : {}), ...(location !== undefined ? { city: city.trim(), state: stateParts.join(',').trim() } : {}) } } : {}),
   ...(headline !== undefined || summary !== undefined ? { professional: { ...(headline !== undefined ? { currentJobTitle: headline } : {}), ...(summary !== undefined ? { professionalSummary: summary } : {}) } } : {}),
-})
+  })
+}
 export const getResume = () => request(CANDIDATE_ENDPOINTS.resumes)
 export const uploadResume = (file) => { const body = new FormData(); body.append('resume', file); return request(CANDIDATE_ENDPOINTS.resume, 'POST', body) }
 export const deleteResume = (id) => request(idPath(CANDIDATE_ENDPOINTS.resumes, id), 'DELETE')

@@ -8,7 +8,8 @@ import { useToast } from '../../components/ui/ToastProvider'
 import { validateEditProfile } from '../../lib/candidateDashboardValidation'
 import { useCandidateProfile } from '../../context/CandidateProfileContext'
 import { getCandidateProfileCompletion } from '../../lib/candidateProfileCompletion'
-import { candidateProfileApi } from '../../lib/candidateProfileApi'
+import { candidateDashboardApi } from '../../lib/candidateDashboardApi'
+import { saveEditProfileOverrides } from '../../lib/candidateProfileDraft'
 import { Link } from 'react-router-dom'
 
 export default function EditProfile() {
@@ -39,10 +40,8 @@ export default function EditProfile() {
       const [cityValue = '', ...stateParts] = data.location.split(',')
       const personalInformation = { ...profile.personalInformation, firstName: data.firstName, lastName: data.lastName, city: cityValue.trim(), state: stateParts.join(',').trim() }
       const professionalInformation = { ...profile.professionalInformation, currentJobTitle: data.headline, professionalSummary: data.summary }
-      await Promise.all([
-        candidateProfileApi.savePersonalInformation(personalInformation),
-        candidateProfileApi.saveProfessionalInformation(professionalInformation),
-      ])
+      await candidateDashboardApi.updateProfile(data)
+      saveEditProfileOverrides(data)
       updateSection('personalInformation', personalInformation)
       updateSection('professionalInformation', professionalInformation)
       dispatch({ type: 'edit', data })

@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react'
-import { loadProfileDraft, saveProfileDraft } from '../lib/candidateProfileDraft'
+import { clearEditProfileOverrides, loadEditProfileOverrides, loadProfileDraft, saveProfileDraft } from '../lib/candidateProfileDraft'
 import { getAccessToken, getAuthenticatedUser } from '../lib/authSession'
 import { candidateProfileApi, getCandidatePhotoUrl, getCandidateResumeRecord } from '../lib/candidateProfileApi'
 import { candidateDashboardApi } from '../lib/candidateDashboardApi'
@@ -76,10 +76,33 @@ function normalizeProfile(response) {
     if (!personalAliases.state && stateParts.length) personalAliases.state = stateParts.join(',').trim()
   }
   const personal = mergeCachedFields(draft.personalInformation, personalAliases)
-  const professional = mergeCachedFields(draft.professionalInformation, withAliases(professionalData, {
+  const serverProfessional = withAliases(professionalData, {
     currentJobTitle: ['current_job_title', 'headline', 'jobTitle', 'job_title', 'title'], yearsOfExperience: ['years_of_experience'], currentEmployer: ['current_employer'],
     professionalSummary: ['professional_summary', 'summary'], licenseNumber: ['license_number'], licenseState: ['license_state'], npiNumber: ['npi_number'],
-  }))
+  })
+  const professional = mergeCachedFields(draft.professionalInformation, serverProfessional)
+  // Keep the values last saved from Edit Profile visible if the profile GET
+  // endpoint is temporarily returning an older snapshot. Once GET catches up,
+  // it naturally returns the same values and this local fallback is inert.
+  const editOverrides = loadEditProfileOverrides()
+  const currentServerLocation = [personalAliases.city, personalAliases.state].filter(Boolean).join(', ')
+  const matchedOverrides = [
+    editOverrides.firstName !== undefined && personalAliases.firstName === editOverrides.firstName && 'firstName',
+    editOverrides.lastName !== undefined && personalAliases.lastName === editOverrides.lastName && 'lastName',
+    editOverrides.location !== undefined && currentServerLocation === editOverrides.location && 'location',
+    editOverrides.headline !== undefined && serverProfessional.currentJobTitle === editOverrides.headline && 'headline',
+    editOverrides.summary !== undefined && serverProfessional.professionalSummary === editOverrides.summary && 'summary',
+  ].filter(Boolean)
+  if (matchedOverrides.length) clearEditProfileOverrides(matchedOverrides)
+  if (editOverrides.firstName !== undefined) personal.firstName = editOverrides.firstName
+  if (editOverrides.lastName !== undefined) personal.lastName = editOverrides.lastName
+  if (editOverrides.location !== undefined) {
+    const [city = '', ...stateParts] = editOverrides.location.split(',')
+    personal.city = city.trim()
+    personal.state = stateParts.join(',').trim()
+  }
+  if (editOverrides.headline !== undefined) professional.currentJobTitle = editOverrides.headline
+  if (editOverrides.summary !== undefined) professional.professionalSummary = editOverrides.summary
   const dateOfBirth = personal.dateOfBirth
   const education = normalizeRows(preferProfileRows(raw.education || raw.educationHistory || raw.education_history, draft.education), { fieldOfStudy: ['field_of_study'], institutionName: ['institution_name'], graduationYear: ['graduation_year'] })
   const workExperience = normalizeRows(preferProfileRows(raw.workExperience || raw.work_experience || raw.experience, draft.workExperience), {
