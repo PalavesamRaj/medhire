@@ -9,7 +9,13 @@ const CandidateProfileContext = createContext(null)
 const unwrap = (response) => {
   let value = response
   for (let depth = 0; depth < 6 && value && typeof value === 'object' && !Array.isArray(value); depth += 1) {
-    const nested = value.data ?? value.profile ?? value.candidateProfile ?? value.candidate_profile ?? value.candidate ?? value.result
+    // The profile endpoint returns `data.profile` (photo metadata) alongside
+    // sibling sections such as `data.personal`, `data.professional`, and
+    // `data.preferences`. Keep that data envelope intact instead of unwrapping
+    // into the small `profile` object and losing the persisted sections.
+    const hasProfileSections = ['personal', 'personalInformation', 'personal_information', 'professional', 'professionalInformation', 'professional_information', 'education', 'experience', 'workExperience', 'work_experience', 'skills', 'certifications', 'preferences', 'careerPreferences', 'career_preferences', 'resumes']
+      .some((key) => value[key] !== undefined)
+    const nested = value.data ?? (hasProfileSections ? null : value.profile) ?? value.candidateProfile ?? value.candidate_profile ?? value.candidate ?? value.result
     if (!nested || typeof nested !== 'object' || Array.isArray(nested)) break
     value = nested
   }
