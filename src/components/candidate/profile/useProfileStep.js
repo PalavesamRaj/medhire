@@ -1,18 +1,21 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useCandidateProfile } from '../../../context/CandidateProfileContext'
 import { PROFILE_SETUP_STEPS, profilePath } from '../../../lib/candidateProfileOptions'
 import { candidateProfileApi } from '../../../lib/candidateProfileApi'
 
 export default function useProfileStep(section, step, validate) {
-  const { profile, updateSection, saveSection, completeProfile } = useCandidateProfile()
+  const { profile, loading: profileLoading, updateSection, saveSection, completeProfile } = useCandidateProfile()
   const [errors, setErrors] = useState({})
   const [busy, setBusy] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const [operationError, setOperationError] = useState('')
   const navigate = useNavigate()
   const location = useLocation()
   const returnTo = location.state?.returnTo
   const progressKey = { personalInformation: 'personal', professionalInformation: 'professional', workExperience: 'experience', careerPreferences: 'preferences' }[section] || section
+  const initialValue = useRef(null)
+  if (!profileLoading && initialValue.current === null) initialValue.current = JSON.stringify(profile[section])
   const applyServerErrors = (error) => {
     const fieldErrors = error.fieldErrors && typeof error.fieldErrors === 'object' ? error.fieldErrors : {}
     const mapped = Object.fromEntries(Object.entries(fieldErrors).map(([field, message]) => {
@@ -81,6 +84,7 @@ export default function useProfileStep(section, step, validate) {
     if (!Object.keys(nextErrors).length) {
       setOperationError('')
       setBusy(true)
+      setSubmitting(true)
       try {
         const value = profile[section]
         const isEmpty = Array.isArray(value) ? value.length === 0 : !value || !Object.values(value).some((item) => item !== '' && item != null && (!Array.isArray(item) || item.length))
@@ -89,15 +93,27 @@ export default function useProfileStep(section, step, validate) {
         else if (step === 8) await finish()
         else navigate(profilePath(step + 1))
       } catch (error) { applyServerErrors(error) }
-      finally { setBusy(false) }
+      finally { setBusy(false); setSubmitting(false) }
     } else requestAnimationFrame(() => document.querySelector('[aria-invalid="true"]')?.focus())
+  }
+  const discardCurrentSectionChanges = () => {
+    if (initialValue.current !== null) updateSection(section, JSON.parse(initialValue.current))
+  }
+  const back = async () => {
+    if (busy) return
+    setBusy(true)
+    setOperationError('')
+    discardCurrentSectionChanges()
+    navigate(returnTo || PROFILE_SETUP_STEPS[step - 2]?.path || profilePath(step - 1))
   }
   const skip = async () => {
     if (busy) return
-    if (returnTo) { navigate(returnTo); return }
     setBusy(true)
     setOperationError('')
     try {
+      // Skip discards edits from this visit; only Next submits section data.
+      discardCurrentSectionChanges()
+      if (returnTo) { navigate(returnTo); return }
       const current = PROFILE_SETUP_STEPS[step - 1]
       if (progressKey !== 'resume') await candidateProfileApi.updateCandidateOnboardingStep(progressKey, 'SKIPPED')
       if (step === 8) await finish()
@@ -105,5 +121,5 @@ export default function useProfileStep(section, step, validate) {
     } catch (error) { applyServerErrors(error) }
     finally { setBusy(false) }
   }
-  return { data: profile[section], errors, setErrors, update, submit, skip, busy, operationError, updateSection }
+  return { data: profile[section], errors, setErrors, update, submit, back, skip, busy, submitting, operationError, updateSection }
 }

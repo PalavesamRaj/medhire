@@ -95,8 +95,18 @@ const preferenceEnums = {
 }
 const yearsByLabel = { 'Less than 1 year': 0, '1–2 years': 1, '3–5 years': 3, '6–10 years': 6, '11–15 years': 11, '16+ years': 16 }
 function toProfessionalPayload(data = {}) {
-  const years = data.yearsOfExperience
-  return { ...data, yearsOfExperience: yearsByLabel[years] ?? years }
+  const value = (camelCase, snakeCase) => data[camelCase] !== undefined ? data[camelCase] : data[snakeCase]
+  const years = value('yearsOfExperience', 'years_of_experience')
+  return {
+    currentJobTitle: value('currentJobTitle', 'current_job_title') ?? '',
+    yearsOfExperience: yearsByLabel[years] ?? years,
+    currentEmployer: value('currentEmployer', 'current_employer') ?? '',
+    specialty: value('specialty', 'department') ?? '',
+    licenseNumber: value('licenseNumber', 'license_number') ?? '',
+    licenseState: value('licenseState', 'license_state') ?? '',
+    npiNumber: value('npiNumber', 'npi_number') ?? '',
+    professionalSummary: value('professionalSummary', 'professional_summary') ?? '',
+  }
 }
 function toEmploymentValues(values) {
   return Array.isArray(values) ? values.map((value) => employmentTypes[value] || value) : values
