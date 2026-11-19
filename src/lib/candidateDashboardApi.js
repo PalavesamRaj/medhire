@@ -25,25 +25,25 @@ async function request(path, method = 'GET', body) {
 }
 const idPath = (base, id) => `${base}/${encodeURIComponent(id)}`
 async function requestAllPages(path, filters = {}) {
-  const items = []
-  let page = 1
-  let pageSize = 100
-  let totalPages = 1
-  let pagination = {}
-  let envelope = {}
-  do {
+  const pageSize = 100
+  const readPage = async (page) => {
     const query = new URLSearchParams(Object.entries({ ...filters, page, pageSize }).filter(([, value]) => value != null && value !== ''))
     const payload = await request(`${path}?${query}`)
-    envelope = payload?.data ?? payload
+    const envelope = payload?.data ?? payload
     const rows = Array.isArray(envelope) ? envelope : envelope?.items || envelope?.results || envelope?.jobs || envelope?.applications || envelope?.savedJobs || []
     if (!Array.isArray(rows)) throw new Error('The candidate service returned an invalid list response.')
-    items.push(...rows)
-    pagination = payload?.pagination || envelope?.pagination || pagination
-    totalPages = Number(pagination.totalPages) || (rows.length === pageSize ? page + 1 : page)
-    page += 1
-    if (page > 1000) throw new Error('The candidate list exceeded the pagination safety limit.')
-  } while (page <= totalPages)
-  return { data: items, pagination: { ...pagination, page: 1, pageSize, total: Number(pagination.total) || items.length, totalPages: Math.max(1, totalPages) } }
+    const pagination = payload?.pagination || envelope?.pagination || {}
+    return { rows, pagination, totalPages: Number(pagination.totalPages) || (rows.length === pageSize ? page + 1 : page) }
+  }
+
+  const first = await readPage(1)
+  if (first.totalPages > 1000) throw new Error('The candidate list exceeded the pagination safety limit.')
+  const items = [...first.rows]
+  for (let start = 2; start <= first.totalPages; start += 3) {
+    const pages = await Promise.all(Array.from({ length: Math.min(3, first.totalPages - start + 1) }, (_, index) => readPage(start + index)))
+    pages.forEach(({ rows }) => items.push(...rows))
+  }
+  return { data: items, pagination: { ...first.pagination, page: 1, pageSize, total: Number(first.pagination.total) || items.length, totalPages: Math.max(1, first.totalPages) } }
 }
 export const getDashboard = () => request(CANDIDATE_ENDPOINTS.dashboard)
 export const getMyProfile = () => request(CANDIDATE_ENDPOINTS.profile)

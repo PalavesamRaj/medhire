@@ -1,70 +1,70 @@
 import React from 'react'
 import { Routes, Route, useLocation, Navigate, Outlet } from 'react-router-dom'
 import { CandidateProfileProvider } from './context/CandidateProfileContext'
-import PersonalInformation from './pages/candidate/profile-setup/PersonalInformation'
-import ProfessionalInformation from './pages/candidate/profile-setup/ProfessionalInformation'
-import Education from './pages/candidate/profile-setup/Education'
-import WorkExperience from './pages/candidate/profile-setup/WorkExperience'
-import Skills from './pages/candidate/profile-setup/Skills'
-import Certifications from './pages/candidate/profile-setup/Certifications'
-import CareerPreferences from './pages/candidate/profile-setup/CareerPreferences'
-import ResumeUpload from './pages/candidate/profile-setup/ResumeUpload'
-import ProfileSetupComplete from './pages/candidate/profile-setup/ProfileSetupComplete'
-import CandidateDashboard from './pages/candidate/CandidateDashboard'
-import MyProfile from './pages/candidate/MyProfile'
-import EditProfile from './pages/candidate/EditProfile'
-import ResumeManagement from './pages/candidate/ResumeManagement'
-import PrivacySettings from './pages/candidate/PrivacySettings'
-import JobSearch from './pages/candidate/JobSearch'
-import JobDetails from './pages/candidate/JobDetails'
-import ApplyJob from './pages/candidate/ApplyJob'
-import MyApplications from './pages/candidate/MyApplications'
-import SavedJobs from './pages/candidate/SavedJobs'
-import CandidateSummary from './pages/candidate/CandidateSummary'
+const PersonalInformation = React.lazy(() => import('./pages/candidate/profile-setup/PersonalInformation'))
+const ProfessionalInformation = React.lazy(() => import('./pages/candidate/profile-setup/ProfessionalInformation'))
+const Education = React.lazy(() => import('./pages/candidate/profile-setup/Education'))
+const WorkExperience = React.lazy(() => import('./pages/candidate/profile-setup/WorkExperience'))
+const Skills = React.lazy(() => import('./pages/candidate/profile-setup/Skills'))
+const Certifications = React.lazy(() => import('./pages/candidate/profile-setup/Certifications'))
+const CareerPreferences = React.lazy(() => import('./pages/candidate/profile-setup/CareerPreferences'))
+const ResumeUpload = React.lazy(() => import('./pages/candidate/profile-setup/ResumeUpload'))
+const ProfileSetupComplete = React.lazy(() => import('./pages/candidate/profile-setup/ProfileSetupComplete'))
+const CandidateDashboard = React.lazy(() => import('./pages/candidate/CandidateDashboard'))
+const MyProfile = React.lazy(() => import('./pages/candidate/MyProfile'))
+const EditProfile = React.lazy(() => import('./pages/candidate/EditProfile'))
+const ResumeManagement = React.lazy(() => import('./pages/candidate/ResumeManagement'))
+const PrivacySettings = React.lazy(() => import('./pages/candidate/PrivacySettings'))
+const JobSearch = React.lazy(() => import('./pages/candidate/JobSearch'))
+const JobDetails = React.lazy(() => import('./pages/candidate/JobDetails'))
+const ApplyJob = React.lazy(() => import('./pages/candidate/ApplyJob'))
+const MyApplications = React.lazy(() => import('./pages/candidate/MyApplications'))
+const SavedJobs = React.lazy(() => import('./pages/candidate/SavedJobs'))
+const CandidateSummary = React.lazy(() => import('./pages/candidate/CandidateSummary'))
 import CandidateLayout from './components/candidate/dashboard/CandidateLayout'
 import { CandidateDashboardProvider } from './context/CandidateDashboardContext'
 import Navbar from './components/layout/Navbar'
 import Footer from './components/layout/Footer'
-import Home from './pages/Home'
-import About from './pages/About'
-import HowItWorks from './pages/HowItWorks'
-import Contact from './pages/Contact'
-import Faq from './pages/Faq'
-import PrivacyPolicy from './pages/PrivacyPolicy'
-import TermsOfService from './pages/TermsOfService'
-import Pricing from './pages/Pricing'
-import FindJobs from './pages/FindJobs'
-import ForRecruiters from './pages/ForRecruiters'
-import GetStarted from './pages/GetStarted'
-import FrontendPrototype from './pages/FrontendPrototype'
-import RegisterCandidate from './pages/RegisterCandidate'
-import RegisterRecruiter from './pages/RegisterRecruiter'
-import Login from './pages/Login'
-import AcceptRecruiterInvitation from './pages/AcceptRecruiterInvitation'
-import ForgotPassword from './pages/ForgotPassword'
-import EmailVerification from './pages/EmailVerification'
-import ResetPassword from './pages/ResetPassword'
-import PasswordResetSuccess from './pages/PasswordResetSuccess'
-import RecruiterVerificationPending from './pages/recruiter/RecruiterVerificationPending'
+const Home = React.lazy(() => import('./pages/Home'))
+const About = React.lazy(() => import('./pages/About'))
+const HowItWorks = React.lazy(() => import('./pages/HowItWorks'))
+const Contact = React.lazy(() => import('./pages/Contact'))
+const Faq = React.lazy(() => import('./pages/Faq'))
+const PrivacyPolicy = React.lazy(() => import('./pages/PrivacyPolicy'))
+const TermsOfService = React.lazy(() => import('./pages/TermsOfService'))
+const Pricing = React.lazy(() => import('./pages/Pricing'))
+const FindJobs = React.lazy(() => import('./pages/FindJobs'))
+const ForRecruiters = React.lazy(() => import('./pages/ForRecruiters'))
+const GetStarted = React.lazy(() => import('./pages/GetStarted'))
+const FrontendPrototype = React.lazy(() => import('./pages/FrontendPrototype'))
+const RegisterCandidate = React.lazy(() => import('./pages/RegisterCandidate'))
+const RegisterRecruiter = React.lazy(() => import('./pages/RegisterRecruiter'))
+const Login = React.lazy(() => import('./pages/Login'))
+const AcceptRecruiterInvitation = React.lazy(() => import('./pages/AcceptRecruiterInvitation'))
+const ForgotPassword = React.lazy(() => import('./pages/ForgotPassword'))
+const EmailVerification = React.lazy(() => import('./pages/EmailVerification'))
+const ResetPassword = React.lazy(() => import('./pages/ResetPassword'))
+const PasswordResetSuccess = React.lazy(() => import('./pages/PasswordResetSuccess'))
+const RecruiterVerificationPending = React.lazy(() => import('./pages/recruiter/RecruiterVerificationPending'))
 import RequireRecruiterAccess from './components/recruiter/RequireRecruiterAccess'
 import RequireCandidateAccess from './components/candidate/RequireCandidateAccess'
 import { getAuthenticatedUser } from './lib/authSession'
-import RecruiterDashboard from './pages/recruiter/RecruiterDashboard'
-import RecruiterJobs from './pages/recruiter/RecruiterJobs'
-import RecruiterTeam from './pages/recruiter/RecruiterTeam'
-import AccountSecurity from './pages/AccountSecurity'
-import RecruiterJobApplicants from './pages/recruiter/RecruiterJobApplicants'
-import RecruiterCandidateProfile from './pages/recruiter/RecruiterCandidateProfile'
-import RecruiterPurchasedCandidates from './pages/recruiter/RecruiterPurchasedCandidates'
-import RecruiterShortlistedCandidates from './pages/recruiter/RecruiterShortlistedCandidates'
-import RecruiterApplicationsByStatus from './pages/recruiter/RecruiterApplicationsByStatus'
-import RecruiterPlansCredits from './pages/recruiter/RecruiterPlansCredits'
-import RecruiterCheckout from './pages/recruiter/RecruiterCheckout'
-import RecruiterPaymentSuccess from './pages/recruiter/RecruiterPaymentSuccess'
-import RecruiterPaymentFailed from './pages/recruiter/RecruiterPaymentFailed'
-import RecruiterPaymentHistory from './pages/recruiter/RecruiterPaymentHistory'
-import RecruiterInvoice from './pages/recruiter/RecruiterInvoice'
-import RecruiterHospitalProfile from './pages/recruiter/RecruiterHospitalProfile'
+const RecruiterDashboard = React.lazy(() => import('./pages/recruiter/RecruiterDashboard'))
+const RecruiterJobs = React.lazy(() => import('./pages/recruiter/RecruiterJobs'))
+const RecruiterTeam = React.lazy(() => import('./pages/recruiter/RecruiterTeam'))
+const AccountSecurity = React.lazy(() => import('./pages/AccountSecurity'))
+const RecruiterJobApplicants = React.lazy(() => import('./pages/recruiter/RecruiterJobApplicants'))
+const RecruiterCandidateProfile = React.lazy(() => import('./pages/recruiter/RecruiterCandidateProfile'))
+const RecruiterPurchasedCandidates = React.lazy(() => import('./pages/recruiter/RecruiterPurchasedCandidates'))
+const RecruiterShortlistedCandidates = React.lazy(() => import('./pages/recruiter/RecruiterShortlistedCandidates'))
+const RecruiterApplicationsByStatus = React.lazy(() => import('./pages/recruiter/RecruiterApplicationsByStatus'))
+const RecruiterPlansCredits = React.lazy(() => import('./pages/recruiter/RecruiterPlansCredits'))
+const RecruiterCheckout = React.lazy(() => import('./pages/recruiter/RecruiterCheckout'))
+const RecruiterPaymentSuccess = React.lazy(() => import('./pages/recruiter/RecruiterPaymentSuccess'))
+const RecruiterPaymentFailed = React.lazy(() => import('./pages/recruiter/RecruiterPaymentFailed'))
+const RecruiterPaymentHistory = React.lazy(() => import('./pages/recruiter/RecruiterPaymentHistory'))
+const RecruiterInvoice = React.lazy(() => import('./pages/recruiter/RecruiterInvoice'))
+const RecruiterHospitalProfile = React.lazy(() => import('./pages/recruiter/RecruiterHospitalProfile'))
 import RecruiterLayout from './components/recruiter/dashboard/RecruiterLayout'
 
 function SiteLayout({ children }) {
@@ -99,6 +99,7 @@ export default function App() {
   return (
     <>
       <ScrollToTop />
+      <React.Suspense fallback={<div role="status" className="min-h-[40vh] p-6 text-sm text-slate-500">Loading screen…</div>}>
       <Routes>
       <Route path="/candidate" element={<RequireCandidateAccess><CandidateProfileProvider><Outlet /></CandidateProfileProvider></RequireCandidateAccess>}>
         <Route index element={<Navigate to="profile/resume" replace />} />
@@ -178,6 +179,7 @@ export default function App() {
       <Route path="/for-recruiters" element={<SiteLayout><ForRecruiters /></SiteLayout>} />
       <Route path="/pricing" element={<SiteLayout><Pricing /></SiteLayout>} />
       </Routes>
+      </React.Suspense>
     </>
   )
 }
