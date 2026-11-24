@@ -5,14 +5,13 @@ import Badge from '../../components/ui/Badge'
 import { RecruiterApiError, RecruiterEmpty, RecruiterLoading } from '../../components/recruiter/RecruiterApiState'
 import { recruiterApi } from '../../lib/recruiterApi'
 
-const initialFilters = { specialty: '', location: '', experience: '', licenseState: '', employmentPreference: '', availability: '' }
+const initialFilters = { specialty: '', location: '', experience: '', licenseState: '', employmentPreference: '' }
 const filters = [
   ['specialty', 'Specialty'],
   ['location', 'Location'],
   ['experience', 'Experience', ['1+ years', '4+ years', '8+ years']],
   ['licenseState', 'License State'],
   ['employmentPreference', 'Employment Preference'],
-  ['availability', 'Availability'],
 ]
 
 function getCandidateList(payload) {
@@ -154,25 +153,13 @@ function candidateDetails(candidate) {
   ].filter((item) => item.value)
 }
 
-// React Strict Mode replays mount effects in development. Share the in-flight
-// directory request so that replay does not send the same GET twice.
-let candidateDirectoryRequest
-
-function getCandidateDirectory() {
-  if (!candidateDirectoryRequest) {
-    candidateDirectoryRequest = recruiterApi.searchCandidates().finally(() => {
-      candidateDirectoryRequest = null
-    })
-  }
-  return candidateDirectoryRequest
-}
-
 export default function RecruiterFindCandidates() {
   const [searchParams] = useSearchParams()
   const [query, setQuery] = useState(searchParams.get('search') || '')
   const [submittedQuery, setSubmittedQuery] = useState(searchParams.get('search') || '')
   const [selectedFilters, setSelectedFilters] = useState(initialFilters)
   const [results, setResults] = useState([])
+  const [pagination, setPagination] = useState({ page: 1, pageSize: 20, total: 0, totalPages: 1 })
   const [page, setPage] = useState(1)
   const [shortlisted, setShortlisted] = useState([])
   const [loading, setLoading] = useState(true)
@@ -181,16 +168,32 @@ export default function RecruiterFindCandidates() {
   const [actionMessage, setActionMessage] = useState('')
   const [reload, setReload] = useState(0)
 
+  const pageSize = 20
+  const experienceMinimum = selectedFilters.experience ? Number.parseInt(selectedFilters.experience, 10) : undefined
+
   useEffect(() => {
     let active = true
     setLoading(true); setError(null)
-    // The documented GET has no confirmed query parameters; load with no query string and filter locally.
-    getCandidateDirectory().then((payload) => {
+    const timer = setTimeout(() => {
+    recruiterApi.searchCandidates({
+      q: submittedQuery || undefined,
+      page,
+      pageSize,
+      specialty: selectedFilters.specialty.trim() || undefined,
+      location: selectedFilters.location.trim() || undefined,
+      minExperience: experienceMinimum,
+      licenseState: selectedFilters.licenseState.trim() || undefined,
+      employmentPreference: selectedFilters.employmentPreference.trim() || undefined,
+      openToWork: true,
+    }).then((payload) => {
       if (!active) return
-      const response = getCandidateList(payload); setResults(response.items)
+      const response = getCandidateList(payload)
+      setResults(response.items)
+      setPagination(response.pagination)
     }).catch((requestError) => { if (active) setError(requestError) }).finally(() => { if (active) setLoading(false) })
-    return () => { active = false }
-  }, [reload])
+    }, 200)
+    return () => { active = false; clearTimeout(timer) }
+  }, [reload, page, pageSize, submittedQuery, selectedFilters, experienceMinimum])
 
   const updateFilter = (key, value) => { setSelectedFilters((current) => ({ ...current, [key]: value })); setPage(1) }
   const clearFilters = () => { setQuery(''); setSubmittedQuery(''); setSelectedFilters(initialFilters); setPage(1) }
@@ -203,20 +206,9 @@ export default function RecruiterFindCandidates() {
       setShortlisted((current) => [...current, publicId]); setActionMessage('Candidate added to your shortlist.')
     } catch (requestError) { setActionMessage(requestError.message) } finally { setSavingId(null) }
   }
-  const filteredResults = results.filter((candidate) => {
-    const searchable = [candidate.title, candidate.displayName, candidate.specialty, candidate.location, candidate.education, candidate.license, candidate.licenseState, candidate.employmentPreference, candidate.availability, ...candidate.tags].filter(Boolean).join(' ').toLowerCase()
-    const experienceMin = selectedFilters.experience === '8+ years' ? 8 : selectedFilters.experience === '4+ years' ? 4 : selectedFilters.experience === '1+ years' ? 1 : 0
-    return (!submittedQuery || searchable.includes(submittedQuery.toLowerCase())) &&
-      (!selectedFilters.specialty || candidate.specialty.toLowerCase().includes(selectedFilters.specialty.trim().toLowerCase())) &&
-      (!selectedFilters.location || candidate.location.toLowerCase().includes(selectedFilters.location.trim().toLowerCase())) &&
-      (!experienceMin || candidate.experienceYears >= experienceMin) &&
-      (!selectedFilters.licenseState || candidate.licenseState.toLowerCase().includes(selectedFilters.licenseState.trim().toLowerCase())) &&
-      (!selectedFilters.employmentPreference || candidate.employmentPreference.toLowerCase().includes(selectedFilters.employmentPreference.trim().toLowerCase())) &&
-      (!selectedFilters.availability || candidate.availability.toLowerCase().includes(selectedFilters.availability.trim().toLowerCase())) && candidate.openToWork
-  })
-  const pageSize = 20
-  const totalPages = Math.max(1, Math.ceil(filteredResults.length / pageSize))
-  const pageResults = filteredResults.slice((page - 1) * pageSize, page * pageSize)
+  const filteredResults = results
+  const pageResults = results
+  const totalPages = Math.max(1, pagination.totalPages)
   const hasFilters = Boolean(submittedQuery || Object.values(selectedFilters).some(Boolean))
 
   return <div className="flex flex-col gap-5">
@@ -226,7 +218,7 @@ export default function RecruiterFindCandidates() {
       <button type="submit" className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-blue-600 px-4 text-sm font-bold text-white hover:bg-blue-700"><Search className="h-4 w-4" />Search Candidates</button>
     </form>
     <div className="flex flex-wrap items-center gap-2"><div className="mr-1 flex items-center gap-1.5 text-xs font-semibold text-slate-500"><SlidersHorizontal className="h-3.5 w-3.5" />Filters</div>{filters.map(([key, label, options]) => options ? <label key={key} className={`relative inline-flex h-9 items-center rounded-full border px-3 py-1.5 text-xs font-bold ${selectedFilters[key] ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-200 bg-white text-slate-600'}`}><span className="sr-only">{label}</span><select value={selectedFilters[key]} onChange={(event) => updateFilter(key, event.target.value)} className="appearance-none bg-transparent pr-4 outline-none"><option className="bg-white text-slate-900" value="">{label}</option>{options.map((option) => <option className="bg-white text-slate-900" key={option} value={option}>{option}</option>)}</select><ChevronDown className="pointer-events-none absolute right-2 h-3 w-3" /></label> : <input key={key} aria-label={label} value={selectedFilters[key]} onChange={(event) => updateFilter(key, event.target.value)} placeholder={label} className={`h-9 w-36 rounded-full border px-3 text-xs font-semibold outline-none focus:border-blue-500 ${selectedFilters[key] ? 'border-blue-600 bg-blue-600 text-white placeholder:text-blue-100' : 'border-slate-200 bg-white text-slate-600'}`} />)}{hasFilters && <button type="button" onClick={clearFilters} className="ml-auto text-xs font-semibold text-blue-600">Clear Filters</button>}</div>
-    <div className="flex items-center justify-between gap-3"><h2 className="text-base font-bold text-slate-900">Healthcare Professionals</h2><span className="text-xs text-slate-500">{filteredResults.length} candidates found</span></div>
+    <div className="flex items-center justify-between gap-3"><h2 className="text-base font-bold text-slate-900">Healthcare Professionals</h2><span className="text-xs text-slate-500">{pagination.total} candidates found</span></div>
     {error && <RecruiterApiError error={error} onRetry={() => setReload((n) => n + 1)} />}
     {actionMessage && <p role="status" className="text-sm text-slate-600">{actionMessage}</p>}
     {loading ? <RecruiterLoading label="Searching candidates…" /> : <div className="flex flex-col gap-2.5">
@@ -236,6 +228,6 @@ export default function RecruiterFindCandidates() {
       </article>)}
       {!pageResults.length && !error && <RecruiterEmpty>No candidates match the selected search and filters.</RecruiterEmpty>}
     </div>}
-    <div className="flex items-center justify-between pt-2 text-xs text-slate-500"><span>Showing {pageResults.length ? `${(page - 1) * pageSize + 1}-${(page - 1) * pageSize + pageResults.length}` : '0'} of {filteredResults.length}</span><nav aria-label="Candidate results pages" className="flex items-center gap-2"><button type="button" disabled={page <= 1 || loading} onClick={() => setPage((value) => value - 1)} className="flex items-center gap-1 rounded border px-2 py-2 disabled:opacity-40"><ChevronLeft className="h-3.5 w-3.5" />Prev</button><span>Page {page} of {totalPages}</span><button type="button" disabled={page >= totalPages || loading} onClick={() => setPage((value) => value + 1)} className="flex items-center gap-1 rounded border px-2 py-2 disabled:opacity-40">Next<ChevronRight className="h-3.5 w-3.5" /></button></nav></div>
+    <div className="flex items-center justify-between pt-2 text-xs text-slate-500"><span>Showing {pageResults.length ? `${(page - 1) * pageSize + 1}-${(page - 1) * pageSize + pageResults.length}` : '0'} of {pagination.total}</span><nav aria-label="Candidate results pages" className="flex items-center gap-2"><button type="button" disabled={page <= 1 || loading} onClick={() => setPage((value) => value - 1)} className="flex items-center gap-1 rounded border px-2 py-2 disabled:opacity-40"><ChevronLeft className="h-3.5 w-3.5" />Prev</button><span>Page {page} of {totalPages}</span><button type="button" disabled={page >= totalPages || loading} onClick={() => setPage((value) => value + 1)} className="flex items-center gap-1 rounded border px-2 py-2 disabled:opacity-40">Next<ChevronRight className="h-3.5 w-3.5" /></button></nav></div>
   </div>
 }

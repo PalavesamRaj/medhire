@@ -78,6 +78,7 @@ export function createDashboardState(profile) {
 }
 export function dashboardReducer(state, action) {
   switch (action.type) {
+    case 'loading': return { ...state, loading: true }
     case 'load': return { ...state, ...action.data, loading: false, error: action.data.error || '' }
     case 'dashboard-update': return { ...state, metrics: { ...state.metrics, ...action.metrics }, ...(action.activities ? { activities: action.activities } : {}) }
     case 'load-error': return { ...state, loading: false, error: action.error }

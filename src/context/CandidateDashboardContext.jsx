@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useReducer } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useCandidateProfile } from './CandidateProfileContext'
 import { candidateFromProfile, createDashboardState, dashboardReducer, normalizeApplication, normalizeJob, recommendJobs } from '../lib/candidateDashboardState'
 import { getAccessToken } from '../lib/authSession'
@@ -61,6 +62,7 @@ function normalizePrivacy(response) {
 }
 export function CandidateDashboardProvider({ children }) {
   const { profile } = useCandidateProfile()
+  const { pathname } = useLocation()
   const [state, dispatch] = useReducer(dashboardReducer, profile, createDashboardState)
   useEffect(() => {
     let active = true
@@ -68,33 +70,53 @@ export function CandidateDashboardProvider({ children }) {
       dispatch({ type: 'load', data: { jobs: [], applications: [], savedJobIds: [], resumes: [], activities: [], privacy: {}, metrics: {} } })
       return () => { active = false }
     }
-    Promise.allSettled([
-      candidateDashboardApi.getDashboard(), candidateDashboardApi.searchJobs(), candidateDashboardApi.getApplications(),
-      candidateDashboardApi.getSavedJobs(), candidateDashboardApi.getResume(), candidateDashboardApi.getPrivacySettings(), candidateDashboardApi.getCandidateSummary(),
-    ]).then((results) => {
+    const isDashboard = pathname === '/candidate/dashboard'
+    const isSummary = pathname === '/candidate/summary'
+    const isApplications = pathname === '/candidate/applications'
+    const isSavedJobs = pathname === '/candidate/saved-jobs'
+    const isJobPage = pathname === '/candidate/jobs' || pathname.startsWith('/candidate/jobs/')
+    const isProfile = pathname === '/candidate/profile' || pathname === '/candidate/edit-profile'
+    const isPrivacy = pathname === '/candidate/privacy-settings'
+    const requests = {
+      ...(isDashboard ? { dashboard: () => candidateDashboardApi.getDashboard() } : {}),
+      ...(isDashboard || isSummary ? { summary: () => candidateDashboardApi.getCandidateSummary() } : {}),
+      ...(isDashboard || isApplications || isJobPage || isSavedJobs ? { jobs: () => candidateDashboardApi.searchJobs() } : {}),
+      ...(isDashboard || isApplications || pathname.endsWith('/apply') ? { applications: () => candidateDashboardApi.getApplications() } : {}),
+      ...(isDashboard || isSavedJobs || isJobPage ? { saved: () => candidateDashboardApi.getSavedJobs() } : {}),
+      ...(isProfile || pathname.endsWith('/apply') ? { resumes: () => candidateDashboardApi.getResume() } : {}),
+      ...(isDashboard || isPrivacy ? { privacy: () => candidateDashboardApi.getPrivacySettings() } : {}),
+    }
+    dispatch({ type: 'loading' })
+    Promise.allSettled(Object.values(requests).map((request) => request())).then((results) => {
       if (!active) return
-      const [dashboard, jobs, applications, saved, resumes, privacy, summary] = results.map((result) => result.status === 'fulfilled' ? unwrap(result.value) : null)
+      const loaded = Object.fromEntries(Object.keys(requests).map((key, index) => [key, results[index]?.status === 'fulfilled' ? unwrap(results[index].value) : null]))
       const failures = results.filter((result) => result.status === 'rejected')
-      const savedRecords = saved ? listFrom(saved, ['savedJobs', 'jobs', 'results']) : []
-      const applicationRecords = applications ? listFrom(applications, ['applications', 'results']) : []
+      const savedRecords = loaded.saved ? listFrom(loaded.saved, ['savedJobs', 'jobs', 'results']) : []
+      const applicationRecords = loaded.applications ? listFrom(loaded.applications, ['applications', 'results']) : []
+      const dashboard = loaded.dashboard
       const dashboardActivities = dashboard?.recentActivity || dashboard?.recentActivities || dashboard?.activities || dashboard?.activity
-      const jobRecords = jobs ? listFrom(jobs, ['jobs', 'results']) : []
-      const mergedJobs = [...jobRecords, ...savedRecords.map((item) => item.job).filter(Boolean), ...applicationRecords.map((item) => item.job).filter(Boolean)]
-      dispatch({ type: 'load', data: {
-        jobs: mergedJobs.map(normalizeJob).filter((job, index, all) => all.findIndex((item) => item.id === job.id) === index),
-        applications: applicationRecords.map(normalizeApplication),
-        savedJobIds: savedRecords.map((item) => typeof item === 'string' ? item : item.jobId || item.job?.id || item.id).filter(Boolean),
-        resumes: resumes ? listFrom(resumes, ['resumes', 'items']).map((item) => ({ ...item, id: item.id || item.resumeId, name: item.name || item.fileName, uploaded: item.uploaded || item.uploadedAt, status: RESUME_STATUS[String(item.approvalStatus || item.status || '').toUpperCase()] || 'Pending', rejectionReason: item.rejectionReason ?? null, reviewedAt: item.reviewedAt ?? null, active: item.active === true })) : [],
-        activities: Array.isArray(dashboardActivities) && dashboardActivities.length ? normalizeActivities(dashboardActivities) : normalizeActivities(applicationActivities(applicationRecords)),
-        privacy: privacy ? normalizePrivacy(privacy) : {},
-        metrics: { ...(dashboard || {}), ...(dashboard?.metrics || {}), ...(summary || {}), ...(summary?.metrics || {}) },
-        summary: summary?.data || summary || {},
-        error: failures.length ? 'Some account data could not be loaded. Check the backend connection and refresh.' : '',
-      } })
+      const data = { error: failures.length ? 'Some account data could not be loaded. Check the backend connection and refresh.' : '' }
+      if (loaded.jobs) {
+        const jobRecords = listFrom(loaded.jobs, ['jobs', 'results'])
+        const mergedJobs = [...jobRecords, ...savedRecords.map((item) => item.job).filter(Boolean), ...applicationRecords.map((item) => item.job).filter(Boolean)]
+        data.jobs = mergedJobs.map(normalizeJob).filter((job, index, all) => all.findIndex((item) => item.id === job.id) === index)
+      }
+      if (loaded.applications) data.applications = applicationRecords.map(normalizeApplication)
+      if (loaded.saved) data.savedJobIds = savedRecords.map((item) => typeof item === 'string' ? item : item.jobId || item.job?.id || item.id).filter(Boolean)
+      if (loaded.resumes) data.resumes = listFrom(loaded.resumes, ['resumes', 'items']).map((item) => ({ ...item, id: item.id || item.resumeId, name: item.name || item.fileName, uploaded: item.uploaded || item.uploadedAt, status: RESUME_STATUS[String(item.approvalStatus || item.status || '').toUpperCase()] || 'Pending', rejectionReason: item.rejectionReason ?? null, reviewedAt: item.reviewedAt ?? null, active: item.active === true }))
+      if (loaded.dashboard) data.activities = Array.isArray(dashboardActivities) && dashboardActivities.length ? normalizeActivities(dashboardActivities) : normalizeActivities(applicationActivities(applicationRecords))
+      if (loaded.privacy) data.privacy = normalizePrivacy(loaded.privacy)
+      if (loaded.dashboard || loaded.summary) {
+        const summary = loaded.summary || {}
+        data.metrics = { ...(dashboard || {}), ...(dashboard?.metrics || {}), ...(summary || {}), ...(summary?.metrics || {}) }
+        data.summary = summary?.data || summary
+      }
+      dispatch({ type: 'load', data })
     })
     return () => { active = false }
-  }, [])
+  }, [pathname])
   useEffect(() => {
+    if (pathname !== '/candidate/dashboard') return undefined
     if (!getAccessToken()) return undefined
     let active = true
     const refreshDashboard = async () => {
@@ -111,9 +133,9 @@ export function CandidateDashboardProvider({ children }) {
     window.addEventListener('focus', refreshDashboard)
     document.addEventListener('visibilitychange', onVisible)
     return () => { active = false; window.clearInterval(timer); window.removeEventListener('focus', refreshDashboard); document.removeEventListener('visibilitychange', onVisible) }
-  }, [])
+  }, [pathname])
   const candidate = { ...candidateFromProfile(profile), ...state.edits }
-  const metrics = { profileViews: state.metrics.profileViews ?? state.metrics.profile_views ?? state.metrics.profileViewCount ?? state.metrics.profile_view_count ?? 0, profileStrength: getCandidateProfileCompletion(profile, { hasSavedResume: state.resumes.length > 0 }).percentage, applications: state.metrics.applications ?? state.applications.length, savedJobs: state.metrics.savedJobs ?? state.savedJobIds.length, timesUnlocked: state.metrics.timesUnlocked ?? state.metrics.times_unlocked ?? state.metrics.unlockCount ?? state.metrics.unlock_count ?? 0, interviews: state.metrics.interviewsScheduled ?? state.metrics.interviews_scheduled ?? state.metrics.interviewCount ?? state.metrics.interview_count ?? state.metrics.interviews ?? state.applications.filter((application) => application.interviewScheduled || application.status === 'Interview').length }
+  const metrics = { profileViews: state.metrics.profileViews ?? state.metrics.profile_views ?? state.metrics.profileViewCount ?? state.metrics.profile_view_count ?? 0, profileStrength: getCandidateProfileCompletion(profile, { hasSavedResume: state.resumes.length > 0 || Boolean(profile.resumeMetadata) }).percentage, applications: state.metrics.applications ?? state.applications.length, savedJobs: state.metrics.savedJobs ?? state.savedJobIds.length, timesUnlocked: state.metrics.timesUnlocked ?? state.metrics.times_unlocked ?? state.metrics.unlockCount ?? state.metrics.unlock_count ?? 0, interviews: state.metrics.interviewsScheduled ?? state.metrics.interviews_scheduled ?? state.metrics.interviewCount ?? state.metrics.interview_count ?? state.metrics.interviews ?? state.applications.filter((application) => application.interviewScheduled || application.status === 'Interview').length }
   const recommendedJobs = useMemo(() => recommendJobs(state.jobs, profile, { applications: state.applications, savedJobIds: state.savedJobIds }), [state.jobs, profile, state.applications, state.savedJobIds])
   return <DashboardContext.Provider value={{ ...state, candidate, metrics, recommendedJobs, dispatch }}>{children}</DashboardContext.Provider>
 }
