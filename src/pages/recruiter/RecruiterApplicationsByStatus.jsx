@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Eye, MapPin, Search } from 'lucide-react'
 import Badge from '../../components/ui/Badge'
@@ -20,7 +20,6 @@ const NEXT_STATUSES = {
 }
 const STATUS_LABELS = { SHORTLISTED: 'Shortlisted', HIRED: 'Hired', REJECTED: 'Rejected' }
 const first = (...values) => values.find((value) => value !== undefined && value !== null && value !== '')
-const statusKey = (value) => String(value || 'APPLIED').toUpperCase().replaceAll(' ', '_')
 
 function applicantFrom(item) {
   const candidate = item.candidate ?? item.applicant ?? item.candidateProfile ?? item.candidate_profile ?? {}
@@ -34,23 +33,13 @@ function applicantFrom(item) {
     id: publicId || candidateUuid,
     publicId,
     candidateUuid,
-    name: unlocked ? first(item.name, item.fullName, item.full_name, candidate.name, candidate.fullName, candidate.full_name, candidate.displayName, candidate.display_name) : first(item.maskedName, item.masked_name, candidate.maskedName, candidate.masked_name, candidate.maskedFullName, candidate.masked_full_name),
+    name: unlocked ? first(item.name, item.candidateName, item.displayName, item.fullName, item.full_name, candidate.name, candidate.fullName, candidate.full_name, candidate.displayName, candidate.display_name) : first(item.maskedName, item.masked_name, item.candidateName, item.displayName, candidate.maskedName, candidate.masked_name, candidate.maskedFullName, candidate.masked_full_name),
     initials: first(item.initials, candidate.initials, 'C'),
-    title: first(item.title, item.jobTitle, item.job_title, candidate.title, candidate.jobTitle, candidate.job_title, candidate.currentJobTitle, candidate.current_job_title, candidate.profession),
+    title: first(item.currentJobTitle, item.current_job_title, item.title, item.jobTitle, item.job_title, candidate.title, candidate.jobTitle, candidate.job_title, candidate.currentJobTitle, candidate.current_job_title, candidate.profession),
     specialty: first(item.specialty, candidate.specialty, candidate.specialtyName, candidate.specialty_name),
-    experience: first(item.experience, item.experienceYears, item.experience_years, candidate.experience, candidate.experienceYears, candidate.experience_years, candidate.yearsOfExperience),
+    experience: first(item.experience, item.yearsOfExperience, item.experienceYears, item.experience_years, candidate.experience, candidate.experienceYears, candidate.experience_years, candidate.yearsOfExperience),
     location: typeof location === 'object' ? [location.city, location.state, location.country].filter(Boolean).join(', ') : location,
   }
-}
-
-function unwrapCandidate(payload) {
-  let result = payload
-  for (let i = 0; i < 5 && result && !Array.isArray(result); i += 1) {
-    if (result.data && typeof result.data === 'object') result = result.data
-    else if (result.result && typeof result.result === 'object') result = result.result
-    else break
-  }
-  return result?.candidate ?? result?.candidateProfile ?? result?.candidate_profile ?? result?.profile?.candidate ?? result?.profile ?? result ?? {}
 }
 
 export default function RecruiterApplicationsByStatus({ status }) {
@@ -64,47 +53,50 @@ export default function RecruiterApplicationsByStatus({ status }) {
   const [specialty, setSpecialty] = useState('')
   const [location, setLocation] = useState('')
   const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
+  const [debouncedFilters, setDebouncedFilters] = useState({ query: '', specialty: '', location: '' })
   const [rejectTarget, setRejectTarget] = useState(null)
   const [rejectReason, setRejectReason] = useState('')
+  const loadVersion = useRef(0)
 
   const load = useCallback(async () => {
+    const version = ++loadVersion.current
     setLoading(true)
     setLoadError(null)
     try {
-      const jobs = getListResponse(await recruiterApi.getJobs()).items
-      const jobApplications = await Promise.all(jobs.map(async (job) => {
-        const jobId = job.id || job.jobId || job.job_id
-        if (!jobId) return []
-        const applications = getListResponse(await recruiterApi.getJobApplications(jobId)).items
-        return applications
-          .filter((application) => statusKey(application.status || application.applicationStatus || application.application_status) === view.status)
-          .map((application) => ({
-            ...application,
-            jobId,
-            jobTitle: job.title || job.jobTitle || job.job_title || 'Job posting',
-            jobLocation: job.location,
-          }))
+      const payload = await recruiterApi.getApplicationsByStatus({
+        status: view.status,
+        page,
+        pageSize: 8,
+        q: debouncedFilters.query || undefined,
+        specialty: debouncedFilters.specialty || undefined,
+        location: debouncedFilters.location || undefined,
+      })
+      const result = getListResponse(payload)
+      const enriched = result.items.map((application) => ({
+        ...application,
+        candidatePreview: applicantFrom({
+          ...application,
+          location: [application.city, application.state].filter(Boolean).join(', '),
+        }),
       }))
-      const matching = jobApplications.flat()
-      const enriched = await Promise.all(matching.map(async (application) => {
-        const candidate = applicantFrom(application)
-        if (!candidate.id || (candidate.title && candidate.specialty && candidate.location)) return { ...application, candidatePreview: candidate }
-        try {
-          const preview = applicantFrom({ candidate: unwrapCandidate(await recruiterApi.getCandidate(candidate.id)) })
-          return { ...application, candidatePreview: Object.fromEntries(Object.entries({ ...candidate, ...preview, id: candidate.id }).filter(([, value]) => value !== undefined && value !== null && value !== '')) }
-        } catch {
-          return { ...application, candidatePreview: candidate }
-        }
-      }))
+      if (version !== loadVersion.current) return
       setRows(enriched)
+      setTotal(Number(result.pagination.total) || 0)
     } catch (error) {
-      setLoadError(error)
+      if (version === loadVersion.current) setLoadError(error)
     } finally {
-      setLoading(false)
+      if (version === loadVersion.current) setLoading(false)
     }
-  }, [view.status])
+  }, [view.status, page, debouncedFilters])
 
   useEffect(() => { load() }, [load])
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedFilters({ query: query.trim(), specialty: specialty.trim(), location: location.trim() })
+    }, 250)
+    return () => window.clearTimeout(timer)
+  }, [query, specialty, location])
 
   const changeStatus = async (application, nextStatus, reason = '') => {
     const applicationId = application.applicationId || application.application_id || application.id
@@ -114,6 +106,8 @@ export default function RecruiterApplicationsByStatus({ status }) {
     try {
       await recruiterApi.updateApplicationStatus(applicationId, nextStatus, reason)
       setRows((current) => current.filter((item) => (item.applicationId || item.application_id || item.id) !== applicationId))
+      setTotal((current) => Math.max(0, current - 1))
+      if (page > 1 && pageRows.length === 1) setPage((current) => current - 1)
       return true
     } catch (error) {
       setActionError(error.message || 'Unable to update the application status.')
@@ -129,20 +123,9 @@ export default function RecruiterApplicationsByStatus({ status }) {
     if (saved) { setRejectTarget(null); setRejectReason('') }
   }
 
-  const visibleRows = useMemo(() => {
-    const needle = query.trim().toLowerCase()
-    return rows.filter((item) => {
-      const candidate = item.candidatePreview || applicantFrom(item)
-      const searchable = [candidate.name, candidate.id, candidate.title, candidate.specialty, candidate.location, item.jobTitle, item.jobLocation]
-        .filter(Boolean).join(' ').toLowerCase()
-      return (!needle || searchable.includes(needle)) &&
-        (!specialty || String(candidate.specialty || '').toLowerCase().includes(specialty.trim().toLowerCase())) &&
-        (!location || String(candidate.location || item.jobLocation || '').toLowerCase().includes(location.trim().toLowerCase()))
-    })
-  }, [rows, query, specialty, location])
-  const pageSize = 20
-  const totalPages = Math.max(1, Math.ceil(visibleRows.length / pageSize))
-  const pageRows = visibleRows.slice((page - 1) * pageSize, page * pageSize)
+  const pageSize = 8
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
+  const pageRows = rows
   const clearFilters = () => { setQuery(''); setSpecialty(''); setLocation(''); setPage(1) }
   const formatDate = (value) => value && !Number.isNaN(new Date(value).getTime()) ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(value)) : '—'
 
@@ -156,7 +139,7 @@ export default function RecruiterApplicationsByStatus({ status }) {
     {actionError && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{actionError}</p>}
     {loadError && <RecruiterApiError error={loadError} onRetry={load} />}
     <section className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-      {loading ? <RecruiterLoading label={`Loading ${view.title.toLowerCase()} applications…`} /> : !loadError && pageRows.length === 0 ? <div className="p-5"><RecruiterEmpty>{rows.length ? 'No applications match your filters.' : `No ${view.title.toLowerCase()} applications found.`}</RecruiterEmpty></div> : !loadError && <table className="w-full min-w-[1200px] table-fixed border-collapse text-left">
+      {loading ? <RecruiterLoading label={`Loading ${view.title.toLowerCase()} applications…`} /> : !loadError && pageRows.length === 0 ? <div className="p-5"><RecruiterEmpty>{query || specialty || location ? 'No applications match your filters.' : `No ${view.title.toLowerCase()} applications found.`}</RecruiterEmpty></div> : !loadError && <table className="w-full min-w-[1200px] table-fixed border-collapse text-left">
         <colgroup><col style={{ width: '18%' }} /><col style={{ width: '16%' }} /><col style={{ width: '11%' }} /><col style={{ width: '6%' }} /><col style={{ width: '13%' }} /><col style={{ width: '9%' }} /><col style={{ width: '11%' }} /><col style={{ width: '16%' }} /></colgroup>
         <thead><tr className="border-b border-slate-200 bg-slate-50 text-xs font-bold uppercase text-slate-700"><th scope="col" className="px-4 py-3">Candidate</th><th scope="col" className="px-4 py-3">Role</th><th scope="col" className="px-4 py-3">Specialty</th><th scope="col" className="px-4 py-3">Exp</th><th scope="col" className="px-4 py-3">Location</th><th scope="col" className="px-4 py-3">Date</th><th scope="col" className="px-4 py-3">Status</th><th scope="col" className="px-4 py-3">Actions</th></tr></thead>
         <tbody>
@@ -181,7 +164,7 @@ export default function RecruiterApplicationsByStatus({ status }) {
         </tbody>
       </table>}
     </section>
-    <div className="flex items-center justify-between gap-3 text-xs text-slate-500"><span>Showing {pageRows.length ? `${(page - 1) * pageSize + 1}-${(page - 1) * pageSize + pageRows.length}` : '0'} of {visibleRows.length}</span><div className="flex items-center gap-2"><button type="button" disabled={page <= 1 || loading} onClick={() => setPage((value) => value - 1)} className="rounded border px-3 py-2 disabled:opacity-40">Prev</button><span>Page {page} of {totalPages}</span><button type="button" disabled={page >= totalPages || loading} onClick={() => setPage((value) => value + 1)} className="rounded border px-3 py-2 disabled:opacity-40">Next</button></div></div>
+    <div className="flex items-center justify-between gap-3 text-xs text-slate-500"><span>Showing {pageRows.length ? `${(page - 1) * pageSize + 1}-${(page - 1) * pageSize + pageRows.length}` : '0'} of {total}</span><div className="flex items-center gap-2"><button type="button" disabled={page <= 1 || loading} onClick={() => setPage((value) => value - 1)} className="rounded border px-3 py-2 disabled:opacity-40">Prev</button><span>Page {page} of {totalPages}</span><button type="button" disabled={page >= totalPages || loading} onClick={() => setPage((value) => value + 1)} className="rounded border px-3 py-2 disabled:opacity-40">Next</button></div></div>
     {(query || specialty || location) && <button type="button" onClick={clearFilters} className="self-start text-xs font-semibold text-blue-600">Clear filters</button>}
     <RecruiterRejectApplicationDialog open={Boolean(rejectTarget)} candidateName={rejectTarget ? (rejectTarget.candidatePreview || applicantFrom(rejectTarget)).name : ''} jobTitle={rejectTarget?.jobTitle || ''} reason={rejectReason} onReasonChange={setRejectReason} onCancel={() => { if (!statusBusy) { setRejectTarget(null); setRejectReason('') } }} onConfirm={confirmRejection} busy={Boolean(rejectTarget && statusBusy === (rejectTarget.applicationId || rejectTarget.application_id || rejectTarget.id))} error={actionError} />
   </div>

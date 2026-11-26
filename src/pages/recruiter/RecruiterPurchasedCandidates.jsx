@@ -47,14 +47,6 @@ const APPLICATION_STATUS_LABELS = { APPLIED: 'Applied', UNDER_REVIEW: 'Under Rev
 const applicationStatusKey = (value) => String(value || '').toUpperCase().replaceAll(' ', '_')
 const applicationStatusLabel = (value) => APPLICATION_STATUS_LABELS[applicationStatusKey(value)] || value || 'Unknown'
 
-function relatedCandidateIds(item = {}) {
-  const candidate = item.candidate || item.applicant || item.candidateProfile || item.candidate_profile || {}
-  return [item.candidateId, item.candidate_id, item.candidateUuid, item.candidate_uuid, item.candidatePublicId, item.candidate_public_id, item.publicId, item.public_id,
-    candidate.candidateId, candidate.candidate_id, candidate.id, candidate.publicId, candidate.public_id]
-    .filter((value) => value !== undefined && value !== null && value !== '')
-    .map((value) => String(value).toLowerCase())
-}
-
 function getResumeFromCandidateResponse(response) {
   const root = response?.data ?? response ?? {}
   const candidate = root.candidate || root.candidateDetails || root.candidate_details || root.candidateProfile || root.candidate_profile || root
@@ -76,6 +68,7 @@ export default function RecruiterPurchasedCandidates() {
   const [jobStatus, setJobStatus] = useState('')
   const [items, setItems] = useState([])
   const [page, setPage] = useState(1)
+  const [pagination, setPagination] = useState({ total: 0, totalPages: 1 })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [reload, setReload] = useState(0)
@@ -85,53 +78,17 @@ export default function RecruiterPurchasedCandidates() {
     setLoading(true); setError(null)
     const loadPurchasedCandidates = async () => {
       try {
-        const [purchasedResult, jobsResult] = await Promise.allSettled([recruiterApi.getPurchasedCandidates(), recruiterApi.getJobs()])
-        if (purchasedResult.status === 'rejected') throw purchasedResult.reason
-        const purchased = getListResponse(purchasedResult.value).items.map(normalizePurchasedCandidate)
-        const applicationIndex = new Map()
-        let applicationLoadError = jobsResult.status === 'rejected' ? jobsResult.reason : null
-        if (jobsResult.status === 'fulfilled') {
-          const jobs = getListResponse(jobsResult.value).items
-          const applicationResults = await Promise.allSettled(jobs.map(async (job) => {
-            const jobId = job.id || job.jobId || job.job_id
-            if (!jobId) return { applications: [], jobId: '', jobTitle: '' }
-            const applications = getListResponse(await recruiterApi.getJobApplications(jobId)).items
-            return { applications, jobId, jobTitle: job.title || job.jobTitle || job.job_title || 'Job posting' }
-          }))
-          applicationResults.forEach((result) => {
-            if (result.status === 'rejected') { applicationLoadError ||= result.reason; return }
-            result.value.applications.forEach((application) => {
-              const related = {
-                applicationId: application.applicationId || application.application_id || application.id,
-                status: application.status || application.applicationStatus || application.application_status || 'APPLIED',
-                jobId: result.value.jobId,
-                jobTitle: result.value.jobTitle,
-              }
-              relatedCandidateIds(application).forEach((candidateId) => {
-                const entries = applicationIndex.get(candidateId) || []
-                entries.push(related)
-                applicationIndex.set(candidateId, entries)
-              })
-            })
-          })
-        }
-        const enriched = purchased.map((candidate) => {
-          const ids = [candidate.candidateId, candidate.candidateUuid, candidate.publicId, candidate.id]
-            .filter((value) => value !== undefined && value !== null && value !== '')
-            .map((value) => String(value).toLowerCase())
-          const applications = [...new Map(ids.flatMap((id) => applicationIndex.get(id) || []).map((application) => [application.applicationId || `${application.jobId}-${application.status}`, application])).values()]
-          return { ...candidate, jobApplications: applications }
-        })
+        const result = getListResponse(await recruiterApi.getPurchasedCandidates({ page, pageSize: 8 }))
         if (!active) return
-        setItems(enriched)
-        if (applicationLoadError) setError(applicationLoadError)
+        setItems(result.items.map(normalizePurchasedCandidate))
+        setPagination(result.pagination)
       } catch (requestError) {
         if (active) setError(requestError)
       } finally { if (active) setLoading(false) }
     }
     loadPurchasedCandidates()
     return () => { active = false }
-  }, [reload])
+  }, [reload, page])
 
   const filteredItems = items.filter((candidate) => {
     const text = [candidate.name, candidate.publicId, candidate.id, candidate.title, candidate.specialty, candidate.location, candidate.status, ...(candidate.jobApplications || []).flatMap((application) => [application.jobTitle, applicationStatusLabel(application.status)])].filter(Boolean).join(' ').toLowerCase()
@@ -141,9 +98,9 @@ export default function RecruiterPurchasedCandidates() {
       (!status || String(candidate.status || '').toLowerCase() === status.toLowerCase()) &&
       (!jobStatus || (candidate.jobApplications || []).some((application) => applicationStatusKey(application.status) === jobStatus))
   })
-  const pageSize = 20
-  const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize))
-  const pageItems = filteredItems.slice((page - 1) * pageSize, page * pageSize)
+  const pageSize = 8
+  const totalPages = Math.max(1, Number(pagination.totalPages) || 1)
+  const pageItems = filteredItems.slice(0, pageSize)
 
   const openResume = async (candidate) => {
     setError(null)
@@ -180,7 +137,7 @@ export default function RecruiterPurchasedCandidates() {
       {loading ? <RecruiterLoading label="Loading purchased candidates…" /> : pageItems.map((candidate, index) => <PurchasedCandidateRow key={candidate.id || candidate.purchaseId || index} candidate={candidate} onResume={() => openResume(candidate)} />)}
       {!loading && !error && !pageItems.length && <RecruiterEmpty>No purchased candidates match your filters.</RecruiterEmpty>}
     </section>
-    <div className="flex items-center justify-between gap-3 text-xs text-slate-500"><span>Showing {pageItems.length ? `${(page - 1) * pageSize + 1}-${(page - 1) * pageSize + pageItems.length}` : '0'} of {filteredItems.length}</span><div className="flex items-center gap-2"><button type="button" disabled={page <= 1 || loading} onClick={() => setPage((value) => value - 1)} className="rounded border px-3 py-2 disabled:opacity-40">Prev</button><span>Page {page} of {totalPages}</span><button type="button" disabled={page >= totalPages || loading} onClick={() => setPage((value) => value + 1)} className="rounded border px-3 py-2 disabled:opacity-40">Next</button></div></div>
+    <div className="flex items-center justify-between gap-3 text-xs text-slate-500"><span>Showing {pageItems.length ? `${(page - 1) * pageSize + 1}-${(page - 1) * pageSize + pageItems.length}` : '0'} of {pagination.total || 0}</span><div className="flex items-center gap-2"><button type="button" disabled={page <= 1 || loading} onClick={() => setPage((value) => value - 1)} className="rounded border px-3 py-2 disabled:opacity-40">Prev</button><span>Page {page} of {totalPages}</span><button type="button" disabled={page >= totalPages || loading} onClick={() => setPage((value) => value + 1)} className="rounded border px-3 py-2 disabled:opacity-40">Next</button></div></div>
     {(query || specialty || location || status || jobStatus) && <button type="button" onClick={clearFilters} className="self-start text-xs font-semibold text-blue-600">Clear Filters</button>}
   </div>
 }

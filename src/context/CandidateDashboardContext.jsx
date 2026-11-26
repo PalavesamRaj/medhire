@@ -79,12 +79,12 @@ export function CandidateDashboardProvider({ children }) {
     const isPrivacy = pathname === '/candidate/privacy-settings'
     const requests = {
       ...(isDashboard ? { dashboard: () => candidateDashboardApi.getDashboard() } : {}),
-      ...(isDashboard || isSummary ? { summary: () => candidateDashboardApi.getCandidateSummary() } : {}),
-      ...(isDashboard || isApplications || isJobPage || isSavedJobs ? { jobs: () => candidateDashboardApi.searchJobs() } : {}),
-      ...(isDashboard || isApplications || pathname.endsWith('/apply') ? { applications: () => candidateDashboardApi.getApplications() } : {}),
-      ...(isDashboard || isSavedJobs || isJobPage ? { saved: () => candidateDashboardApi.getSavedJobs() } : {}),
+      ...(isSummary ? { summary: () => candidateDashboardApi.getCandidateSummary() } : {}),
+      ...(isApplications || isJobPage || isSavedJobs ? { jobs: () => candidateDashboardApi.searchJobs() } : {}),
+      ...(isApplications || pathname.endsWith('/apply') ? { applications: () => candidateDashboardApi.getApplications() } : {}),
+      ...(isSavedJobs || isJobPage ? { saved: () => candidateDashboardApi.getSavedJobs() } : {}),
       ...(isProfile || pathname.endsWith('/apply') ? { resumes: () => candidateDashboardApi.getResume() } : {}),
-      ...(isDashboard || isPrivacy ? { privacy: () => candidateDashboardApi.getPrivacySettings() } : {}),
+      ...(isPrivacy ? { privacy: () => candidateDashboardApi.getPrivacySettings() } : {}),
     }
     dispatch({ type: 'loading' })
     Promise.allSettled(Object.values(requests).map((request) => request())).then((results) => {
@@ -104,11 +104,17 @@ export function CandidateDashboardProvider({ children }) {
       if (loaded.applications) data.applications = applicationRecords.map(normalizeApplication)
       if (loaded.saved) data.savedJobIds = savedRecords.map((item) => typeof item === 'string' ? item : item.jobId || item.job?.id || item.id).filter(Boolean)
       if (loaded.resumes) data.resumes = listFrom(loaded.resumes, ['resumes', 'items']).map((item) => ({ ...item, id: item.id || item.resumeId, name: item.name || item.fileName, uploaded: item.uploaded || item.uploadedAt, status: RESUME_STATUS[String(item.approvalStatus || item.status || '').toUpperCase()] || 'Pending', rejectionReason: item.rejectionReason ?? null, reviewedAt: item.reviewedAt ?? null, active: item.active === true }))
-      if (loaded.dashboard) data.activities = Array.isArray(dashboardActivities) && dashboardActivities.length ? normalizeActivities(dashboardActivities) : normalizeActivities(applicationActivities(applicationRecords))
+      if (loaded.dashboard) {
+        data.jobs = listFrom(dashboard, ['recommendedJobs', 'jobs']).map(normalizeJob)
+        data.savedJobIds = Array.isArray(dashboard.savedJobIds) ? dashboard.savedJobIds : []
+        data.activities = Array.isArray(dashboardActivities) && dashboardActivities.length ? normalizeActivities(dashboardActivities) : normalizeActivities(applicationActivities(applicationRecords))
+        data.privacy = dashboard.privacy ? normalizePrivacy(dashboard.privacy) : {}
+        data.metrics = { ...(dashboard || {}), ...(dashboard?.metrics || {}) }
+      }
       if (loaded.privacy) data.privacy = normalizePrivacy(loaded.privacy)
-      if (loaded.dashboard || loaded.summary) {
+      if (loaded.summary) {
         const summary = loaded.summary || {}
-        data.metrics = { ...(dashboard || {}), ...(dashboard?.metrics || {}), ...(summary || {}), ...(summary?.metrics || {}) }
+        data.metrics = { ...(summary || {}), ...(summary?.metrics || {}) }
         data.summary = summary?.data || summary
       }
       dispatch({ type: 'load', data })

@@ -60,10 +60,14 @@ export function getCandidateResumeRecord(response) {
 export async function fetchCandidatePhoto(photoUrl) {
   if (!photoUrl) throw new Error('No profile photo URL is available.')
   const parsedUrl = new URL(photoUrl, window.location.origin)
-  const url = parsedUrl.toString()
+  const apiBaseUrl = new URL(API_BASE_URL, window.location.origin)
+  const isCandidatePhotoEndpoint = parsedUrl.pathname === '/api/candidates/me/profile/photo'
+  const requestUrl = isCandidatePhotoEndpoint
+    ? new URL(`${apiBaseUrl.pathname.replace(/\/$/, '')}${parsedUrl.pathname.slice('/api'.length)}${parsedUrl.search}`, apiBaseUrl.origin)
+    : parsedUrl
   const token = getAccessToken()
-  const response = await authedFetch(url, {
-    headers: { Accept: 'image/*', ...(token && parsedUrl.origin === window.location.origin ? { Authorization: `Bearer ${token}` } : {}) },
+  const response = await authedFetch(requestUrl.toString(), {
+    headers: { Accept: 'image/*', ...(token && requestUrl.origin === apiBaseUrl.origin ? { Authorization: `Bearer ${token}` } : {}) },
   })
   if (!response.ok) throw new Error(`Photo request failed (${response.status}).`)
   const blob = await response.blob()

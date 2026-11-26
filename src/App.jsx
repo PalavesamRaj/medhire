@@ -1,6 +1,7 @@
 import React from 'react'
 import { Routes, Route, useLocation, Navigate, Outlet } from 'react-router-dom'
 import { CandidateProfileProvider } from './context/CandidateProfileContext'
+import ScreenLoading from './components/common/ScreenLoading'
 const PersonalInformation = React.lazy(() => import('./pages/candidate/profile-setup/PersonalInformation'))
 const ProfessionalInformation = React.lazy(() => import('./pages/candidate/profile-setup/ProfessionalInformation'))
 const Education = React.lazy(() => import('./pages/candidate/profile-setup/Education'))
@@ -99,7 +100,7 @@ export default function App() {
   return (
     <>
       <ScrollToTop />
-      <React.Suspense fallback={<div role="status" className="min-h-[40vh] p-6 text-sm text-slate-500">Loading screen…</div>}>
+      <React.Suspense fallback={<ScreenLoading />}>
       <Routes>
       <Route path="/candidate" element={<RequireCandidateAccess><CandidateProfileProvider><Outlet /></CandidateProfileProvider></RequireCandidateAccess>}>
         <Route index element={<Navigate to="profile/resume" replace />} />

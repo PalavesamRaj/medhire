@@ -8,9 +8,13 @@ import { profileSteps } from '../../../lib/candidateProfileOptions'
 import { useCandidateProfile } from '../../../context/CandidateProfileContext'
 
 export default function CandidateProfileLayout({ step, children, onSubmit, busy, submitting, error, onBack, onSkip }) {
-  const { storageError, profileError, profile, submitted } = useCandidateProfile()
+  const { storageError, profileError, profile, submitted, loading } = useCandidateProfile()
   const heading = useRef(null)
   useEffect(() => { heading.current?.focus() }, [step])
+  if (loading) return <main className="min-h-screen animate-pulse bg-white lg:grid lg:grid-cols-[minmax(0,820fr)_minmax(0,620fr)]" aria-label="Loading your profile setup" aria-busy="true">
+    <section className="flex min-w-0 flex-col px-6 py-8 sm:px-12 lg:px-14 xl:px-[72px]"><div className="mx-auto flex w-full max-w-[680px] flex-1 flex-col"><Logo /><div className="mt-8 h-3 w-full rounded bg-ink-100" /><div className="mt-8 h-8 w-64 rounded bg-ink-100" /><div className="mt-3 h-4 w-80 max-w-full rounded bg-ink-100" /><div className="mt-8 flex flex-1 flex-col gap-5">{Array.from({ length: 5 }, (_, index) => <div key={index} className="space-y-2"><div className="h-4 w-32 rounded bg-ink-100" /><div className="h-11 w-full rounded-lg bg-ink-100" /></div>)}</div><div className="mt-8 h-11 w-40 rounded-lg bg-ink-100" /></div></section>
+    <aside className="hidden bg-ink-50 p-10 lg:block"><div className="mx-auto mt-24 max-w-md space-y-5">{Array.from({ length: 4 }, (_, index) => <div key={index} className="h-20 rounded-xl bg-ink-100" />)}</div></aside>
+  </main>
   return <main className="min-h-screen bg-white lg:grid lg:grid-cols-[minmax(0,820fr)_minmax(0,620fr)]">
     <section className="flex min-w-0 flex-col px-6 py-8 sm:px-12 lg:px-14 xl:px-[72px]">
       <div className="mx-auto flex w-full max-w-[680px] flex-1 flex-col">

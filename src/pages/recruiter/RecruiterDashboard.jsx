@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { ArrowRight, Bookmark, Briefcase, CalendarDays, CheckCircle2, ClipboardList, ShieldCheck, ShoppingCart, UserRound, WalletCards, XCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import Badge from '../../components/ui/Badge'
-import { RecruiterApiError, RecruiterEmpty, RecruiterLoading, getListResponse } from '../../components/recruiter/RecruiterApiState'
+import { RecruiterApiError, RecruiterEmpty } from '../../components/recruiter/RecruiterApiState'
 import { recruiterApi } from '../../lib/recruiterApi'
 import { getAuthenticatedUser } from '../../lib/authSession'
 
@@ -69,13 +69,13 @@ function normalizeDashboard(payload, supplemental = {}) {
   const location = typeof org.location === 'string' ? org.location : [org.city ?? org.city_name ?? address.city, org.state ?? org.state_name ?? address.state ?? address.region].filter(Boolean).join(', ')
   const candidates = root.recommendedCandidates ?? root.recommended_candidates ?? root.recommendations ?? root.candidates ?? root.suggestedCandidates ?? root.suggested_candidates ?? []
   const activities = root.recentActivity ?? root.recent_activity ?? root.recentActivities ?? root.recent_activities ?? root.activities ?? root.activity ?? []
-  const creditPayload = unwrap(supplemental.credits) ?? {}
+  const creditPayload = unwrap(supplemental.credits ?? root.credits) ?? {}
   const creditSources = [creditPayload.balance, creditPayload.credits, creditPayload.summary, creditPayload]
   const creditValue = firstValue(creditSources, ['availableCredits', 'creditsAvailable', 'creditBalance', 'remainingCredits', 'balance', 'available', 'totalCredits'])
   const nestedCreditValue = typeof creditValue === 'object' ? firstValue([creditValue], ['available', 'balance', 'remaining', 'amount', 'credits']) : creditValue
   const metrics = {
-    applicationCounts: supplemental.applicationCounts,
-    purchasedCandidates: supplemental.purchasedTotal,
+    applicationCounts: supplemental.applicationCounts ?? firstValue(sources, ['applicationCounts', 'application_counts']),
+    purchasedCandidates: supplemental.purchasedTotal ?? firstValue(sources, ['purchasedCandidates', 'purchased']),
     availableCredits: firstValue(sources, ['availableCredits', 'available_credits', 'creditsAvailable', 'creditBalance', 'credit_balance', 'remainingCredits', 'remaining_credits']) ?? (typeof nestedCreditValue === 'number' || typeof nestedCreditValue === 'string' ? nestedCreditValue : undefined),
     usedCredits: firstValue(creditSources, ['usedCredits', 'creditsUsed', 'used', 'consumedCredits']),
     totalCredits: firstValue(creditSources, ['totalCredits', 'creditLimit', 'purchasedCredits', 'allocatedCredits']),
@@ -123,13 +123,6 @@ function normalizeDashboard(payload, supplemental = {}) {
   }
 }
 
-function responseTotal(payload) {
-  const root = unwrap(payload) ?? {}
-  const pagination = payload?.pagination ?? payload?.data?.pagination ?? root.pagination ?? {}
-  const value = pagination.total ?? root.total ?? root.totalCount ?? root.count
-  return value == null ? undefined : Number(value)
-}
-
 function statusLabel(status) {
   const value = String(status ?? '').replaceAll('_', ' ').trim()
   if (!value) return ''
@@ -141,6 +134,14 @@ function statusTone(status) {
   if (/verified|approved|active/i.test(String(status ?? ''))) return 'success'
   if (/reject|suspend|blocked/i.test(String(status ?? ''))) return 'error'
   return 'warning'
+}
+
+function DashboardSkeleton() {
+  return <div className="flex animate-pulse flex-col gap-5" aria-label="Loading recruiter dashboard" aria-busy="true">
+    <section className="space-y-2"><div className="h-3 w-28 rounded bg-slate-200" /><div className="h-8 w-64 max-w-full rounded bg-slate-200" /><div className="h-4 w-80 max-w-full rounded bg-slate-200" /></section>
+    <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{Array.from({ length: 8 }, (_, index) => <div key={index} className="rounded-xl border border-slate-200 bg-white p-4"><div className="h-4 w-28 rounded bg-slate-100" /><div className="mt-3 h-8 w-16 rounded bg-slate-100" /></div>)}</section>
+    <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,7fr)_minmax(290px,3fr)]"><div className="flex flex-col gap-4"><div className="rounded-xl border border-slate-200 bg-white p-4"><div className="h-5 w-40 rounded bg-slate-100" /><div className="mt-4 h-4 w-full rounded bg-slate-100" /><div className="mt-2 h-4 w-2/3 rounded bg-slate-100" /></div><section className="space-y-3"><div className="h-6 w-52 rounded bg-slate-200" />{Array.from({ length: 3 }, (_, index) => <div key={index} className="rounded-xl border border-slate-200 bg-white p-4"><div className="h-5 w-48 rounded bg-slate-100" /><div className="mt-3 h-4 w-3/4 rounded bg-slate-100" /></div>)}</section></div><div className="flex flex-col gap-4"><div className="rounded-xl border border-slate-200 bg-white p-4"><div className="h-5 w-36 rounded bg-slate-100" />{Array.from({ length: 3 }, (_, index) => <div key={index} className="mt-4 h-4 w-full rounded bg-slate-100" />)}</div><div className="rounded-xl border border-slate-200 bg-white p-4"><div className="h-4 w-28 rounded bg-slate-100" /><div className="mt-3 h-8 w-32 rounded bg-slate-100" /></div></div></div>
+  </div>
 }
 
 export default function RecruiterDashboard() {
@@ -155,53 +156,14 @@ export default function RecruiterDashboard() {
     setLoading(true)
     Promise.allSettled([
       recruiterApi.getDashboard(),
-      recruiterApi.getCreditBalance(),
-      recruiterApi.getPurchasedCandidates({ page: 1, pageSize: 1 }),
-      recruiterApi.getJobs(),
-    ]).then(async ([dashboardResult, creditResult, purchasedResult, jobsResult]) => {
+    ]).then(([dashboardResult]) => {
       if (!current) return
       if (dashboardResult.status === 'rejected') {
         setError(dashboardResult.reason)
         return
       }
       setError(null)
-      let applicationCounts
-      let appliedCandidates = []
-      if (jobsResult.status === 'fulfilled') {
-        const jobs = getListResponse(jobsResult.value).items
-        const applicationResults = await Promise.allSettled(jobs.map(async (job) => {
-          const jobId = job.id || job.jobId || job.job_id
-          return jobId ? getListResponse(await recruiterApi.getJobApplications(jobId)).items.map(application => ({ ...application, jobId, jobTitle: job.title || job.jobTitle || job.job_title })) : []
-        }))
-        if (applicationResults.every((result) => result.status === 'fulfilled')) {
-          applicationCounts = { APPLIED: 0, UNDER_REVIEW: 0, SHORTLISTED: 0, INTERVIEW: 0, HIRED: 0, REJECTED: 0 }
-          const applications = applicationResults.flatMap(result => result.value)
-          applications.forEach((application) => {
-            const status = String(application.status || application.applicationStatus || application.application_status || 'APPLIED').toUpperCase().replaceAll(' ', '_')
-            if (Object.prototype.hasOwnProperty.call(applicationCounts, status)) applicationCounts[status] += 1
-          })
-          appliedCandidates = applications
-            .filter(application => String(application.status || application.applicationStatus || application.application_status || 'APPLIED').toUpperCase().replaceAll(' ', '_') === 'APPLIED')
-            .map(application => {
-              const candidate = application.candidate || application.applicant || application.candidateProfile || application.candidate_profile || {}
-              return {
-                ...candidate,
-                ...application,
-                candidateId: application.candidateId ?? application.candidate_id ?? candidate.candidateId ?? candidate.candidate_id ?? candidate.publicId ?? candidate.public_id ?? candidate.id,
-                fullName: application.fullName ?? application.full_name ?? application.name ?? candidate.fullName ?? candidate.full_name ?? candidate.name,
-                resume: application.resume ?? candidate.resume,
-                resumes: application.resumes ?? candidate.resumes,
-              }
-            })
-        }
-      }
-      if (!current) return
-      const dashboardPayload = { ...unwrap(dashboardResult.value), recommendedCandidates: appliedCandidates }
-      const normalized = normalizeDashboard(dashboardPayload, {
-        credits: creditResult.status === 'fulfilled' ? creditResult.value : null,
-        applicationCounts,
-        purchasedTotal: purchasedResult.status === 'fulfilled' ? responseTotal(purchasedResult.value) : undefined,
-      })
+      const normalized = normalizeDashboard(dashboardResult.value)
       setDashboard(normalized)
     }).finally(() => { if (current) setLoading(false) })
     return () => { current = false }
@@ -239,7 +201,7 @@ export default function RecruiterDashboard() {
     </section>
 
     <RecruiterApiError error={error} onRetry={() => { setError(null); setReload(value => value + 1) }} />
-    {loading ? <RecruiterLoading label="Loading your recruiter dashboard…" /> : dashboard && <>
+    {loading ? <DashboardSkeleton /> : dashboard && <>
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {dashboardMetricItems.map(({ label, value, icon: Icon }) => {
           return <article key={label} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm shadow-slate-900/5">

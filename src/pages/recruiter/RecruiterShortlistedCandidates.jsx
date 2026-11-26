@@ -6,6 +6,8 @@ import { RecruiterApiError, RecruiterEmpty, RecruiterLoading, getListResponse } 
 import RecruiterRejectApplicationDialog from '../../components/recruiter/RecruiterRejectApplicationDialog'
 import { recruiterApi } from '../../lib/recruiterApi'
 
+const shortlistedGrid = 'grid-cols-[minmax(280px,1.7fr)_minmax(190px,1.25fr)_minmax(125px,0.9fr)_80px_minmax(150px,1fr)_115px_120px_205px]'
+
 function normalizeShortlistedCandidate(item = {}) {
   const candidate = item.candidate || item.profile || item.candidateProfile || item.candidate_profile || item.candidateDetails || item.candidate_details || item
   const candidateId = item.candidateId || item.candidate_id || candidate.candidateId || candidate.candidate_id || candidate.id
@@ -49,23 +51,12 @@ function normalizeShortlistedCandidate(item = {}) {
   }
 }
 
-function unwrapCandidate(payload) {
-  let result = payload
-  for (let depth = 0; depth < 5 && result && !Array.isArray(result); depth += 1) {
-    if (result.data && typeof result.data === 'object') result = result.data
-    else if (result.result && typeof result.result === 'object') result = result.result
-    else break
-  }
-  return result?.candidate ?? result?.candidateProfile ?? result?.candidate_profile ?? result?.profile?.candidate ?? result?.profile ?? result ?? {}
-}
-
-function statusKey(value) { return String(value || '').toUpperCase().replaceAll(' ', '_') }
-
 export default function RecruiterShortlistedCandidates() {
   const [query, setQuery] = useState('')
   const [specialty, setSpecialty] = useState('')
   const [location, setLocation] = useState('')
   const [items, setItems] = useState([])
+  const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -81,48 +72,29 @@ export default function RecruiterShortlistedCandidates() {
     setError(null)
     const loadCandidates = async () => {
       try {
-        // Keep saved candidates and application shortlists together in this view.
-        const savedPromise = recruiterApi.getShortlistedCandidates()
-        const jobsPromise = recruiterApi.getJobs()
-        const [savedResult, jobsResult] = await Promise.allSettled([savedPromise, jobsPromise])
-        if (savedResult.status === 'rejected') throw savedResult.reason
-        const saved = getListResponse(savedResult.value).items.map(normalizeShortlistedCandidate)
-        let applicationRows = []
-        let applicationLoadError = jobsResult.status === 'rejected' ? jobsResult.reason : null
-        if (jobsResult.status === 'fulfilled') {
-          const jobs = getListResponse(jobsResult.value).items
-          const perJob = await Promise.all(jobs.map(async (job) => {
-            const jobId = job.id || job.jobId || job.job_id
-            if (!jobId) return []
-            try {
-              const applications = getListResponse(await recruiterApi.getJobApplications(jobId)).items
-              return applications.filter((application) => statusKey(application.status || application.applicationStatus || application.application_status) === 'SHORTLISTED')
-                .map((application) => normalizeShortlistedCandidate({ ...application, jobId, jobTitle: job.title || job.jobTitle || job.job_title || 'Job posting', fromApplication: true }))
-            } catch (requestError) {
-              applicationLoadError ||= requestError
-              return []
-            }
-          }))
-          applicationRows = perJob.flat()
-          applicationRows = await Promise.all(applicationRows.map(async (row) => {
-            if (!row.candidateId || (row.title && row.specialty && row.location)) return row
-            try {
-              const candidate = unwrapCandidate(await recruiterApi.getCandidate(row.publicId || row.candidateId))
-              return normalizeShortlistedCandidate({ ...row, candidate: { ...candidate, id: row.candidateId } })
-            } catch {
-              return row
-            }
-          }))
-        }
+        const filters = { page, pageSize: 8, q: query.trim() || undefined, specialty: specialty.trim() || undefined, location: location.trim() || undefined }
+        const [savedResponse, applicationResponse] = await Promise.all([
+          recruiterApi.getShortlistedCandidates(filters),
+          recruiterApi.getApplicationsByStatus({ ...filters, status: 'SHORTLISTED' }),
+        ])
+        const savedResult = getListResponse(savedResponse)
+        const applicationResult = getListResponse(applicationResponse)
+        const saved = savedResult.items.map(normalizeShortlistedCandidate)
+        const applicationRows = applicationResult.items.map((application) => normalizeShortlistedCandidate({ ...application, fromApplication: true }))
         if (!active) return
-        const merged = [...saved, ...applicationRows]
+        const merged = []
+        for (let index = 0; index < Math.max(saved.length, applicationRows.length); index += 1) {
+          if (applicationRows[index]) merged.push(applicationRows[index])
+          if (saved[index]) merged.push(saved[index])
+        }
         const unique = new Map()
         merged.forEach((candidate, index) => {
           const key = candidate.applicationId ? `application:${candidate.applicationId}` : `saved:${candidate.candidateId || candidate.id || index}`
           unique.set(key, candidate)
         })
-        setItems([...unique.values()])
-        if (applicationLoadError) setError(applicationLoadError)
+        const mergedRows = [...unique.values()]
+        setItems(mergedRows.slice(0, 8))
+        setTotal(Number(savedResult.pagination.total || 0) + Number(applicationResult.pagination.total || 0))
       } catch (requestError) {
         if (active) setError(requestError)
       } finally {
@@ -131,7 +103,7 @@ export default function RecruiterShortlistedCandidates() {
     }
     loadCandidates()
     return () => { active = false }
-  }, [reload])
+  }, [reload, page, query, specialty, location])
 
   const filteredItems = useMemo(() => items.filter((candidate) => {
     const text = [candidate.name, candidate.title, candidate.specialty, candidate.location, candidate.status].filter(Boolean).join(' ').toLowerCase()
@@ -139,9 +111,9 @@ export default function RecruiterShortlistedCandidates() {
       (!specialty || String(candidate.specialty || '').toLowerCase().includes(specialty.trim().toLowerCase())) &&
       (!location || String(candidate.location || '').toLowerCase().includes(location.trim().toLowerCase()))
   }), [items, query, specialty, location])
-  const pageSize = 20
-  const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize))
-  const pageItems = filteredItems.slice((page - 1) * pageSize, page * pageSize)
+  const pageSize = 8
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
+  const pageItems = filteredItems.slice(0, pageSize)
 
   const remove = async (candidate) => {
     if (!candidate.candidateId) return
@@ -183,21 +155,37 @@ export default function RecruiterShortlistedCandidates() {
       <FilterInput value={location} onChange={(value) => { setLocation(value); setPage(1) }} placeholder="Location" />
     </div>
     <RecruiterApiError error={error} onRetry={() => setReload((value) => value + 1)} />
-    <section className="overflow-hidden rounded-xl border border-slate-200 bg-white"><div className="hidden gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3 text-xs font-bold uppercase text-slate-700 xl:grid xl:grid-cols-[minmax(180px,1fr)_160px_112px_55px_120px_110px_90px_80px]"><span>Candidate</span><span>Role</span><span>Specialty</span><span>Exp</span><span>Location</span><span>Date</span><span>Status</span><span>Actions</span></div>
+    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm shadow-slate-900/5"><div className="overflow-x-auto"><div className={`grid min-w-[1265px] ${shortlistedGrid} items-center gap-4 border-b border-slate-200 bg-slate-50/90 px-5 py-3.5 text-[11px] font-bold uppercase tracking-wide text-slate-500`}><span>Candidate</span><span>Role &amp; job</span><span>Specialty</span><span>Exp.</span><span>Location</span><span>Shortlisted</span><span>Status</span><span className="text-right">Actions</span></div>
       {loading ? <RecruiterLoading label="Loading shortlisted candidates…" /> : pageItems.map((candidate, index) => <ShortlistedCandidateRow key={candidate.applicationId ? `application-${candidate.applicationId}` : candidate.id || index} candidate={candidate} removing={removingId === candidate.id} statusUpdating={statusUpdatingId === candidate.applicationId} onRemove={() => remove(candidate)} onAdvance={(nextStatus) => { if (nextStatus === 'REJECTED') { setError(null); setRejectTarget(candidate); setRejectReason('') } else advanceApplication(candidate, nextStatus) }} formatDate={formatDate} />)}
       {!loading && !error && !pageItems.length && <RecruiterEmpty>No shortlisted candidates match your filters.</RecruiterEmpty>}
-    </section>
-    <div className="flex items-center justify-between gap-3 text-xs text-slate-500"><span>Showing {pageItems.length ? `${(page - 1) * pageSize + 1}-${(page - 1) * pageSize + pageItems.length}` : '0'} of {filteredItems.length}</span><div className="flex items-center gap-2"><button type="button" disabled={page <= 1 || loading} onClick={() => setPage((value) => value - 1)} className="rounded border px-3 py-2 disabled:opacity-40">Prev</button><span>Page {page} of {totalPages}</span><button type="button" disabled={page >= totalPages || loading} onClick={() => setPage((value) => value + 1)} className="rounded border px-3 py-2 disabled:opacity-40">Next</button></div></div>
+    </div></section>
+    <div className="flex items-center justify-between gap-3 text-xs text-slate-500"><span>Showing {pageItems.length ? `${(page - 1) * pageSize + 1}-${(page - 1) * pageSize + pageItems.length}` : '0'} of {total}</span><div className="flex items-center gap-2"><button type="button" disabled={page <= 1 || loading} onClick={() => setPage((value) => value - 1)} className="rounded border px-3 py-2 disabled:opacity-40">Prev</button><span>Page {page} of {totalPages}</span><button type="button" disabled={page >= totalPages || loading} onClick={() => setPage((value) => value + 1)} className="rounded border px-3 py-2 disabled:opacity-40">Next</button></div></div>
     {(query || specialty || location) && <button type="button" onClick={clearFilters} className="self-start text-xs font-semibold text-blue-600">Clear Filters</button>}
     <RecruiterRejectApplicationDialog open={Boolean(rejectTarget)} candidateName={rejectTarget?.name || ''} jobTitle={rejectTarget?.jobTitle || ''} reason={rejectReason} onReasonChange={setRejectReason} onCancel={() => { if (!statusUpdatingId) { setRejectTarget(null); setRejectReason('') } }} onConfirm={confirmRejection} busy={Boolean(rejectTarget && statusUpdatingId === rejectTarget.applicationId)} error={error?.message || ''} />
   </div>
+}
+
+function LegacyShortlistedCandidateRow({ candidate, removing, statusUpdating, onRemove, onAdvance, formatDate }) {
+  const locked = candidate.status === 'Locked'
+  const candidateLabel = candidate.name || 'Candidate profile'
+  const profileId = candidate.publicId || candidate.candidateId || candidate.id
+  return <article className="grid gap-3 border-b border-slate-100 px-4 py-3.5 last:border-b-0 xl:grid-cols-[minmax(180px,1fr)_160px_112px_55px_120px_110px_90px_minmax(80px,auto)] xl:items-center"><div className="flex items-center gap-2.5"><div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${locked ? 'bg-slate-100 text-slate-500' : 'bg-blue-50 text-blue-600'}`}>{candidate.initials || '—'}</div><div className="text-sm font-semibold text-slate-900">{candidateLabel}</div></div><div className="text-sm text-slate-600">{candidate.title || '—'}{candidate.jobTitle && <Link to={`/recruiter/jobs/${encodeURIComponent(candidate.jobId)}/applications`} className="mt-1 block text-xs font-semibold text-blue-600 hover:text-blue-700">Applied to: {candidate.jobTitle}</Link>}</div><div className="text-sm text-slate-600">{candidate.specialty || '—'}</div><div className="text-sm text-slate-600">{candidate.experience ?? '—'}</div><div className="text-sm text-slate-600">{candidate.location || '—'}</div><div className="text-xs text-slate-500">{formatDate(candidate.date)}</div><div>{candidate.applicationStatus ? <Badge tone="teal" className="normal-case tracking-normal">{String(candidate.applicationStatus).toLowerCase().replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())}</Badge> : locked ? <Badge tone="slate" className="normal-case tracking-normal"><LockKeyhole className="mr-1 h-3 w-3" />Locked</Badge> : <Badge tone="success" className="normal-case tracking-normal">{candidate.status === 'Unlocked' ? 'Unlocked' : 'Status unavailable'}</Badge>}</div><div className="flex flex-wrap items-center gap-2">{profileId ? <Link to={`/recruiter/candidates/${encodeURIComponent(profileId)}`} aria-label={`View ${candidateLabel}`} className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-blue-600"><Eye className="h-3.5 w-3.5" /></Link> : <button type="button" disabled aria-label="Candidate ID unavailable" className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-blue-600 disabled:opacity-40"><Eye className="h-3.5 w-3.5" /></button>}{candidate.fromApplication && <select aria-label={`Move ${candidateLabel} to next step`} disabled={statusUpdating} defaultValue="" onChange={(event) => { const next = event.target.value; event.target.value = ''; if (next) onAdvance(next) }} className="h-8 max-w-36 rounded-md border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-700 disabled:opacity-50"><option value="" disabled>{statusUpdating ? 'Saving…' : 'Next step'}</option><option value="INTERVIEW">Move to Interview</option><option value="REJECTED">Move to Rejected</option></select>}{!candidate.fromApplication && <button type="button" disabled={!candidate.candidateId || removing} onClick={onRemove} aria-label={`Remove ${candidateLabel} from shortlist`} className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-red-500 disabled:opacity-50"><Trash2 className="h-3.5 w-3.5" /></button>}</div></article>
 }
 
 function ShortlistedCandidateRow({ candidate, removing, statusUpdating, onRemove, onAdvance, formatDate }) {
   const locked = candidate.status === 'Locked'
   const candidateLabel = candidate.name || 'Candidate profile'
   const profileId = candidate.publicId || candidate.candidateId || candidate.id
-  return <article className="grid gap-3 border-b border-slate-100 px-4 py-3.5 last:border-b-0 xl:grid-cols-[minmax(180px,1fr)_160px_112px_55px_120px_110px_90px_minmax(80px,auto)] xl:items-center"><div className="flex items-center gap-2.5"><div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${locked ? 'bg-slate-100 text-slate-500' : 'bg-blue-50 text-blue-600'}`}>{candidate.initials || '—'}</div><div className="text-sm font-semibold text-slate-900">{candidateLabel}</div></div><div className="text-sm text-slate-600">{candidate.title || '—'}{candidate.jobTitle && <Link to={`/recruiter/jobs/${encodeURIComponent(candidate.jobId)}/applications`} className="mt-1 block text-xs font-semibold text-blue-600 hover:text-blue-700">Applied to: {candidate.jobTitle}</Link>}</div><div className="text-sm text-slate-600">{candidate.specialty || '—'}</div><div className="text-sm text-slate-600">{candidate.experience ?? '—'}</div><div className="text-sm text-slate-600">{candidate.location || '—'}</div><div className="text-xs text-slate-500">{formatDate(candidate.date)}</div><div>{candidate.applicationStatus ? <Badge tone="teal" className="normal-case tracking-normal">{String(candidate.applicationStatus).toLowerCase().replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())}</Badge> : locked ? <Badge tone="slate" className="normal-case tracking-normal"><LockKeyhole className="mr-1 h-3 w-3" />Locked</Badge> : <Badge tone="success" className="normal-case tracking-normal">{candidate.status === 'Unlocked' ? 'Unlocked' : 'Status unavailable'}</Badge>}</div><div className="flex flex-wrap items-center gap-2">{profileId ? <Link to={`/recruiter/candidates/${encodeURIComponent(profileId)}`} aria-label={`View ${candidateLabel}`} className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-blue-600"><Eye className="h-3.5 w-3.5" /></Link> : <button type="button" disabled aria-label="Candidate ID unavailable" className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-blue-600 disabled:opacity-40"><Eye className="h-3.5 w-3.5" /></button>}{candidate.fromApplication && <select aria-label={`Move ${candidateLabel} to next step`} disabled={statusUpdating} defaultValue="" onChange={(event) => { const next = event.target.value; event.target.value = ''; if (next) onAdvance(next) }} className="h-8 max-w-36 rounded-md border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-700 disabled:opacity-50"><option value="" disabled>{statusUpdating ? 'Saving…' : 'Next step'}</option><option value="INTERVIEW">Move to Interview</option><option value="REJECTED">Move to Rejected</option></select>}{!candidate.fromApplication && <button type="button" disabled={!candidate.candidateId || removing} onClick={onRemove} aria-label={`Remove ${candidateLabel} from shortlist`} className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-red-500 disabled:opacity-50"><Trash2 className="h-3.5 w-3.5" /></button>}</div></article>
+  return <article className={`grid min-w-[1265px] ${shortlistedGrid} items-center gap-4 border-b border-slate-100 px-5 py-4 transition-colors last:border-b-0 hover:bg-slate-50/70`}>
+    <div className="flex min-w-0 items-center gap-3"><div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold ${locked ? 'bg-slate-100 text-slate-500' : 'bg-blue-50 text-blue-700'}`}>{candidate.initials || '—'}</div><div className="min-w-0"><div className="truncate text-sm font-bold text-slate-900" title={candidateLabel}>{candidateLabel}</div><div className="mt-0.5 text-xs text-slate-500">Healthcare professional</div></div></div>
+    <div className="min-w-0 text-sm text-slate-700"><div className="truncate font-medium" title={candidate.title || ''}>{candidate.title || '—'}</div>{candidate.jobTitle && <Link to={`/recruiter/jobs/${encodeURIComponent(candidate.jobId)}/applications`} className="mt-1 block truncate text-xs font-semibold text-blue-600 hover:text-blue-700" title={candidate.jobTitle}>{candidate.jobTitle}</Link>}</div>
+    <div className="truncate text-sm text-slate-600" title={candidate.specialty || ''}>{candidate.specialty || '—'}</div>
+    <div className="text-sm tabular-nums text-slate-600">{candidate.experience ?? '—'}</div>
+    <div className="truncate text-sm text-slate-600" title={candidate.location || ''}>{candidate.location || '—'}</div>
+    <div className="text-xs tabular-nums text-slate-500">{formatDate(candidate.date)}</div>
+    <div>{candidate.applicationStatus ? <Badge tone="teal" className="normal-case tracking-normal">{String(candidate.applicationStatus).toLowerCase().replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())}</Badge> : locked ? <Badge tone="slate" className="normal-case tracking-normal"><LockKeyhole className="mr-1 h-3 w-3" />Locked</Badge> : <Badge tone="success" className="normal-case tracking-normal">{candidate.status === 'Unlocked' ? 'Unlocked' : 'Saved'}</Badge>}</div>
+    <div className="flex items-center justify-end gap-2">{profileId ? <Link to={`/recruiter/candidates/${encodeURIComponent(profileId)}`} aria-label={`View ${candidateLabel}`} title="View profile" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-blue-600 transition hover:border-blue-200 hover:bg-blue-50"><Eye className="h-4 w-4" /></Link> : <button type="button" disabled aria-label="Candidate ID unavailable" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-blue-600 disabled:opacity-40"><Eye className="h-4 w-4" /></button>}{candidate.fromApplication && <select aria-label={`Move ${candidateLabel} to next step`} disabled={statusUpdating} defaultValue="" onChange={(event) => { const next = event.target.value; event.target.value = ''; if (next) onAdvance(next) }} className="h-9 w-[150px] rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 disabled:opacity-50"><option value="" disabled>{statusUpdating ? 'Saving…' : 'Next step'}</option><option value="INTERVIEW">Move to Interview</option><option value="REJECTED">Move to Rejected</option></select>}{!candidate.fromApplication && <button type="button" disabled={!candidate.candidateId || removing} onClick={onRemove} aria-label={`Remove ${candidateLabel} from shortlist`} title="Remove from shortlist" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-red-500 transition hover:border-red-200 hover:bg-red-50 disabled:opacity-50"><Trash2 className="h-4 w-4" /></button>}</div>
+  </article>
 }
 
 function FilterInput({ value, onChange, placeholder }) {

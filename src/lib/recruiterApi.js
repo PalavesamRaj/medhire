@@ -3,6 +3,7 @@ import { authedFetch } from './http'
 import { toMonthlySalaryAmount } from './currency'
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
+const inFlightGetRequests = new Map()
 
 export const RECRUITER_ENDPOINTS = {
   dashboard: '/recruiter/dashboard',
@@ -51,7 +52,7 @@ function getFieldErrors(payload) {
   return source && typeof source === 'object' ? source : {}
 }
 
-export async function request(path, { method = 'GET', body, signal, idempotencyKey } = {}) {
+async function performRequest(path, { method = 'GET', body, signal, idempotencyKey } = {}) {
   const token = getAccessToken()
   const response = await authedFetch(`${API_BASE_URL}${path}`, {
     method,
@@ -77,6 +78,21 @@ export async function request(path, { method = 'GET', body, signal, idempotencyK
     throw error
   }
   return payload
+}
+
+export function request(path, options = {}) {
+  const method = String(options.method || 'GET').toUpperCase()
+  if (method !== 'GET' || options.signal) return performRequest(path, options)
+
+  const key = `${getAccessToken() || 'anonymous'}:${path}`
+  const existing = inFlightGetRequests.get(key)
+  if (existing) return existing
+
+  const pending = performRequest(path, options)
+  inFlightGetRequests.set(key, pending)
+  return pending.finally(() => {
+    if (inFlightGetRequests.get(key) === pending) inFlightGetRequests.delete(key)
+  })
 }
 
 export async function downloadCandidateResume(candidateId, resumeId) {
@@ -181,14 +197,17 @@ function toHospitalProfilePayload(body = {}) {
 export const recruiterApi = {
   downloadCandidateResume,
   getDashboard: () => request(RECRUITER_ENDPOINTS.dashboard),
+  getApplicationsByStatus: (filters = {}) => request(withQuery(RECRUITER_ENDPOINTS.applications, filters)),
   getTeam: () => request('/recruiter/team'),
   inviteTeamMember: (body) => request('/recruiter/team/invitations', { method: 'POST', body }),
   removeTeamMember: (userId) => request(idPath('/recruiter/team', userId), { method: 'DELETE' }),
   getJobs: (filters = {}) => requestAllPages(RECRUITER_ENDPOINTS.jobs, filters),
+  getJobsPage: (filters = {}) => request(withQuery(RECRUITER_ENDPOINTS.jobs, filters)),
   createJob: (body) => request(RECRUITER_ENDPOINTS.jobs, { method: 'POST', body: toJobPayload(body) }),
   updateJob: (jobId, body) => request(idPath(RECRUITER_ENDPOINTS.jobs, jobId), { method: 'PATCH', body: toJobPayload(body) }),
   closeJob: (jobId, reason = 'Position has been filled.') => request(`${idPath(RECRUITER_ENDPOINTS.jobs, jobId)}/close`, { method: 'POST', body: { reason } }),
   getJobApplications: (jobId, filters = {}) => requestAllPages(`${idPath(RECRUITER_ENDPOINTS.jobs, jobId)}/applications`, filters),
+  getJobApplicationsPage: (jobId, filters = {}) => request(withQuery(`${idPath(RECRUITER_ENDPOINTS.jobs, jobId)}/applications`, filters)),
   getApplication: (applicationId) => request(idPath(RECRUITER_ENDPOINTS.applications, applicationId)),
   updateApplicationStatus: (applicationId, status, reason) => {
     const actionByStatus = { UNDER_REVIEW: 'review', SHORTLISTED: 'shortlist', INTERVIEW: 'interview', HIRED: 'hire', REJECTED: 'reject' }

@@ -1,8 +1,13 @@
 import React from 'react'
-import { AlertCircle, LoaderCircle } from 'lucide-react'
+import { AlertCircle } from 'lucide-react'
 
 export function RecruiterLoading({ label = 'Loading recruiter data…' }) {
-  return <div role="status" className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500"><LoaderCircle className="h-4 w-4 animate-spin" />{label}</div>
+  return <section role="status" aria-label={label} aria-busy="true" className="flex animate-pulse flex-col gap-4">
+    <span className="sr-only">{label}</span>
+    <div className="space-y-2"><div className="h-7 w-56 max-w-full rounded bg-slate-200" /><div className="h-4 w-80 max-w-full rounded bg-slate-100" /></div>
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{Array.from({ length: 4 }, (_, index) => <div key={index} className="rounded-xl border border-slate-200 bg-white p-4"><div className="h-4 w-28 rounded bg-slate-100" /><div className="mt-3 h-7 w-16 rounded bg-slate-100" /></div>)}</div>
+    <div className="flex flex-col gap-3">{Array.from({ length: 5 }, (_, index) => <div key={index} className="rounded-xl border border-slate-200 bg-white p-4"><div className="h-5 w-2/5 rounded bg-slate-100" /><div className="mt-3 h-4 w-4/5 rounded bg-slate-100" /><div className="mt-2 h-4 w-2/3 rounded bg-slate-100" /></div>)}</div>
+  </section>
 }
 
 export function RecruiterApiError({ error, onRetry }) {

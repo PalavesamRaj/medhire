@@ -69,6 +69,8 @@ function MetricCard({ label, value, icon: Icon, tone = 'blue', onClick }) {
 
 export default function RecruiterJobs() {
   const [jobs, setJobs] = useState([])
+  const [page, setPage] = useState(1)
+  const [pagination, setPagination] = useState({ total: 0, totalPages: 1 })
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(null)
   const [form, setForm] = useState(emptyForm)
@@ -97,13 +99,16 @@ export default function RecruiterJobs() {
     setLoading(true)
     setLoadError(null)
     try {
-      setJobs(jobsFrom(await recruiterApi.getJobs()))
+      const payload = await recruiterApi.getJobsPage({ page, pageSize: 8, status: activeFilter === 'ALL' ? undefined : activeFilter, q: query.trim() || undefined })
+      setJobs(jobsFrom(payload))
+      const data = payload?.data || payload
+      setPagination(data?.pagination || payload?.pagination || { total: jobsFrom(payload).length, totalPages: 1 })
     } catch (requestError) {
       setLoadError(requestError)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [page, activeFilter, query])
 
   useEffect(() => { loadJobs() }, [loadJobs])
 
@@ -277,7 +282,7 @@ export default function RecruiterJobs() {
             <label className="relative block sm:w-64">
               <span className="sr-only">Search job postings</span>
               <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" aria-hidden="true" />
-              <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search your jobs" className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+              <input type="search" value={query} onChange={(event) => { setQuery(event.target.value); setPage(1) }} placeholder="Search your jobs" className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
             </label>
             <button type="button" onClick={loadJobs} disabled={loading} className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />Refresh</button>
           </div>
@@ -287,7 +292,7 @@ export default function RecruiterJobs() {
           {filters.map(([key, label]) => {
             const selected = activeFilter === key
             const count = key === 'ALL' ? counts.total : jobs.filter((job) => statusKey(job.status) === key).length
-            return <button key={key} type="button" aria-pressed={selected} onClick={() => setActiveFilter(key)} className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-semibold transition ${selected ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}>
+            return <button key={key} type="button" aria-pressed={selected} onClick={() => { setActiveFilter(key); setPage(1) }} className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-semibold transition ${selected ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}>
               {label}<span className={`rounded-full px-1.5 py-0.5 text-xs ${selected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>{count}</span>
             </button>
           })}
@@ -351,6 +356,7 @@ export default function RecruiterJobs() {
             })}
           </div>
         )}
+        {!loading && !loadError && <div className="flex items-center justify-between gap-3 pt-2 text-xs text-slate-500"><span>Showing {jobs.length ? `${(page - 1) * 8 + 1}–${(page - 1) * 8 + jobs.length}` : '0'} of {pagination.total || 0}</span><div className="flex items-center gap-2"><button type="button" disabled={page <= 1} onClick={() => setPage((value) => value - 1)} className="rounded border px-3 py-2 disabled:opacity-40">Prev</button><span>Page {page} of {pagination.totalPages || 1}</span><button type="button" disabled={page >= (pagination.totalPages || 1)} onClick={() => setPage((value) => value + 1)} className="rounded border px-3 py-2 disabled:opacity-40">Next</button></div></div>}
       </section>
     </div>
   )

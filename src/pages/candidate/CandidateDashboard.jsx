@@ -9,10 +9,20 @@ import JobCard from '../../components/candidate/dashboard/JobCard'
 import RecentActivity from '../../components/candidate/dashboard/RecentActivity'
 import CandidatePhoto from '../../components/candidate/dashboard/CandidatePhoto'
 
+function DashboardSkeleton() {
+  return <div className="flex animate-pulse flex-col gap-5" aria-label="Loading candidate dashboard" aria-busy="true">
+    <div className="space-y-2"><div className="h-7 w-56 rounded bg-ink-100" /><div className="h-4 w-80 max-w-full rounded bg-ink-100" /></div>
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">{Array.from({ length: 5 }, (_, index) => <div key={index} className="med-card space-y-4"><div className="h-4 w-28 rounded bg-ink-100" /><div className="h-9 w-16 rounded bg-ink-100" /><div className="h-4 w-20 rounded bg-ink-100" /></div>)}</div>
+    <div className="grid items-start gap-4 xl:grid-cols-2">{Array.from({ length: 2 }, (_, index) => <div key={index} className="med-card space-y-3"><div className="h-5 w-40 rounded bg-ink-100" /><div className="h-4 w-full rounded bg-ink-100" /><div className="h-4 w-2/3 rounded bg-ink-100" /></div>)}</div>
+    <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]"><section className="space-y-3"><div className="h-6 w-44 rounded bg-ink-100" /><div className="grid gap-3 md:grid-cols-3">{Array.from({ length: 3 }, (_, index) => <div key={index} className="med-card space-y-3"><div className="h-5 w-3/4 rounded bg-ink-100" /><div className="h-4 w-full rounded bg-ink-100" /><div className="h-4 w-1/2 rounded bg-ink-100" /></div>)}</div></section><div className="med-card space-y-4"><div className="h-6 w-36 rounded bg-ink-100" />{Array.from({ length: 3 }, (_, index) => <div key={index} className="space-y-2"><div className="h-4 w-full rounded bg-ink-100" /><div className="h-3 w-2/3 rounded bg-ink-100" /></div>)}</div></div>
+  </div>
+}
+
 export default function CandidateDashboard() {
   const { candidate, metrics, privacy, recommendedJobs, loading, error } = useCandidateDashboard()
   const { loading: profileLoading } = useCandidateProfile()
   const profileStrength = profileLoading ? null : metrics.profileStrength
+  if (loading || profileLoading) return <DashboardSkeleton />
   return <>
     <PageHeading title={`Welcome back, ${candidate.firstName}`} subtitle="Here’s what’s happening with your career profile.">{privacy.openToWork && <StatusBadge status="Open to Work" />}</PageHeading>
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5"><DashboardStatCard label="Profile Views" value={metrics.profileViews} icon="eye-off" /><DashboardStatCard label="Applications" value={metrics.applications} icon="file-text" /><DashboardStatCard label="Interviews Scheduled" value={metrics.interviews} icon="app-window" /><DashboardStatCard label="Saved Jobs" value={metrics.savedJobs} icon="bookmark" /><DashboardStatCard label="Profile Strength" value={profileLoading ? 'Loading…' : `${profileStrength}%`} progress={profileStrength ?? 0} /></div>

@@ -11,7 +11,7 @@ export default function RecruiterPaymentHistory() {
   const [status, setStatus] = useState('')
   const [range, setRange] = useState('')
   const [items, setItems] = useState([])
-  const [pagination, setPagination] = useState({ page: 1, pageSize: 20, total: 0, totalPages: 0 })
+  const [pagination, setPagination] = useState({ page: 1, pageSize: 8, total: 0, totalPages: 0 })
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -25,7 +25,7 @@ export default function RecruiterPaymentHistory() {
     if (range === 'Last 90 days') { startDate = new Date(); startDate.setDate(startDate.getDate() - 90) }
     if (range === 'This year') startDate = new Date(new Date().getFullYear(), 0, 1)
     setLoading(true); setError(null)
-    recruiterApi.getPaymentHistory({ status, startDate: startDate?.toISOString(), endDate: range ? endDate.toISOString() : '', page, pageSize: 20 }).then((payload) => {
+    recruiterApi.getPaymentHistory({ status, startDate: startDate?.toISOString(), endDate: range ? endDate.toISOString() : '', page, pageSize: 8 }).then((payload) => {
       if (!active) return
       const result = getListResponse(payload); setItems(result.items); setPagination(result.pagination)
     }).catch((requestError) => { if (active) setError(requestError) }).finally(() => { if (active) setLoading(false) })
@@ -43,7 +43,7 @@ export default function RecruiterPaymentHistory() {
       {loading ? <RecruiterLoading label="Loading payment history…" /> : items.map((transaction) => <article key={transaction.id} className="grid gap-3 border-b border-slate-100 px-4 py-3.5 last:border-b-0 xl:grid-cols-[144px_112px_112px_80px_96px_minmax(130px,1fr)_96px_96px] xl:items-center"><div className="text-sm font-semibold text-slate-900">{transaction.id}</div><div className="text-sm text-slate-700"><MobileLabel>Date</MobileLabel>{formatDate(transaction.date)}</div><div className="text-sm font-semibold text-slate-700"><MobileLabel>Plan</MobileLabel>{transaction.plan}</div><div className="text-sm text-slate-700"><MobileLabel>Credits</MobileLabel>{transaction.credits}</div><div className="text-sm font-bold text-slate-900"><MobileLabel>Amount</MobileLabel>{formatAmount(transaction.amount, transaction.currency)}</div><div className="text-xs text-slate-500"><MobileLabel>Payment Method</MobileLabel>{transaction.method || '—'}</div><div><MobileLabel>Status</MobileLabel><span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${statusStyles[transaction.status] || 'border-slate-200 bg-slate-50 text-slate-600'}`}>{transaction.status}</span></div><div className="xl:text-center">{transaction.invoiceAvailable ? <Link to={`/recruiter/payment-history/invoices/${encodeURIComponent(transaction.id)}`} className="text-xs font-bold text-blue-600 underline">View Invoice</Link> : <span className="text-xs text-slate-400">—</span>}</div></article>)}
       {!loading && !error && !items.length && <RecruiterEmpty>No transactions match the selected filters.</RecruiterEmpty>}
     </section>
-    <div className="flex items-center justify-between gap-3 text-xs text-slate-500"><span>{pagination.total} transactions</span><div className="flex items-center gap-2"><button type="button" disabled={page <= 1 || loading} onClick={() => setPage((value) => value - 1)} className="rounded border px-3 py-2 disabled:opacity-40">Prev</button><span>Page {pagination.page || page} of {pagination.totalPages || 1}</span><button type="button" disabled={page >= (pagination.totalPages || 1) || loading} onClick={() => setPage((value) => value + 1)} className="rounded border px-3 py-2 disabled:opacity-40">Next</button></div></div>
+    <div className="flex items-center justify-between gap-3 text-xs text-slate-500"><span>Showing {items.length ? `${(page - 1) * 8 + 1}–${(page - 1) * 8 + items.length}` : '0'} of {pagination.total} transactions</span><div className="flex items-center gap-2"><button type="button" disabled={page <= 1 || loading} onClick={() => setPage((value) => value - 1)} className="rounded border px-3 py-2 disabled:opacity-40">Prev</button><span>Page {pagination.page || page} of {pagination.totalPages || 1}</span><button type="button" disabled={page >= (pagination.totalPages || 1) || loading} onClick={() => setPage((value) => value + 1)} className="rounded border px-3 py-2 disabled:opacity-40">Next</button></div></div>
   </div>
 }
 

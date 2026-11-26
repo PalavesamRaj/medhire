@@ -62,6 +62,8 @@ function applicationStatus(item) {
 export default function RecruiterJobApplicants() {
   const { jobId } = useParams()
   const [items, setItems] = useState([])
+  const [page, setPage] = useState(1)
+  const [pagination, setPagination] = useState({ total: 0, totalPages: 1 })
   const [job, setJob] = useState(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(null)
@@ -76,8 +78,9 @@ export default function RecruiterJobApplicants() {
     setLoading(true)
     setLoadError(null)
     try {
-      const payload = await recruiterApi.getJobApplications(jobId)
+      const payload = await recruiterApi.getJobApplicationsPage(jobId, { page, pageSize: 8 })
       const applications = getListResponse(payload).items
+      setPagination(getListResponse(payload).pagination)
       setJob((payload?.data || payload)?.job || null)
       const enriched = await Promise.all(applications.map(async (application) => {
         const applicant = getApplicant(application)
@@ -95,7 +98,7 @@ export default function RecruiterJobApplicants() {
     } finally {
       setLoading(false)
     }
-  }, [jobId])
+  }, [jobId, page])
 
   useEffect(() => { load() }, [load])
 
@@ -143,7 +146,7 @@ export default function RecruiterJobApplicants() {
       <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">Applicants{job?.title ? ` — ${job.title}` : ''}</h1>
       <p className="mt-1 text-sm text-slate-500">Review candidates who applied to this job and track each application’s status.</p>
     </header>
-    {!loading && !loadError && <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600"><Users className="h-5 w-5 text-blue-600" /><strong className="text-slate-900">{items.length}</strong> {items.length === 1 ? 'applicant' : 'applicants'} for this job</div>}
+    {!loading && !loadError && <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600"><Users className="h-5 w-5 text-blue-600" /><strong className="text-slate-900">{pagination.total}</strong> {pagination.total === 1 ? 'applicant' : 'applicants'} for this job</div>}
     {error && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
     {loadError && <RecruiterApiError error={loadError} onRetry={load} />}
     {loading ? <RecruiterLoading label="Loading applicants…" /> : !loadError && items.length === 0 ? <RecruiterEmpty><span className="inline-flex flex-col items-center gap-2"><Users className="h-6 w-6" />No one has applied to this job yet.</span></RecruiterEmpty> : !loadError && <div className="grid gap-3">
@@ -179,6 +182,7 @@ export default function RecruiterJobApplicants() {
         </article>
       })}
     </div>}
+    {!loading && !loadError && pagination.total > 0 && <div className="flex items-center justify-between gap-3 text-xs text-slate-500"><span>Showing {(page - 1) * 8 + 1}–{(page - 1) * 8 + items.length} of {pagination.total}</span><div className="flex items-center gap-2"><button type="button" disabled={page <= 1} onClick={() => setPage((value) => value - 1)} className="rounded border px-3 py-2 disabled:opacity-40">Prev</button><span>Page {page} of {pagination.totalPages || 1}</span><button type="button" disabled={page >= (pagination.totalPages || 1)} onClick={() => setPage((value) => value + 1)} className="rounded border px-3 py-2 disabled:opacity-40">Next</button></div></div>}
     <RecruiterRejectApplicationDialog open={Boolean(rejectTarget)} candidateName={rejectTarget ? getApplicant(rejectTarget).name : ''} jobTitle={job?.title || ''} reason={rejectReason} onReasonChange={setRejectReason} onCancel={() => { if (!statusBusy) { setRejectTarget(null); setRejectReason('') } }} onConfirm={confirmRejection} busy={Boolean(rejectTarget && statusBusy === (rejectTarget.applicationId || rejectTarget.application_id || rejectTarget.id))} error={error} />
   </div>
 }

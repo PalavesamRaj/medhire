@@ -18,7 +18,7 @@ function getCandidateList(payload) {
   let current = payload
   for (let depth = 0; depth < 5 && current; depth += 1) {
     if (Array.isArray(current)) {
-      return { items: current.map(normalizeCandidate), pagination: { page: 1, pageSize: 20, total: current.length, totalPages: 1 } }
+      return { items: current.map(normalizeCandidate), pagination: { page: 1, pageSize: 8, total: current.length, totalPages: 1 } }
     }
     const list = current.items ?? current.results ?? current.candidates ?? current.records
     if (Array.isArray(list)) {
@@ -34,12 +34,12 @@ function getCandidateList(payload) {
       }
     }
     if (Array.isArray(current)) {
-      return { items: current.map(normalizeCandidate), pagination: { page: 1, pageSize: 20, total: current.length, totalPages: 1 } }
+      return { items: current.map(normalizeCandidate), pagination: { page: 1, pageSize: 8, total: current.length, totalPages: 1 } }
     }
     current = current.data ?? current.items ?? current
     if (current === payload) break
   }
-  if (Array.isArray(payload)) return { items: payload.map(normalizeCandidate), pagination: { page: 1, pageSize: 20, total: payload.length, totalPages: 1 } }
+  if (Array.isArray(payload)) return { items: payload.map(normalizeCandidate), pagination: { page: 1, pageSize: 8, total: payload.length, totalPages: 1 } }
   throw new Error('The /recruiter/candidates response did not contain an items, results, or candidates list.')
 }
 
@@ -159,7 +159,7 @@ export default function RecruiterFindCandidates() {
   const [submittedQuery, setSubmittedQuery] = useState(searchParams.get('search') || '')
   const [selectedFilters, setSelectedFilters] = useState(initialFilters)
   const [results, setResults] = useState([])
-  const [pagination, setPagination] = useState({ page: 1, pageSize: 20, total: 0, totalPages: 1 })
+  const [pagination, setPagination] = useState({ page: 1, pageSize: 8, total: 0, totalPages: 1 })
   const [page, setPage] = useState(1)
   const [shortlisted, setShortlisted] = useState([])
   const [loading, setLoading] = useState(true)
@@ -168,7 +168,7 @@ export default function RecruiterFindCandidates() {
   const [actionMessage, setActionMessage] = useState('')
   const [reload, setReload] = useState(0)
 
-  const pageSize = 20
+  const pageSize = 8
   const experienceMinimum = selectedFilters.experience ? Number.parseInt(selectedFilters.experience, 10) : undefined
 
   useEffect(() => {
